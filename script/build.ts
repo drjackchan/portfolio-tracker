@@ -42,7 +42,10 @@ async function buildAll() {
     bundle: true,
     format: "cjs",  // CJS — required by Vercel's standard Node launcher
     outfile: `${funcDir}/index.js`,
-    external: ["pg-native", "pg", "drizzle-orm", "drizzle-zod", "express", "serverless-http"],
+    // Only exclude pg-native (optional native addon that doesn't exist in Lambda).
+    // Everything else — express, pg, drizzle-orm, serverless-http — must be
+    // bundled in because the Build Output API functions dir has no node_modules.
+    external: ["pg-native"],
     logLevel: "info",
   });
 
