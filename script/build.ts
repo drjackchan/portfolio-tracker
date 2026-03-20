@@ -38,7 +38,6 @@ async function buildAll() {
   console.log("building client...");
   await viteBuild();
 
-  console.log("building server...");
   const pkg = JSON.parse(await readFile("package.json", "utf-8"));
   const allDeps = [
     ...Object.keys(pkg.dependencies || {}),
@@ -46,6 +45,7 @@ async function buildAll() {
   ];
   const externals = allDeps.filter((dep) => !allowlist.includes(dep));
 
+  console.log("building server...");
   await esbuild({
     entryPoints: ["server/index.ts"],
     platform: "node",
@@ -57,6 +57,20 @@ async function buildAll() {
     },
     minify: true,
     external: externals,
+    logLevel: "info",
+  });
+
+  console.log("building api (Vercel serverless)...");
+  // Bundle api/index.ts into api/index.js so Vercel gets a self-contained
+  // JS file — no TypeScript resolution issues at runtime.
+  await esbuild({
+    entryPoints: ["api/index.ts"],
+    platform: "node",
+    bundle: true,
+    format: "esm",
+    outfile: "api/index.js",
+    // Keep native node modules external (pg uses them)
+    packages: "external",
     logLevel: "info",
   });
 }

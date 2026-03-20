@@ -1,10 +1,30 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { storage } from "../server/storage";
 import { insertAssetSchema, insertTransactionSchema } from "../shared/schema";
+import { runMigrations } from "../db/migrate";
+
+// Run migrations once at cold-start (safe — uses CREATE TABLE IF NOT EXISTS)
+let migrationsRan = false;
+async function ensureMigrations() {
+  if (!migrationsRan) {
+    await runMigrations();
+    migrationsRan = true;
+  }
+}
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Run migrations on first request
+app.use(async (req, res, next) => {
+  try {
+    await ensureMigrations();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
 // CORS for Vercel
 app.use((req, res, next) => {
