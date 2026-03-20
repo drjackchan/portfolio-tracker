@@ -29,6 +29,7 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   private pool: Pool;
   private db: ReturnType<typeof drizzle>;
+  private tablesReady: Promise<void>;
 
   constructor(connectionString: string) {
     this.pool = new Pool({
@@ -40,6 +41,41 @@ export class DatabaseStorage implements IStorage {
       max: 1,
     });
     this.db = drizzle(this.pool);
+    // Eagerly create tables so first real request doesn't race
+    this.tablesReady = this.ensureTables().catch(() => {/* non-fatal */});
+  }
+
+  private async ensureTables() {
+    await this.pool.query(`
+      CREATE TABLE IF NOT EXISTS assets (
+        id            SERIAL PRIMARY KEY,
+        name          TEXT NOT NULL,
+        ticker        TEXT,
+        asset_type    TEXT NOT NULL,
+        quantity      REAL NOT NULL,
+        purchase_price REAL NOT NULL,
+        current_price  REAL NOT NULL,
+        currency      TEXT NOT NULL DEFAULT 'USD',
+        notes         TEXT,
+        purchase_date TEXT,
+        category      TEXT
+      );
+    `);
+    await this.pool.query(`
+      CREATE TABLE IF NOT EXISTS transactions (
+        id        SERIAL PRIMARY KEY,
+        asset_id  INTEGER NOT NULL,
+        type      TEXT NOT NULL,
+        quantity  REAL NOT NULL,
+        price     REAL NOT NULL,
+        date      TEXT NOT NULL,
+        notes     TEXT
+      );
+    `);
+  }
+
+  private async ready() {
+    await this.tablesReady;
   }
 
   async end() {
@@ -47,20 +83,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAssets(): Promise<Asset[]> {
+    await this.ready();
     return this.db.select().from(assets);
   }
 
   async getAsset(id: number): Promise<Asset | undefined> {
+    await this.ready();
     const rows = await this.db.select().from(assets).where(eq(assets.id, id));
     return rows[0];
   }
 
   async createAsset(asset: InsertAsset): Promise<Asset> {
+    await this.ready();
     const rows = await this.db.insert(assets).values(asset).returning();
     return rows[0];
   }
 
   async updateAsset(id: number, asset: Partial<InsertAsset>): Promise<Asset | undefined> {
+    await this.ready();
     const rows = await this.db
       .update(assets)
       .set(asset)
@@ -70,6 +110,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteAsset(id: number): Promise<boolean> {
+    await this.ready();
     const rows = await this.db
       .delete(assets)
       .where(eq(assets.id, id))
@@ -78,6 +119,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTransactions(assetId?: number): Promise<Transaction[]> {
+    await this.ready();
     if (assetId !== undefined) {
       return this.db
         .select()
@@ -88,11 +130,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTransaction(tx: InsertTransaction): Promise<Transaction> {
+    await this.ready();
     const rows = await this.db.insert(transactions).values(tx).returning();
     return rows[0];
   }
 
   async deleteTransaction(id: number): Promise<boolean> {
+    await this.ready();
     const rows = await this.db
       .delete(transactions)
       .where(eq(transactions.id, id))
