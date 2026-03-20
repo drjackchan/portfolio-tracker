@@ -36,15 +36,13 @@ async function buildAll() {
   const funcDir = ".vercel/output/functions/api.func";
   await mkdir(funcDir, { recursive: true });
 
+  // Output as index.cjs so Node.js treats it as CommonJS even if package.json has "type":"module"
   await esbuild({
     entryPoints: ["server/api-handler.ts"],
     platform: "node",
     bundle: true,
-    format: "cjs",  // CJS — required by Vercel's standard Node launcher
-    outfile: `${funcDir}/index.js`,
-    // Only exclude native addons that can't be bundled.
-    // @vercel/postgres uses Neon's HTTP transport (no TCP pool) — bundle it in.
-    // Everything else must be bundled since Build Output API functions dir has no node_modules.
+    format: "cjs",
+    outfile: `${funcDir}/index.cjs`,
     external: ["pg-native", "bufferutil", "utf-8-validate"],
     logLevel: "info",
   });
@@ -54,7 +52,7 @@ async function buildAll() {
     `${funcDir}/.vc-config.json`,
     JSON.stringify({
       runtime: "nodejs20.x",
-      handler: "index.js",
+      handler: "index.cjs",   // .cjs extension — forces CJS mode regardless of package.json type field
       launcherType: "Nodejs",
       shouldAddHelpers: true,
     }, null, 2)
