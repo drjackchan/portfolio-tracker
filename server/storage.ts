@@ -1,4 +1,14 @@
-import { assets, transactions, type Asset, type InsertAsset, type Transaction, type InsertTransaction } from "@shared/schema";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+import { eq } from "drizzle-orm";
+import {
+  assets,
+  transactions,
+  type Asset,
+  type InsertAsset,
+  type Transaction,
+  type InsertTransaction,
+} from "@shared/schema";
 
 export interface IStorage {
   // Assets
@@ -14,6 +24,78 @@ export interface IStorage {
   deleteTransaction(id: number): Promise<boolean>;
 }
 
+// ─── PostgreSQL Storage ───────────────────────────────────────────────────────
+
+export class DatabaseStorage implements IStorage {
+  private db;
+
+  constructor() {
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.DATABASE_URL?.includes("localhost")
+        ? false
+        : { rejectUnauthorized: false },
+    });
+    this.db = drizzle(pool);
+  }
+
+  async getAssets(): Promise<Asset[]> {
+    return this.db.select().from(assets);
+  }
+
+  async getAsset(id: number): Promise<Asset | undefined> {
+    const rows = await this.db.select().from(assets).where(eq(assets.id, id));
+    return rows[0];
+  }
+
+  async createAsset(asset: InsertAsset): Promise<Asset> {
+    const rows = await this.db.insert(assets).values(asset).returning();
+    return rows[0];
+  }
+
+  async updateAsset(id: number, asset: Partial<InsertAsset>): Promise<Asset | undefined> {
+    const rows = await this.db
+      .update(assets)
+      .set(asset)
+      .where(eq(assets.id, id))
+      .returning();
+    return rows[0];
+  }
+
+  async deleteAsset(id: number): Promise<boolean> {
+    const rows = await this.db
+      .delete(assets)
+      .where(eq(assets.id, id))
+      .returning();
+    return rows.length > 0;
+  }
+
+  async getTransactions(assetId?: number): Promise<Transaction[]> {
+    if (assetId !== undefined) {
+      return this.db
+        .select()
+        .from(transactions)
+        .where(eq(transactions.assetId, assetId));
+    }
+    return this.db.select().from(transactions);
+  }
+
+  async createTransaction(tx: InsertTransaction): Promise<Transaction> {
+    const rows = await this.db.insert(transactions).values(tx).returning();
+    return rows[0];
+  }
+
+  async deleteTransaction(id: number): Promise<boolean> {
+    const rows = await this.db
+      .delete(transactions)
+      .where(eq(transactions.id, id))
+      .returning();
+    return rows.length > 0;
+  }
+}
+
+// ─── In-Memory Storage (fallback / local dev without DB) ─────────────────────
+
 export class MemStorage implements IStorage {
   private assets: Map<number, Asset> = new Map();
   private transactions: Map<number, Transaction> = new Map();
@@ -21,7 +103,7 @@ export class MemStorage implements IStorage {
   private txIdCounter = 1;
 
   constructor() {
-    // Seed with sample data for demo purposes
+    // Seed with sample data
     const sampleAssets: InsertAsset[] = [
       {
         name: "Apple Inc",
@@ -99,7 +181,15 @@ export class MemStorage implements IStorage {
 
     for (const a of sampleAssets) {
       const id = this.assetIdCounter++;
-      this.assets.set(id, { ...a, id, notes: a.notes ?? null, ticker: a.ticker ?? null, purchaseDate: a.purchaseDate ?? null, category: a.category ?? null });
+      this.assets.set(id, {
+        ...a,
+        id,
+        notes: a.notes ?? null,
+        ticker: a.ticker ?? null,
+        purchaseDate: a.purchaseDate ?? null,
+        category: a.category ?? null,
+        currency: a.currency ?? "USD",
+      });
     }
   }
 
@@ -156,4 +246,8 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// ─── Export the right storage based on environment ───────────────────────────
+
+export const storage: IStorage = process.env.DATABASE_URL
+  ? new DatabaseStorage()
+  : new MemStorage();
