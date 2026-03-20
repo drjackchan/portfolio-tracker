@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import serverless from "serverless-http";
 import { storage } from "./storage";
 import { insertAssetSchema, insertTransactionSchema } from "../shared/schema";
 import { runMigrations } from "../db/migrate";
@@ -97,4 +98,5 @@ app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
   res.status(status).json({ message: err.message || "Internal Server Error" });
 });
 
-export default app;
+// Wrap Express app as a Vercel serverless handler
+export default serverless(app);

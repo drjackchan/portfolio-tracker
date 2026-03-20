@@ -70,8 +70,8 @@ async function buildAll() {
     bundle: true,
     format: "esm",
     outfile: "api/index.js",
-    // Keep native node modules external (pg uses them)
-    packages: "external",
+    // Bundle everything except packages that use native addons
+    external: ["pg-native", "pg", "drizzle-orm", "drizzle-zod", "express", "serverless-http"],
     logLevel: "info",
   });
 }

@@ -1,5 +1,6 @@
 // server/api-handler.ts
 import express from "express";
+import serverless from "serverless-http";
 
 // server/storage.ts
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -343,7 +344,7 @@ app.use((err, _req, res, next) => {
   const status = err.status || 500;
   res.status(status).json({ message: err.message || "Internal Server Error" });
 });
-var api_handler_default = app;
+var api_handler_default = serverless(app);
 export {
   api_handler_default as default
 };
