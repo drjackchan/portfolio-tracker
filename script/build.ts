@@ -61,10 +61,11 @@ async function buildAll() {
   });
 
   console.log("building api (Vercel serverless)...");
-  // Bundle api/index.ts into api/index.js so Vercel gets a self-contained
+  // Bundle server/api-handler.ts into api/index.js so Vercel gets a self-contained
   // JS file — no TypeScript resolution issues at runtime.
+  // Source lives in server/ to avoid the api/*.ts + api/*.js naming conflict.
   await esbuild({
-    entryPoints: ["api/index.ts"],
+    entryPoints: ["server/api-handler.ts"],
     platform: "node",
     bundle: true,
     format: "esm",

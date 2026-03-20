@@ -1,5 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { storage } from "../server/storage";
+import { storage } from "./storage";
 import { insertAssetSchema, insertTransactionSchema } from "../shared/schema";
 import { runMigrations } from "../db/migrate";
 

@@ -1,4 +1,4 @@
-// api/index.ts
+// server/api-handler.ts
 import express from "express";
 
 // server/storage.ts
@@ -266,7 +266,7 @@ async function runMigrations() {
   console.log("[db] Tables ready");
 }
 
-// api/index.ts
+// server/api-handler.ts
 var migrationsRan = false;
 async function ensureMigrations() {
   if (!migrationsRan) {
@@ -343,7 +343,7 @@ app.use((err, _req, res, next) => {
   const status = err.status || 500;
   res.status(status).json({ message: err.message || "Internal Server Error" });
 });
-var index_default = app;
+var api_handler_default = app;
 export {
-  index_default as default
+  api_handler_default as default
 };
