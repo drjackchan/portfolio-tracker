@@ -1,6 +1,7 @@
 import { build as esbuild } from "esbuild";
 import { build as viteBuild } from "vite";
-import { rm, mkdir, writeFile, cp } from "fs/promises";
+import { rm, mkdir, writeFile } from "fs/promises";
+import { resolve } from "path";
 
 /**
  * Builds to the Vercel Build Output API spec:
@@ -24,7 +25,8 @@ async function buildAll() {
   console.log("building client...");
   await viteBuild({
     build: {
-      outDir: ".vercel/output/static",
+      // Use absolute path so it resolves from project root, not Vite's root (client/)
+      outDir: resolve(".vercel/output/static"),
       emptyOutDir: true,
     },
   });
