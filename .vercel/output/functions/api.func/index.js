@@ -1,54 +1,88 @@
+"use strict";
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+
 // server/api-handler.ts
-import express from "express";
-import serverless from "serverless-http";
+var api_handler_exports = {};
+__export(api_handler_exports, {
+  default: () => api_handler_default
+});
+module.exports = __toCommonJS(api_handler_exports);
+var import_express = __toESM(require("express"), 1);
+var import_serverless_http = __toESM(require("serverless-http"), 1);
 
 // server/storage.ts
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
-import { eq } from "drizzle-orm";
+var import_node_postgres = require("drizzle-orm/node-postgres");
+var import_pg = require("pg");
+var import_drizzle_orm = require("drizzle-orm");
 
 // shared/schema.ts
-import { pgTable, text, serial, real, integer } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
-var assets = pgTable("assets", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
+var import_pg_core = require("drizzle-orm/pg-core");
+var import_drizzle_zod = require("drizzle-zod");
+var assets = (0, import_pg_core.pgTable)("assets", {
+  id: (0, import_pg_core.serial)("id").primaryKey(),
+  name: (0, import_pg_core.text)("name").notNull(),
   // e.g. "Apple Inc", "Bitcoin", "123 Main St"
-  ticker: text("ticker"),
+  ticker: (0, import_pg_core.text)("ticker"),
   // e.g. "AAPL", "BTC" (optional)
-  assetType: text("asset_type").notNull(),
+  assetType: (0, import_pg_core.text)("asset_type").notNull(),
   // "stock" | "crypto" | "property" | "other"
-  quantity: real("quantity").notNull(),
-  purchasePrice: real("purchase_price").notNull(),
+  quantity: (0, import_pg_core.real)("quantity").notNull(),
+  purchasePrice: (0, import_pg_core.real)("purchase_price").notNull(),
   // cost per unit
-  currentPrice: real("current_price").notNull(),
+  currentPrice: (0, import_pg_core.real)("current_price").notNull(),
   // current price per unit
-  currency: text("currency").notNull().default("USD"),
-  notes: text("notes"),
-  purchaseDate: text("purchase_date"),
+  currency: (0, import_pg_core.text)("currency").notNull().default("USD"),
+  notes: (0, import_pg_core.text)("notes"),
+  purchaseDate: (0, import_pg_core.text)("purchase_date"),
   // ISO string YYYY-MM-DD
-  category: text("category")
+  category: (0, import_pg_core.text)("category")
   // sub-category e.g. "Tech", "DeFi", "Residential"
 });
-var insertAssetSchema = createInsertSchema(assets).omit({ id: true });
-var transactions = pgTable("transactions", {
-  id: serial("id").primaryKey(),
-  assetId: integer("asset_id").notNull(),
-  type: text("type").notNull(),
+var insertAssetSchema = (0, import_drizzle_zod.createInsertSchema)(assets).omit({ id: true });
+var transactions = (0, import_pg_core.pgTable)("transactions", {
+  id: (0, import_pg_core.serial)("id").primaryKey(),
+  assetId: (0, import_pg_core.integer)("asset_id").notNull(),
+  type: (0, import_pg_core.text)("type").notNull(),
   // "buy" | "sell" | "dividend" | "rebalance"
-  quantity: real("quantity").notNull(),
-  price: real("price").notNull(),
-  date: text("date").notNull(),
-  notes: text("notes")
+  quantity: (0, import_pg_core.real)("quantity").notNull(),
+  price: (0, import_pg_core.real)("price").notNull(),
+  date: (0, import_pg_core.text)("date").notNull(),
+  notes: (0, import_pg_core.text)("notes")
 });
-var insertTransactionSchema = createInsertSchema(transactions).omit({ id: true });
+var insertTransactionSchema = (0, import_drizzle_zod.createInsertSchema)(transactions).omit({ id: true });
 
 // server/storage.ts
 var DatabaseStorage = class {
   _db = null;
   get db() {
     if (!this._db) {
-      const pool = new Pool({
+      const pool = new import_pg.Pool({
         connectionString: process.env.DATABASE_URL,
         ssl: process.env.DATABASE_URL?.includes("localhost") ? false : { rejectUnauthorized: false },
         connectionTimeoutMillis: 5e3,
@@ -57,7 +91,7 @@ var DatabaseStorage = class {
         // release connection quickly in serverless
         max: 3
       });
-      this._db = drizzle(pool);
+      this._db = (0, import_node_postgres.drizzle)(pool);
     }
     return this._db;
   }
@@ -65,7 +99,7 @@ var DatabaseStorage = class {
     return this.db.select().from(assets);
   }
   async getAsset(id) {
-    const rows = await this.db.select().from(assets).where(eq(assets.id, id));
+    const rows = await this.db.select().from(assets).where((0, import_drizzle_orm.eq)(assets.id, id));
     return rows[0];
   }
   async createAsset(asset) {
@@ -73,16 +107,16 @@ var DatabaseStorage = class {
     return rows[0];
   }
   async updateAsset(id, asset) {
-    const rows = await this.db.update(assets).set(asset).where(eq(assets.id, id)).returning();
+    const rows = await this.db.update(assets).set(asset).where((0, import_drizzle_orm.eq)(assets.id, id)).returning();
     return rows[0];
   }
   async deleteAsset(id) {
-    const rows = await this.db.delete(assets).where(eq(assets.id, id)).returning();
+    const rows = await this.db.delete(assets).where((0, import_drizzle_orm.eq)(assets.id, id)).returning();
     return rows.length > 0;
   }
   async getTransactions(assetId) {
     if (assetId !== void 0) {
-      return this.db.select().from(transactions).where(eq(transactions.assetId, assetId));
+      return this.db.select().from(transactions).where((0, import_drizzle_orm.eq)(transactions.assetId, assetId));
     }
     return this.db.select().from(transactions);
   }
@@ -91,7 +125,7 @@ var DatabaseStorage = class {
     return rows[0];
   }
   async deleteTransaction(id) {
-    const rows = await this.db.delete(transactions).where(eq(transactions.id, id)).returning();
+    const rows = await this.db.delete(transactions).where((0, import_drizzle_orm.eq)(transactions.id, id)).returning();
     return rows.length > 0;
   }
 };
@@ -236,12 +270,12 @@ var MemStorage = class {
 var storage = process.env.DATABASE_URL ? new DatabaseStorage() : new MemStorage();
 
 // db/migrate.ts
-import { drizzle as drizzle2 } from "drizzle-orm/node-postgres";
-import { Pool as Pool2 } from "pg";
-import { sql } from "drizzle-orm";
+var import_node_postgres2 = require("drizzle-orm/node-postgres");
+var import_pg2 = require("pg");
+var import_drizzle_orm2 = require("drizzle-orm");
 async function runMigrations() {
   if (!process.env.DATABASE_URL) return;
-  const pool = new Pool2({
+  const pool = new import_pg2.Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: process.env.DATABASE_URL.includes("localhost") ? false : { rejectUnauthorized: false },
     connectionTimeoutMillis: 5e3,
@@ -250,8 +284,8 @@ async function runMigrations() {
     // don't keep function alive after done
     max: 1
   });
-  const db = drizzle2(pool);
-  await db.execute(sql`
+  const db = (0, import_node_postgres2.drizzle)(pool);
+  await db.execute(import_drizzle_orm2.sql`
     CREATE TABLE IF NOT EXISTS assets (
       id          SERIAL PRIMARY KEY,
       name        TEXT NOT NULL,
@@ -284,9 +318,9 @@ async function runMigrations() {
 runMigrations().catch(
   (err) => console.warn("[db] Migration error (non-fatal):", err)
 );
-var app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+var app = (0, import_express.default)();
+app.use(import_express.default.json());
+app.use(import_express.default.urlencoded({ extended: false }));
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
@@ -352,7 +386,6 @@ app.use((err, _req, res, next) => {
   const status = err.status || 500;
   res.status(status).json({ message: err.message || "Internal Server Error" });
 });
-var api_handler_default = serverless(app);
-export {
-  api_handler_default as default
-};
+var handler = (0, import_serverless_http.default)(app);
+var api_handler_default = handler;
+module.exports = handler;

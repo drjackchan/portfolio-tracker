@@ -40,7 +40,7 @@ async function buildAll() {
     entryPoints: ["server/api-handler.ts"],
     platform: "node",
     bundle: true,
-    format: "esm",
+    format: "cjs",  // CJS — required by Vercel's standard Node launcher
     outfile: `${funcDir}/index.js`,
     external: ["pg-native", "pg", "drizzle-orm", "drizzle-zod", "express", "serverless-http"],
     logLevel: "info",

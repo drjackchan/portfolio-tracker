@@ -96,4 +96,7 @@ app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
   res.status(status).json({ message: err.message || "Internal Server Error" });
 });
 
-export default serverless(app);
+// Export as both ESM default and CJS module.exports for Vercel compatibility
+const handler = serverless(app);
+export default handler;
+module.exports = handler;
