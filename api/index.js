@@ -281,33 +281,25 @@ async function runMigrations() {
 }
 
 // server/api-handler.ts
-var migrationsRan = false;
-async function ensureMigrations() {
-  if (migrationsRan) return;
-  migrationsRan = true;
-  try {
-    await runMigrations();
-  } catch (err) {
-    console.warn("[db] Migration failed (will use in-memory storage):", err);
-  }
-}
+runMigrations().catch(
+  (err) => console.warn("[db] Migration error (non-fatal):", err)
+);
 var app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(async (req, res, next) => {
-  try {
-    await ensureMigrations();
-    next();
-  } catch (err) {
-    next(err);
-  }
-});
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
   next();
+});
+app.get("/api/health", (_req, res) => {
+  res.json({
+    ok: true,
+    db: !!process.env.DATABASE_URL ? "postgres" : "memory",
+    ts: (/* @__PURE__ */ new Date()).toISOString()
+  });
 });
 app.get("/api/assets", async (req, res) => {
   const assets2 = await storage.getAssets();

@@ -4,32 +4,17 @@ import { storage } from "./storage";
 import { insertAssetSchema, insertTransactionSchema } from "../shared/schema";
 import { runMigrations } from "../db/migrate";
 
-// Run migrations once at cold-start (safe — uses CREATE TABLE IF NOT EXISTS)
-// Failures are caught and logged so the app still works with MemStorage.
-let migrationsRan = false;
-async function ensureMigrations() {
-  if (migrationsRan) return;
-  migrationsRan = true; // set before await so concurrent requests don't double-run
-  try {
-    await runMigrations();
-  } catch (err) {
-    console.warn("[db] Migration failed (will use in-memory storage):", err);
-  }
-}
+// Fire migrations in the background at cold-start — never block a request.
+// The first few requests will use whatever storage is initialised (MemStorage
+// if DATABASE_URL is absent, DatabaseStorage if present). Tables are created
+// idempotently so re-running on every cold start is safe.
+runMigrations().catch((err) =>
+  console.warn("[db] Migration error (non-fatal):", err)
+);
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-
-// Run migrations on first request
-app.use(async (req, res, next) => {
-  try {
-    await ensureMigrations();
-    next();
-  } catch (err) {
-    next(err);
-  }
-});
 
 // CORS for Vercel
 app.use((req, res, next) => {
@@ -38,6 +23,15 @@ app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
   next();
+});
+
+// Diagnostic endpoint — confirms the function is alive and shows DB status
+app.get("/api/health", (_req, res) => {
+  res.json({
+    ok: true,
+    db: !!process.env.DATABASE_URL ? "postgres" : "memory",
+    ts: new Date().toISOString(),
+  });
 });
 
 // --- Assets ---
@@ -102,5 +96,4 @@ app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
   res.status(status).json({ message: err.message || "Internal Server Error" });
 });
 
-// Wrap Express app as a Vercel serverless handler
 export default serverless(app);
