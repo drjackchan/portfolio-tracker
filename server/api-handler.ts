@@ -2,15 +2,6 @@ import express, { type Request, Response, NextFunction } from "express";
 import serverless from "serverless-http";
 import { storage } from "./storage";
 import { insertAssetSchema, insertTransactionSchema } from "../shared/schema";
-import { runMigrations } from "../db/migrate";
-
-// Fire migrations in the background at cold-start — never block a request.
-// The first few requests will use whatever storage is initialised (MemStorage
-// if DATABASE_URL is absent, DatabaseStorage if present). Tables are created
-// idempotently so re-running on every cold start is safe.
-runMigrations().catch((err) =>
-  console.warn("[db] Migration error (non-fatal):", err)
-);
 
 const app = express();
 app.use(express.json());

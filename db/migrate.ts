@@ -1,14 +1,27 @@
-import { sql } from "@vercel/postgres";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+import { sql } from "drizzle-orm";
 
 /**
  * Creates the tables directly using SQL — no migration files needed.
- * Uses @vercel/postgres HTTP transport so it never blocks the Lambda event loop.
- * This runs fire-and-forget at cold start when DATABASE_URL / POSTGRES_URL is set.
+ * Uses allowExitOnIdle so the pool doesn't block Lambda from exiting.
  */
 export async function runMigrations() {
-  if (!process.env.POSTGRES_URL && !process.env.DATABASE_URL) return;
+  const dbUrl = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+  if (!dbUrl) return;
 
-  await sql`
+  const pool = new Pool({
+    connectionString: dbUrl,
+    ssl: dbUrl.includes("localhost") ? false : { rejectUnauthorized: false },
+    connectionTimeoutMillis: 3000,
+    idleTimeoutMillis: 500,
+    allowExitOnIdle: true,
+    max: 1,
+  });
+
+  const db = drizzle(pool);
+
+  await db.execute(sql`
     CREATE TABLE IF NOT EXISTS assets (
       id            SERIAL PRIMARY KEY,
       name          TEXT NOT NULL,
@@ -22,9 +35,9 @@ export async function runMigrations() {
       purchase_date TEXT,
       category      TEXT
     );
-  `;
+  `);
 
-  await sql`
+  await db.execute(sql`
     CREATE TABLE IF NOT EXISTS transactions (
       id        SERIAL PRIMARY KEY,
       asset_id  INTEGER NOT NULL,
@@ -34,7 +47,8 @@ export async function runMigrations() {
       date      TEXT NOT NULL,
       notes     TEXT
     );
-  `;
+  `);
 
+  await pool.end();
   console.log("[db] Tables ready");
 }

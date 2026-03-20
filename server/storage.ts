@@ -1,3 +1,5 @@
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 import { eq } from "drizzle-orm";
 import {
   assets,
@@ -22,26 +24,26 @@ export interface IStorage {
   deleteTransaction(id: number): Promise<boolean>;
 }
 
-// ─── PostgreSQL Storage (via @vercel/postgres — HTTP transport, no TCP pool) ───
-// @vercel/postgres uses Neon's serverless HTTP driver under the hood.
-// This avoids open TCP connections that keep the Vercel Lambda alive past timeout.
+// ─── PostgreSQL Storage ───────────────────────────────────────────────────────
 
 export class DatabaseStorage implements IStorage {
-  private _db: ReturnType<typeof import("drizzle-orm/vercel-postgres").drizzle> | null = null;
+  private pool: Pool;
+  private db: ReturnType<typeof drizzle>;
 
-  private get db() {
-    if (!this._db) {
-      // Import synchronously at runtime — module is already loaded
-      const { drizzle } = require("drizzle-orm/vercel-postgres");
-      const { createPool } = require("@vercel/postgres");
-      // createPool() reads POSTGRES_URL (Vercel Postgres env var) automatically.
-      // Falls back to DATABASE_URL if POSTGRES_URL is not set.
-      const pool = createPool({
-        connectionString: process.env.POSTGRES_URL || process.env.DATABASE_URL,
-      });
-      this._db = drizzle(pool);
-    }
-    return this._db;
+  constructor(connectionString: string) {
+    this.pool = new Pool({
+      connectionString,
+      ssl: connectionString.includes("localhost") ? false : { rejectUnauthorized: false },
+      connectionTimeoutMillis: 3000,
+      idleTimeoutMillis: 500,
+      allowExitOnIdle: true,   // critical: lets Node.js exit after response
+      max: 1,
+    });
+    this.db = drizzle(this.pool);
+  }
+
+  async end() {
+    try { await this.pool.end(); } catch {}
   }
 
   async getAssets(): Promise<Asset[]> {
@@ -253,7 +255,7 @@ export class MemStorage implements IStorage {
 
 // ─── Export the right storage based on environment ───────────────────────────
 
-export const storage: IStorage =
-  process.env.POSTGRES_URL || process.env.DATABASE_URL
-    ? new DatabaseStorage()
-    : new MemStorage();
+const dbUrl = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+export const storage: IStorage = dbUrl
+  ? new DatabaseStorage(dbUrl)
+  : new MemStorage();
