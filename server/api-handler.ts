@@ -8,91 +8,117 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // CORS for Vercel
-app.use((req, res, next) => {
+app.use((_req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  if (req.method === "OPTIONS") return res.status(200).end();
+  if (_req.method === "OPTIONS") return res.status(200).end();
   next();
 });
 
-// Diagnostic endpoint — confirms the function is alive and shows DB status
+// Diagnostic — instant response, no DB
 app.get("/api/health", (_req, res) => {
-  const dbEnv = process.env.POSTGRES_URL
-    ? "POSTGRES_URL"
-    : process.env.DATABASE_URL
-    ? "DATABASE_URL"
-    : null;
   res.json({
     ok: true,
-    db: dbEnv ? `postgres (${dbEnv})` : "memory",
+    db: (process.env.POSTGRES_URL || process.env.DATABASE_URL) ? "postgres" : "memory",
     ts: new Date().toISOString(),
   });
 });
 
 // --- Assets ---
-app.get("/api/assets", async (req, res) => {
-  const assets = await storage.getAssets();
-  res.json(assets);
+app.get("/api/assets", async (_req, res) => {
+  try {
+    const assets = await storage.getAssets();
+    res.json(assets);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
 });
 
 app.get("/api/assets/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
-  const asset = await storage.getAsset(id);
-  if (!asset) return res.status(404).json({ message: "Asset not found" });
-  res.json(asset);
+  try {
+    const id = parseInt(req.params.id);
+    const asset = await storage.getAsset(id);
+    if (!asset) return res.status(404).json({ message: "Asset not found" });
+    res.json(asset);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
 });
 
 app.post("/api/assets", async (req, res) => {
-  const result = insertAssetSchema.safeParse(req.body);
-  if (!result.success) return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
-  const asset = await storage.createAsset(result.data);
-  res.status(201).json(asset);
+  try {
+    const result = insertAssetSchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
+    const asset = await storage.createAsset(result.data);
+    res.status(201).json(asset);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
 });
 
 app.patch("/api/assets/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
-  const result = insertAssetSchema.partial().safeParse(req.body);
-  if (!result.success) return res.status(400).json({ message: "Invalid data" });
-  const asset = await storage.updateAsset(id, result.data);
-  if (!asset) return res.status(404).json({ message: "Asset not found" });
-  res.json(asset);
+  try {
+    const id = parseInt(req.params.id);
+    const result = insertAssetSchema.partial().safeParse(req.body);
+    if (!result.success) return res.status(400).json({ message: "Invalid data" });
+    const asset = await storage.updateAsset(id, result.data);
+    if (!asset) return res.status(404).json({ message: "Asset not found" });
+    res.json(asset);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
 });
 
 app.delete("/api/assets/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
-  const ok = await storage.deleteAsset(id);
-  if (!ok) return res.status(404).json({ message: "Asset not found" });
-  res.status(204).end();
+  try {
+    const id = parseInt(req.params.id);
+    const ok = await storage.deleteAsset(id);
+    if (!ok) return res.status(404).json({ message: "Asset not found" });
+    res.status(204).end();
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
 });
 
 // --- Transactions ---
 app.get("/api/transactions", async (req, res) => {
-  const assetId = req.query.assetId ? parseInt(req.query.assetId as string) : undefined;
-  const txs = await storage.getTransactions(assetId);
-  res.json(txs);
+  try {
+    const assetId = req.query.assetId ? parseInt(req.query.assetId as string) : undefined;
+    const txs = await storage.getTransactions(assetId);
+    res.json(txs);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
 });
 
 app.post("/api/transactions", async (req, res) => {
-  const result = insertTransactionSchema.safeParse(req.body);
-  if (!result.success) return res.status(400).json({ message: "Invalid data" });
-  const tx = await storage.createTransaction(result.data);
-  res.status(201).json(tx);
+  try {
+    const result = insertTransactionSchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ message: "Invalid data" });
+    const tx = await storage.createTransaction(result.data);
+    res.status(201).json(tx);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
 });
 
 app.delete("/api/transactions/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
-  const ok = await storage.deleteTransaction(id);
-  if (!ok) return res.status(404).json({ message: "Transaction not found" });
-  res.status(204).end();
+  try {
+    const id = parseInt(req.params.id);
+    const ok = await storage.deleteTransaction(id);
+    if (!ok) return res.status(404).json({ message: "Transaction not found" });
+    res.status(204).end();
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
 });
 
-app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   const status = err.status || 500;
   res.status(status).json({ message: err.message || "Internal Server Error" });
 });
 
-// Export as both ESM default and CJS module.exports for Vercel compatibility
+// Pure CJS export — esbuild builds this as CJS, Vercel Node launcher calls module.exports
 const handler = serverless(app);
-export default handler;
 module.exports = handler;
