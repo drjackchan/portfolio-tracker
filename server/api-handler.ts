@@ -27,9 +27,14 @@ app.use((req, res, next) => {
 
 // Diagnostic endpoint — confirms the function is alive and shows DB status
 app.get("/api/health", (_req, res) => {
+  const dbEnv = process.env.POSTGRES_URL
+    ? "POSTGRES_URL"
+    : process.env.DATABASE_URL
+    ? "DATABASE_URL"
+    : null;
   res.json({
     ok: true,
-    db: !!process.env.DATABASE_URL ? "postgres" : "memory",
+    db: dbEnv ? `postgres (${dbEnv})` : "memory",
     ts: new Date().toISOString(),
   });
 });

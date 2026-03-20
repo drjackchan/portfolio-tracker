@@ -1,5 +1,3 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
 import { eq } from "drizzle-orm";
 import {
   assets,
@@ -24,21 +22,22 @@ export interface IStorage {
   deleteTransaction(id: number): Promise<boolean>;
 }
 
-// ─── PostgreSQL Storage ───────────────────────────────────────────────────────
+// ─── PostgreSQL Storage (via @vercel/postgres — HTTP transport, no TCP pool) ───
+// @vercel/postgres uses Neon's serverless HTTP driver under the hood.
+// This avoids open TCP connections that keep the Vercel Lambda alive past timeout.
 
 export class DatabaseStorage implements IStorage {
-  private _db: ReturnType<typeof drizzle> | null = null;
+  private _db: ReturnType<typeof import("drizzle-orm/vercel-postgres").drizzle> | null = null;
 
   private get db() {
     if (!this._db) {
-      const pool = new Pool({
-        connectionString: process.env.DATABASE_URL,
-        ssl: process.env.DATABASE_URL?.includes("localhost")
-          ? false
-          : { rejectUnauthorized: false },
-        connectionTimeoutMillis: 5000,  // fail fast if DB unreachable
-        idleTimeoutMillis: 1000,        // release connection quickly in serverless
-        max: 3,
+      // Import synchronously at runtime — module is already loaded
+      const { drizzle } = require("drizzle-orm/vercel-postgres");
+      const { createPool } = require("@vercel/postgres");
+      // createPool() reads POSTGRES_URL (Vercel Postgres env var) automatically.
+      // Falls back to DATABASE_URL if POSTGRES_URL is not set.
+      const pool = createPool({
+        connectionString: process.env.POSTGRES_URL || process.env.DATABASE_URL,
       });
       this._db = drizzle(pool);
     }
@@ -254,6 +253,7 @@ export class MemStorage implements IStorage {
 
 // ─── Export the right storage based on environment ───────────────────────────
 
-export const storage: IStorage = process.env.DATABASE_URL
-  ? new DatabaseStorage()
-  : new MemStorage();
+export const storage: IStorage =
+  process.env.POSTGRES_URL || process.env.DATABASE_URL
+    ? new DatabaseStorage()
+    : new MemStorage();
