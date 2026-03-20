@@ -29,7 +29,7 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   private pool: Pool;
   private db: ReturnType<typeof drizzle>;
-  private tablesReady: Promise<void>;
+  private tablesReady: Promise<void> | null;
 
   constructor(connectionString: string) {
     this.pool = new Pool({
@@ -41,8 +41,8 @@ export class DatabaseStorage implements IStorage {
       max: 1,
     });
     this.db = drizzle(this.pool);
-    // Eagerly create tables so first real request doesn't race
-    this.tablesReady = this.ensureTables().catch(() => {/* non-fatal */});
+    // Tables are created lazily on first query (via ready())
+    this.tablesReady = null;
   }
 
   private async ensureTables() {
@@ -75,6 +75,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   private async ready() {
+    if (!this.tablesReady) {
+      this.tablesReady = this.ensureTables().catch(() => {/* non-fatal */});
+    }
     await this.tablesReady;
   }
 
@@ -298,8 +301,24 @@ export class MemStorage implements IStorage {
 }
 
 // ─── Export the right storage based on environment ───────────────────────────
+// Use a lazy proxy so DatabaseStorage (and its pg Pool) are NOT created at
+// module load time. In serverless, module-level Pool construction causes a
+// connection attempt that keeps the Lambda alive before any request arrives.
 
-const dbUrl = process.env.POSTGRES_URL || process.env.DATABASE_URL;
-export const storage: IStorage = dbUrl
-  ? new DatabaseStorage(dbUrl)
-  : new MemStorage();
+let _storage: IStorage | null = null;
+
+function getStorage(): IStorage {
+  if (!_storage) {
+    const dbUrl = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+    _storage = dbUrl ? new DatabaseStorage(dbUrl) : new MemStorage();
+  }
+  return _storage;
+}
+
+export const storage: IStorage = new Proxy({} as IStorage, {
+  get(_target, prop: string) {
+    const s = getStorage();
+    const val = (s as any)[prop];
+    return typeof val === "function" ? val.bind(s) : val;
+  },
+});
