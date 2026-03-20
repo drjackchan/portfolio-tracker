@@ -5,11 +5,15 @@ import { insertAssetSchema, insertTransactionSchema } from "../shared/schema";
 import { runMigrations } from "../db/migrate";
 
 // Run migrations once at cold-start (safe — uses CREATE TABLE IF NOT EXISTS)
+// Failures are caught and logged so the app still works with MemStorage.
 let migrationsRan = false;
 async function ensureMigrations() {
-  if (!migrationsRan) {
+  if (migrationsRan) return;
+  migrationsRan = true; // set before await so concurrent requests don't double-run
+  try {
     await runMigrations();
-    migrationsRan = true;
+  } catch (err) {
+    console.warn("[db] Migration failed (will use in-memory storage):", err);
   }
 }
 

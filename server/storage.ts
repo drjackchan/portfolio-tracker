@@ -27,16 +27,22 @@ export interface IStorage {
 // ─── PostgreSQL Storage ───────────────────────────────────────────────────────
 
 export class DatabaseStorage implements IStorage {
-  private db;
+  private _db: ReturnType<typeof drizzle> | null = null;
 
-  constructor() {
-    const pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.DATABASE_URL?.includes("localhost")
-        ? false
-        : { rejectUnauthorized: false },
-    });
-    this.db = drizzle(pool);
+  private get db() {
+    if (!this._db) {
+      const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.DATABASE_URL?.includes("localhost")
+          ? false
+          : { rejectUnauthorized: false },
+        connectionTimeoutMillis: 5000,  // fail fast if DB unreachable
+        idleTimeoutMillis: 1000,        // release connection quickly in serverless
+        max: 3,
+      });
+      this._db = drizzle(pool);
+    }
+    return this._db;
   }
 
   async getAssets(): Promise<Asset[]> {

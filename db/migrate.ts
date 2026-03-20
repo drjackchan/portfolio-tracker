@@ -14,6 +14,9 @@ export async function runMigrations() {
     ssl: process.env.DATABASE_URL.includes("localhost")
       ? false
       : { rejectUnauthorized: false },
+    connectionTimeoutMillis: 5000,  // fail fast if DB unreachable
+    idleTimeoutMillis: 1000,        // don't keep function alive after done
+    max: 1,
   });
 
   const db = drizzle(pool);

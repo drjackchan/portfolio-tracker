@@ -45,13 +45,21 @@ var insertTransactionSchema = createInsertSchema(transactions).omit({ id: true }
 
 // server/storage.ts
 var DatabaseStorage = class {
-  db;
-  constructor() {
-    const pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.DATABASE_URL?.includes("localhost") ? false : { rejectUnauthorized: false }
-    });
-    this.db = drizzle(pool);
+  _db = null;
+  get db() {
+    if (!this._db) {
+      const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.DATABASE_URL?.includes("localhost") ? false : { rejectUnauthorized: false },
+        connectionTimeoutMillis: 5e3,
+        // fail fast if DB unreachable
+        idleTimeoutMillis: 1e3,
+        // release connection quickly in serverless
+        max: 3
+      });
+      this._db = drizzle(pool);
+    }
+    return this._db;
   }
   async getAssets() {
     return this.db.select().from(assets);
@@ -235,7 +243,12 @@ async function runMigrations() {
   if (!process.env.DATABASE_URL) return;
   const pool = new Pool2({
     connectionString: process.env.DATABASE_URL,
-    ssl: process.env.DATABASE_URL.includes("localhost") ? false : { rejectUnauthorized: false }
+    ssl: process.env.DATABASE_URL.includes("localhost") ? false : { rejectUnauthorized: false },
+    connectionTimeoutMillis: 5e3,
+    // fail fast if DB unreachable
+    idleTimeoutMillis: 1e3,
+    // don't keep function alive after done
+    max: 1
   });
   const db = drizzle2(pool);
   await db.execute(sql`
@@ -270,9 +283,12 @@ async function runMigrations() {
 // server/api-handler.ts
 var migrationsRan = false;
 async function ensureMigrations() {
-  if (!migrationsRan) {
+  if (migrationsRan) return;
+  migrationsRan = true;
+  try {
     await runMigrations();
-    migrationsRan = true;
+  } catch (err) {
+    console.warn("[db] Migration failed (will use in-memory storage):", err);
   }
 }
 var app = express();
