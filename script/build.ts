@@ -38,7 +38,7 @@ async function buildAll() {
 
   // Output as index.cjs so Node.js treats it as CommonJS even if package.json has "type":"module"
   await esbuild({
-    entryPoints: ["server/api-handler.ts"],
+    entryPoints: ["server/api-handler.cts"],
     platform: "node",
     bundle: true,
     format: "cjs",
