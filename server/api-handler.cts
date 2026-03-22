@@ -1,5 +1,4 @@
 import express, { type Request, Response, NextFunction } from "express";
-import serverless from "serverless-http";
 import { storage } from "./storage";
 import { insertAssetSchema, insertTransactionSchema } from "../shared/schema";
 
@@ -119,6 +118,5 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   res.status(status).json({ message: err.message || "Internal Server Error" });
 });
 
-// Pure CJS export — esbuild builds this as CJS, Vercel Node launcher calls module.exports
-const handler = serverless(app);
-module.exports = handler;
+// Vercel Node launcher calls module.exports(req, res) directly — Express app IS a valid handler
+module.exports = app;
