@@ -129,7 +129,7 @@ export default function AddEditAsset() {
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="p-6 max-w-2xl">
+    <div className="p-4 sm:p-6 max-w-2xl">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <Button
@@ -177,7 +177,7 @@ export default function AddEditAsset() {
               />
 
               {/* Name + Ticker */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="name"
@@ -222,7 +222,7 @@ export default function AddEditAsset() {
               />
 
               {/* Quantity + Currency */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="quantity"
@@ -265,7 +265,7 @@ export default function AddEditAsset() {
               </div>
 
               {/* Prices */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="purchasePrice"
