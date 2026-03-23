@@ -137,38 +137,46 @@ export type PriceResult = {
 export async function fetchPrices(
   assets: Array<{ id: number; ticker: string | null; assetType: string }>
 ): Promise<PriceResult[]> {
-  const results = await Promise.allSettled(
-    assets.map(async (asset): Promise<PriceResult> => {
-      const ticker = asset.ticker?.trim() ?? "";
+  // Deduplicate: fetch each unique (ticker, assetType) pair only once,
+  // then fan out the same price to all assets sharing that pair.
+  const stockTickers = [...new Set(
+    assets.filter((a) => a.assetType === "stock" && a.ticker).map((a) => a.ticker!.trim())
+  )];
+  const cryptoTickers = [...new Set(
+    assets.filter((a) => a.assetType === "crypto" && a.ticker).map((a) => a.ticker!.trim())
+  )];
 
-      if (!ticker) {
-        return { assetId: asset.id, ticker, assetType: asset.assetType, price: null, error: "No ticker" };
-      }
+  // Fetch all unique tickers in parallel (one API call per unique ticker)
+  const [stockPrices, cryptoPrices] = await Promise.all([
+    Promise.all(stockTickers.map(async (t) => ({ ticker: t, price: await fetchStockPrice(t) }))),
+    Promise.all(cryptoTickers.map(async (t) => ({ ticker: t, price: await fetchCryptoPrice(t) }))),
+  ]);
 
-      if (asset.assetType === "stock") {
-        const price = await fetchStockPrice(ticker);
-        return {
-          assetId: asset.id, ticker, assetType: asset.assetType, price,
-          error: price === null ? "Could not fetch price from Yahoo Finance" : undefined,
-        };
-      }
+  const stockPriceMap: Record<string, number | null> = {};
+  for (const { ticker, price } of stockPrices) stockPriceMap[ticker] = price;
 
-      if (asset.assetType === "crypto") {
-        const price = await fetchCryptoPrice(ticker);
-        return {
-          assetId: asset.id, ticker, assetType: asset.assetType, price,
-          error: price === null ? "Could not fetch price from CoinGecko" : undefined,
-        };
-      }
+  const cryptoPriceMap: Record<string, number | null> = {};
+  for (const { ticker, price } of cryptoPrices) cryptoPriceMap[ticker] = price;
 
-      // property / other — not auto-fetched
-      return { assetId: asset.id, ticker, assetType: asset.assetType, price: null, error: "Manual only" };
-    })
-  );
+  return assets.map((asset): PriceResult => {
+    const ticker = asset.ticker?.trim() ?? "";
 
-  return results.map((r) =>
-    r.status === "fulfilled"
-      ? r.value
-      : { assetId: -1, ticker: "", assetType: "", price: null, error: "Unexpected error" }
-  );
+    if (!ticker) {
+      return { assetId: asset.id, ticker, assetType: asset.assetType, price: null, error: "No ticker" };
+    }
+
+    if (asset.assetType === "stock") {
+      const price = stockPriceMap[ticker] ?? null;
+      return { assetId: asset.id, ticker, assetType: asset.assetType, price,
+        error: price === null ? "Could not fetch price from Yahoo Finance" : undefined };
+    }
+
+    if (asset.assetType === "crypto") {
+      const price = cryptoPriceMap[ticker] ?? null;
+      return { assetId: asset.id, ticker, assetType: asset.assetType, price,
+        error: price === null ? "Could not fetch price from CoinGecko" : undefined };
+    }
+
+    return { assetId: asset.id, ticker, assetType: asset.assetType, price: null, error: "Manual only" };
+  });
 }
