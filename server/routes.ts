@@ -1,11 +1,35 @@
 import type { Express } from "express";
 import { type Server } from "http";
+import session from "express-session";
 import { storage } from "./storage";
 import { insertAssetSchema, insertTransactionSchema } from "@shared/schema";
 import { z } from "zod";
 import { fetchPrices, fetchStockPrice, fetchCryptoPrice } from "./prices";
+import { requireAuth, handleLogin, handleLogout, handleAuthCheck } from "./auth";
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
+  // Session middleware
+  app.use(session({
+    name: "ptk",
+    secret: process.env.SESSION_SECRET || "dev-secret-change-in-prod",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: false, // dev uses http
+      sameSite: "lax",
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    },
+  }));
+
+  // Public auth routes
+  app.post("/api/auth/login", handleLogin);
+  app.post("/api/auth/logout", handleLogout);
+  app.get("/api/auth/check", handleAuthCheck);
+
+  // Protect all other API routes
+  app.use("/api", requireAuth);
+
   // --- Assets ---
   app.get("/api/assets", async (req, res) => {
     const assets = await storage.getAssets();

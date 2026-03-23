@@ -1,20 +1,32 @@
 import express, { type Request, Response, NextFunction } from "express";
+import session from "express-session";
 import { storage } from "./storage";
 import { insertAssetSchema, insertTransactionSchema } from "../shared/schema";
 import { fetchPrices, fetchStockPrice, fetchCryptoPrice } from "./prices";
+import { requireAuth, handleLogin, handleLogout, handleAuthCheck } from "./auth";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// CORS for Vercel
-app.use((_req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  if (_req.method === "OPTIONS") return res.status(200).end();
-  next();
-});
+// Session middleware
+app.use(session({
+  name: "ptk",
+  secret: process.env.SESSION_SECRET || "dev-secret-change-in-prod",
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+  },
+}));
+
+// Auth routes — public (no requireAuth)
+app.post("/api/auth/login", handleLogin);
+app.post("/api/auth/logout", handleLogout);
+app.get("/api/auth/check", handleAuthCheck);
 
 // Diagnostic — instant response, no DB
 app.get("/api/health", (_req, res) => {
@@ -24,6 +36,9 @@ app.get("/api/health", (_req, res) => {
     ts: new Date().toISOString(),
   });
 });
+
+// Protect all remaining /api/* routes
+app.use("/api", requireAuth);
 
 // --- Assets ---
 app.get("/api/assets", async (_req, res) => {

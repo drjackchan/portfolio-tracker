@@ -8,9 +8,11 @@ import {
   Moon,
   Menu,
   X,
+  LogOut,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import PerplexityAttribution from "./PerplexityAttribution";
+import { useAuth } from "../App";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -24,6 +26,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     document.documentElement.classList.contains("dark")
   );
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { logout } = useAuth();
 
   // Close drawer on route change
   useEffect(() => {
@@ -99,6 +102,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         >
           {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           {dark ? "Light mode" : "Dark mode"}
+        </button>
+        <button
+          data-testid="logout-btn"
+          onClick={logout}
+          className="flex items-center gap-2.5 w-full px-3 py-2 rounded-md text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-foreground transition-colors"
+        >
+          <LogOut className="w-4 h-4" />
+          Sign out
         </button>
         <PerplexityAttribution />
       </div>
