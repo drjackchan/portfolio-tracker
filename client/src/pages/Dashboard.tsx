@@ -1,12 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { TrendingUp, TrendingDown, Plus, DollarSign, BarChart3, Percent } from "lucide-react";
+import { TrendingUp, TrendingDown, Plus, DollarSign, BarChart3, Percent, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import type { Asset } from "@shared/schema";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 const ASSET_TYPE_COLORS: Record<string, string> = {
   stock: "hsl(var(--chart-2))",
@@ -76,7 +78,22 @@ const CUSTOM_TOOLTIP = ({ active, payload }: any) => {
 };
 
 export default function Dashboard() {
+  const { toast } = useToast();
   const { data: assets = [], isLoading } = useQuery<Asset[]>({ queryKey: ["/api/assets"] });
+
+  const refreshMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/prices/refresh"),
+    onSuccess: async (res: any) => {
+      const data = await res.json().catch(() => null);
+      queryClient.invalidateQueries({ queryKey: ["/api/assets"] });
+      toast({ title: "Prices updated", description: data?.message ?? "All prices refreshed" });
+    },
+    onError: () => toast({ title: "Failed to refresh prices", variant: "destructive" }),
+  });
+
+  const refreshableCount = assets.filter(
+    (a) => (a.assetType === "stock" || a.assetType === "crypto") && a.ticker
+  ).length;
 
   const totalValue = assets.reduce((s, a) => s + a.quantity * a.currentPrice, 0);
   const totalCost  = assets.reduce((s, a) => s + a.quantity * a.purchasePrice, 0);
@@ -103,18 +120,33 @@ export default function Dashboard() {
   return (
     <div className="p-4 sm:p-6 space-y-5 max-w-[1200px]">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-foreground">Portfolio Overview</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Your complete investment picture</p>
         </div>
-        <Link href="/holdings/new">
-          <Button data-testid="add-asset-btn" size="sm">
-            <Plus className="w-4 h-4 mr-1.5" />
-            <span className="hidden sm:inline">Add Asset</span>
-            <span className="sm:hidden">Add</span>
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          {!isLoading && refreshableCount > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refreshMutation.mutate()}
+              disabled={refreshMutation.isPending}
+              data-testid="dashboard-refresh-btn"
+            >
+              <RefreshCw className={`w-4 h-4 mr-1.5 ${refreshMutation.isPending ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">{refreshMutation.isPending ? "Refreshing…" : "Refresh Prices"}</span>
+              <span className="sm:hidden">{refreshMutation.isPending ? "…" : "Refresh"}</span>
+            </Button>
+          )}
+          <Link href="/holdings/new">
+            <Button data-testid="add-asset-btn" size="sm">
+              <Plus className="w-4 h-4 mr-1.5" />
+              <span className="hidden sm:inline">Add Asset</span>
+              <span className="sm:hidden">Add</span>
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* KPI Cards — 2 cols on mobile, 4 on desktop */}
