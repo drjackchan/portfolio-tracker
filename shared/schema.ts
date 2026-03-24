@@ -35,3 +35,17 @@ export const transactions = pgTable("transactions", {
 export const insertTransactionSchema = createInsertSchema(transactions).omit({ id: true });
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type Transaction = typeof transactions.$inferSelect;
+
+// Daily portfolio value snapshots — one row per day
+export const portfolioSnapshots = pgTable("portfolio_snapshots", {
+  id: serial("id").primaryKey(),
+  date: text("date").notNull(),          // YYYY-MM-DD
+  totalValue: real("total_value").notNull(),  // sum of all assets in USD equivalent
+  totalCost:  real("total_cost").notNull(),   // sum of all purchase costs
+  assetCount: integer("asset_count").notNull(),
+  createdAt:  text("created_at").notNull(),   // ISO timestamp
+});
+
+export const insertSnapshotSchema = createInsertSchema(portfolioSnapshots).omit({ id: true });
+export type InsertSnapshot = z.infer<typeof insertSnapshotSchema>;
+export type PortfolioSnapshot = typeof portfolioSnapshots.$inferSelect;

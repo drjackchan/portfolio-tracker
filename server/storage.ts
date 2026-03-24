@@ -1,13 +1,16 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import {
   assets,
   transactions,
+  portfolioSnapshots,
   type Asset,
   type InsertAsset,
   type Transaction,
   type InsertTransaction,
+  type PortfolioSnapshot,
+  type InsertSnapshot,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -22,6 +25,11 @@ export interface IStorage {
   getTransactions(assetId?: number): Promise<Transaction[]>;
   createTransaction(tx: InsertTransaction): Promise<Transaction>;
   deleteTransaction(id: number): Promise<boolean>;
+
+  // Portfolio snapshots
+  saveSnapshot(snap: InsertSnapshot): Promise<PortfolioSnapshot>;
+  getSnapshots(limit?: number): Promise<PortfolioSnapshot[]>;
+  getSnapshotByDate(date: string): Promise<PortfolioSnapshot | undefined>;
 }
 
 // ─── PostgreSQL Storage ───────────────────────────────────────────────────────
@@ -70,6 +78,16 @@ export class DatabaseStorage implements IStorage {
         price     REAL NOT NULL,
         date      TEXT NOT NULL,
         notes     TEXT
+      );
+    `);
+    await this.pool.query(`
+      CREATE TABLE IF NOT EXISTS portfolio_snapshots (
+        id          SERIAL PRIMARY KEY,
+        date        TEXT NOT NULL UNIQUE,
+        total_value REAL NOT NULL,
+        total_cost  REAL NOT NULL,
+        asset_count INTEGER NOT NULL,
+        created_at  TEXT NOT NULL
       );
     `);
   }
@@ -145,6 +163,42 @@ export class DatabaseStorage implements IStorage {
       .where(eq(transactions.id, id))
       .returning();
     return rows.length > 0;
+  }
+
+  // ── Snapshots ──
+  async saveSnapshot(snap: InsertSnapshot): Promise<PortfolioSnapshot> {
+    await this.ready();
+    // Upsert: replace existing row for the same date
+    await this.pool.query(
+      `INSERT INTO portfolio_snapshots (date, total_value, total_cost, asset_count, created_at)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (date) DO UPDATE
+         SET total_value = EXCLUDED.total_value,
+             total_cost  = EXCLUDED.total_cost,
+             asset_count = EXCLUDED.asset_count,
+             created_at  = EXCLUDED.created_at`,
+      [snap.date, snap.totalValue, snap.totalCost, snap.assetCount, snap.createdAt]
+    );
+    const rows = await this.db
+      .select().from(portfolioSnapshots)
+      .where(eq(portfolioSnapshots.date, snap.date));
+    return rows[0];
+  }
+
+  async getSnapshots(limit = 400): Promise<PortfolioSnapshot[]> {
+    await this.ready();
+    return this.db
+      .select().from(portfolioSnapshots)
+      .orderBy(desc(portfolioSnapshots.date))
+      .limit(limit);
+  }
+
+  async getSnapshotByDate(date: string): Promise<PortfolioSnapshot | undefined> {
+    await this.ready();
+    const rows = await this.db
+      .select().from(portfolioSnapshots)
+      .where(eq(portfolioSnapshots.date, date));
+    return rows[0];
   }
 }
 
@@ -297,6 +351,27 @@ export class MemStorage implements IStorage {
 
   async deleteTransaction(id: number): Promise<boolean> {
     return this.transactions.delete(id);
+  }
+
+  // Snapshot stubs for in-memory dev
+  private snapshots: Map<string, PortfolioSnapshot> = new Map();
+  private snapIdCounter = 1;
+
+  async saveSnapshot(snap: InsertSnapshot): Promise<PortfolioSnapshot> {
+    const id = this.snapshots.get(snap.date)?.id ?? this.snapIdCounter++;
+    const row: PortfolioSnapshot = { ...snap, id };
+    this.snapshots.set(snap.date, row);
+    return row;
+  }
+
+  async getSnapshots(limit = 400): Promise<PortfolioSnapshot[]> {
+    return [...this.snapshots.values()]
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, limit);
+  }
+
+  async getSnapshotByDate(date: string): Promise<PortfolioSnapshot | undefined> {
+    return this.snapshots.get(date);
   }
 }
 

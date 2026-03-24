@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { insertAssetSchema, insertTransactionSchema } from "@shared/schema";
 import { z } from "zod";
 import { fetchPrices, fetchStockPrice, fetchCryptoPrice } from "./prices";
+import { takeSnapshot } from "./snapshot";
 import { requireAuth, handleLogin, handleLogout, handleAuthCheck } from "./auth";
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
@@ -120,6 +121,21 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     } catch (e: any) {
       res.status(500).json({ message: e.message });
     }
+  });
+
+  // --- Portfolio Snapshots ---
+  app.get("/api/snapshots", async (_req, res) => {
+    try {
+      const snaps = await storage.getSnapshots(400);
+      res.json(snaps);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post("/api/snapshots", async (_req, res) => {
+    try {
+      const result = await takeSnapshot();
+      res.json(result);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
   return httpServer;

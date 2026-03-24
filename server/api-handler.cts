@@ -3,6 +3,7 @@ import cookieParser from "cookie-parser";
 import { storage } from "./storage";
 import { insertAssetSchema, insertTransactionSchema } from "../shared/schema";
 import { fetchPrices, fetchStockPrice, fetchCryptoPrice } from "./prices";
+import { takeSnapshot } from "./snapshot";
 import { requireAuth, handleLogin, handleLogout, handleAuthCheck } from "./auth";
 
 const app = express();
@@ -177,6 +178,28 @@ app.post("/api/prices/refresh/:id", async (req, res) => {
 
     const updated = await storage.updateAsset(id, { currentPrice: price });
     res.json({ assetId: id, ticker: asset.ticker, price, asset: updated });
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+// ─── Portfolio Snapshots ───────────────────────────────────────────────────
+
+// GET /api/snapshots — return history (newest first, up to 400 rows)
+app.get("/api/snapshots", async (_req, res) => {
+  try {
+    const snaps = await storage.getSnapshots(400);
+    res.json(snaps);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+// POST /api/snapshots — take a snapshot right now (also used by cron)
+app.post("/api/snapshots", async (_req, res) => {
+  try {
+    const result = await takeSnapshot();
+    res.json(result);
   } catch (e: any) {
     res.status(500).json({ message: e.message });
   }
