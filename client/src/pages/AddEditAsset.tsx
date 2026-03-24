@@ -42,7 +42,8 @@ const ASSET_TYPES = [
   { value: "stock", label: "Stock / ETF" },
   { value: "crypto", label: "Cryptocurrency" },
   { value: "property", label: "Property / Real Estate" },
-  { value: "other", label: "Other (Gold, Bonds, etc.)" },
+  { value: "commodity", label: "Commodity (Gold, Silver, Oil, etc.)" },
+  { value: "other", label: "Other (Bonds, Retirement, Cash, etc.)" },
 ];
 
 export default function AddEditAsset() {

@@ -94,9 +94,21 @@ export class DatabaseStorage implements IStorage {
 
   private async ready() {
     if (!this.tablesReady) {
-      this.tablesReady = this.ensureTables().catch(() => {/* non-fatal */});
+      this.tablesReady = this.ensureTables()
+        .then(() => this.runMigrations())
+        .catch(() => {/* non-fatal */});
     }
     await this.tablesReady;
+  }
+
+  private async runMigrations() {
+    // v1: move commodity tickers from 'other' → 'commodity' asset type
+    await this.pool.query(`
+      UPDATE assets
+      SET asset_type = 'commodity'
+      WHERE asset_type = 'other'
+        AND ticker IN ('GC=F', 'SI=F', 'PAXG', 'GLD', 'SLV', 'IAU', 'SGOL', 'GC', 'SI')
+    `).catch(() => {});
   }
 
   async end() {
