@@ -16,6 +16,18 @@ app.post("/api/auth/login", handleLogin);
 app.post("/api/auth/logout", handleLogout);
 app.get("/api/auth/check", handleAuthCheck);
 
+// Cron-secret bypass for snapshot endpoint (before requireAuth)
+app.post("/api/snapshots", (req, res, next) => {
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret && req.headers["x-cron-secret"] === cronSecret) {
+    // Skip requireAuth for valid cron requests
+    return takeSnapshot()
+      .then((result) => res.json(result))
+      .catch((e: any) => res.status(500).json({ message: e.message }));
+  }
+  next(); // fall through to requireAuth
+});
+
 // Diagnostic — instant response, no DB
 app.get("/api/health", (_req, res) => {
   res.json({
