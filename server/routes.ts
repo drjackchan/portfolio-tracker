@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { type Server } from "http";
-import session from "express-session";
+import cookieParser from "cookie-parser";
 import { storage } from "./storage";
 import { insertAssetSchema, insertTransactionSchema } from "@shared/schema";
 import { z } from "zod";
@@ -8,19 +8,8 @@ import { fetchPrices, fetchStockPrice, fetchCryptoPrice } from "./prices";
 import { requireAuth, handleLogin, handleLogout, handleAuthCheck } from "./auth";
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
-  // Session middleware
-  app.use(session({
-    name: "ptk",
-    secret: process.env.SESSION_SECRET || "dev-secret-change-in-prod",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      secure: false, // dev uses http
-      sameSite: "lax",
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    },
-  }));
+  // Cookie parser (needed for JWT cookie auth)
+  app.use(cookieParser());
 
   // Public auth routes
   app.post("/api/auth/login", handleLogin);

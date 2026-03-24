@@ -1,5 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
-import session from "express-session";
+import cookieParser from "cookie-parser";
 import { storage } from "./storage";
 import { insertAssetSchema, insertTransactionSchema } from "../shared/schema";
 import { fetchPrices, fetchStockPrice, fetchCryptoPrice } from "./prices";
@@ -8,20 +8,7 @@ import { requireAuth, handleLogin, handleLogout, handleAuthCheck } from "./auth"
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-
-// Session middleware
-app.use(session({
-  name: "ptk",
-  secret: process.env.SESSION_SECRET || "dev-secret-change-in-prod",
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-  },
-}));
+app.use(cookieParser());
 
 // Auth routes — public (no requireAuth)
 app.post("/api/auth/login", handleLogin);
