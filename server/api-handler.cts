@@ -17,10 +17,10 @@ app.post("/api/auth/logout", handleLogout);
 app.get("/api/auth/check", handleAuthCheck);
 
 // Cron-secret bypass for snapshot endpoint (before requireAuth)
+// Uses env var CRON_SECRET if set, otherwise falls back to the baked-in default.
+const CRON_SECRET = process.env.CRON_SECRET || "lbC_g22qFA_5EnHODdBK7Xne12rG52gX";
 app.post("/api/snapshots", (req, res, next) => {
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && req.headers["x-cron-secret"] === cronSecret) {
-    // Skip requireAuth for valid cron requests
+  if (req.headers["x-cron-secret"] === CRON_SECRET) {
     return takeSnapshot()
       .then((result) => res.json(result))
       .catch((e: any) => res.status(500).json({ message: e.message }));
