@@ -16,16 +16,26 @@ app.post("/api/auth/login", handleLogin);
 app.post("/api/auth/logout", handleLogout);
 app.get("/api/auth/check", handleAuthCheck);
 
-// Cron-secret bypass for snapshot endpoint (before requireAuth)
-// Uses env var CRON_SECRET if set, otherwise falls back to the baked-in default.
-const CRON_SECRET = process.env.CRON_SECRET || "lbC_g22qFA_5EnHODdBK7Xne12rG52gX";
-app.post("/api/snapshots", (req, res, next) => {
-  if (req.headers["x-cron-secret"] === CRON_SECRET) {
-    return takeSnapshot()
-      .then((result) => res.json(result))
-      .catch((e: any) => res.status(500).json({ message: e.message }));
+// Vercel cron job endpoint — called by Vercel's scheduler at midnight HKT.
+// Vercel sends Authorization: Bearer <CRON_SECRET> automatically.
+// This route is intentionally BEFORE requireAuth so Vercel can call it.
+app.get("/api/cron/snapshot", async (req, res) => {
+  const cronSecret = process.env.CRON_SECRET;
+  // In production, verify Vercel's auth header if CRON_SECRET is set
+  if (cronSecret) {
+    const auth = req.headers["authorization"];
+    if (auth !== `Bearer ${cronSecret}`) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
   }
-  next(); // fall through to requireAuth
+  try {
+    const result = await takeSnapshot();
+    console.log(`[cron] snapshot saved: ${result.date} — $${result.totalValue.toFixed(0)}`);
+    res.json({ ok: true, ...result });
+  } catch (e: any) {
+    console.error("[cron] snapshot failed:", e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // Diagnostic — instant response, no DB
