@@ -30,7 +30,7 @@ export async function runMigrations() {
       quantity      REAL NOT NULL,
       purchase_price REAL NOT NULL,
       current_price  REAL NOT NULL,
-      currency      TEXT NOT NULL DEFAULT 'USD',
+      currency      TEXT NOT NULL DEFAULT 'HKD',
       notes         TEXT,
       purchase_date TEXT,
       category      TEXT

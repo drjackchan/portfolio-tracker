@@ -114,7 +114,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
       let price: number | null = null;
       if (asset.assetType === "stock") price = await fetchStockPrice(asset.ticker);
-      else if (asset.assetType === "crypto") price = await fetchCryptoPrice(asset.ticker);
+      else if (asset.assetType === "crypto") price = await fetchCryptoPrice(asset.ticker, asset.currency);
       if (price === null) return res.status(502).json({ message: `Could not fetch price for ${asset.ticker}` });
       const updated = await storage.updateAsset(id, { currentPrice: price });
       res.json({ assetId: id, ticker: asset.ticker, price, asset: updated });

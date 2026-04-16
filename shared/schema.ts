@@ -11,7 +11,7 @@ export const assets = pgTable("assets", {
   quantity: real("quantity").notNull(),
   purchasePrice: real("purchase_price").notNull(),  // cost per unit
   currentPrice: real("current_price").notNull(),    // current price per unit
-  currency: text("currency").notNull().default("USD"),
+  currency: text("currency").notNull().default("HKD"),
   notes: text("notes"),
   purchaseDate: text("purchase_date"),              // ISO string YYYY-MM-DD
   category: text("category"),                        // sub-category e.g. "Tech", "DeFi", "Residential"
@@ -40,7 +40,7 @@ export type Transaction = typeof transactions.$inferSelect;
 export const portfolioSnapshots = pgTable("portfolio_snapshots", {
   id: serial("id").primaryKey(),
   date: text("date").notNull(),          // YYYY-MM-DD
-  totalValue: real("total_value").notNull(),  // sum of all assets in USD equivalent
+  totalValue: real("total_value").notNull(),  // sum of all assets in HKD equivalent
   totalCost:  real("total_cost").notNull(),   // sum of all purchase costs
   assetCount: integer("asset_count").notNull(),
   createdAt:  text("created_at").notNull(),   // ISO timestamp

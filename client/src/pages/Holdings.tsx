@@ -32,9 +32,9 @@ const ASSET_TYPE_COLORS: Record<string, string> = {
 };
 
 function formatCurrency(val: number, compact = false) {
-  if (compact && Math.abs(val) >= 1_000_000) return `$${(val / 1_000_000).toFixed(2)}M`;
-  if (compact && Math.abs(val) >= 1_000) return `$${(val / 1_000).toFixed(1)}K`;
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(val);
+  if (compact && Math.abs(val) >= 1_000_000) return `HK$${(val / 1_000_000).toFixed(2)}M`;
+  if (compact && Math.abs(val) >= 1_000) return `HK$${(val / 1_000).toFixed(1)}K`;
+  return new Intl.NumberFormat("en-HK", { style: "currency", currency: "HKD", minimumFractionDigits: 2 }).format(val);
 }
 
 function formatPct(val: number) {

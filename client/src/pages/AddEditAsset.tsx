@@ -66,7 +66,7 @@ export default function AddEditAsset() {
       quantity: 1,
       purchasePrice: 0,
       currentPrice: 0,
-      currency: "USD",
+      currency: "HKD",
       notes: "",
       purchaseDate: "",
       category: "",
@@ -250,12 +250,12 @@ export default function AddEditAsset() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                          <SelectItem value="HKD">HKD</SelectItem>
                           <SelectItem value="USD">USD</SelectItem>
                           <SelectItem value="EUR">EUR</SelectItem>
                           <SelectItem value="GBP">GBP</SelectItem>
                           <SelectItem value="JPY">JPY</SelectItem>
                           <SelectItem value="CNY">CNY</SelectItem>
-                          <SelectItem value="HKD">HKD</SelectItem>
                           <SelectItem value="SGD">SGD</SelectItem>
                         </SelectContent>
                       </Select>

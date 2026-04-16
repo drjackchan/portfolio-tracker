@@ -45,13 +45,13 @@ const RANGE_DAYS: Record<Range, number> = { "30d": 30, "90d": 90, "1y": 365, "al
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 function fmtCcy(val: number, compact = false) {
-  if (compact && Math.abs(val) >= 1_000_000) return `$${(val / 1_000_000).toFixed(2)}M`;
-  if (compact && Math.abs(val) >= 1_000) return `$${(val / 1_000).toFixed(1)}K`;
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(val);
+  if (compact && Math.abs(val) >= 1_000_000) return `HK$${(val / 1_000_000).toFixed(2)}M`;
+  if (compact && Math.abs(val) >= 1_000) return `HK$${(val / 1_000).toFixed(1)}K`;
+  return new Intl.NumberFormat("en-HK", { style: "currency", currency: "HKD", minimumFractionDigits: 2 }).format(val);
 }
 function fmtPct(val: number) { return `${val >= 0 ? "+" : ""}${val.toFixed(2)}%`; }
 function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return new Date(iso).toLocaleDateString("en-HK", { month: "short", day: "numeric" });
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -144,12 +144,12 @@ export default function Dashboard() {
   });
 
   // ── Derived metrics ─────────────────────────────────────────────────────────
-  // USD conversion (approx)
-  const HKD_RATE = 1 / 7.8;
-  const toUsd = (v: number, ccy: string) => ccy === "HKD" ? v * HKD_RATE : v;
+  // HKD conversion (approx)
+  const USD_RATE = 7.8;
+  const toHkd = (v: number, ccy: string) => ccy === "USD" ? v * USD_RATE : v;
 
-  const totalValue = assets.reduce((s, a) => s + toUsd(a.quantity * a.currentPrice, a.currency), 0);
-  const totalCost  = assets.reduce((s, a) => s + toUsd(a.quantity * a.purchasePrice, a.currency), 0);
+  const totalValue = assets.reduce((s, a) => s + toHkd(a.quantity * a.currentPrice, a.currency), 0);
+  const totalCost  = assets.reduce((s, a) => s + toHkd(a.quantity * a.purchasePrice, a.currency), 0);
   const totalGain  = totalValue - totalCost;
   const totalGainPct = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
 
@@ -175,7 +175,7 @@ export default function Dashboard() {
   // Allocation
   const allocationMap: Record<string, number> = {};
   for (const a of assets) {
-    const v = toUsd(a.quantity * a.currentPrice, a.currency);
+    const v = toHkd(a.quantity * a.currentPrice, a.currency);
     allocationMap[a.assetType] = (allocationMap[a.assetType] ?? 0) + v;
   }
   const allocationData = Object.entries(allocationMap).map(([type, value]) => ({
@@ -188,7 +188,7 @@ export default function Dashboard() {
   const topHoldings = [...assets]
     .map((a) => ({
       ...a,
-      value: toUsd(a.quantity * a.currentPrice, a.currency),
+      value: toHkd(a.quantity * a.currentPrice, a.currency),
       gain: a.purchasePrice > 0 ? (a.currentPrice - a.purchasePrice) / a.purchasePrice * 100 : 0,
     }))
     .sort((a, b) => b.value - a.value)
@@ -333,8 +333,8 @@ export default function Dashboard() {
                   domain={[chartMin, chartMax]}
                   tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
                   tickLine={false} axisLine={false}
-                  tickFormatter={(v) => `$${(v / 1000).toFixed(0)}K`}
-                  width={56}
+                  tickFormatter={(v) => `HK$${(v / 1000).toFixed(0)}K`}
+                  width={64}
                 />
                 <Tooltip content={<ChartTooltip />} />
                 <Area
@@ -386,7 +386,7 @@ export default function Dashboard() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">Top Holdings (USD equiv.)</CardTitle>
+            <CardTitle className="text-sm font-semibold">Top Holdings (HKD equiv.)</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -441,15 +441,15 @@ export default function Dashboard() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border">
-                      {["Asset","Type","Qty","Cost Price","Current","Value (USD)","Gain/Loss"].map((h, i) => (
+                      {["Asset","Type","Qty","Cost Price","Current","Value (HKD)","Gain/Loss"].map((h, i) => (
                         <th key={h} className={`text-xs text-muted-foreground font-medium px-${i === 0 || i === 6 ? 5 : 3} py-2.5 ${i >= 2 ? "text-right" : "text-left"}`}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {assets.map((a) => {
-                      const mv   = toUsd(a.quantity * a.currentPrice, a.currency);
-                      const cost = toUsd(a.quantity * a.purchasePrice, a.currency);
+                      const mv   = toHkd(a.quantity * a.currentPrice, a.currency);
+                      const cost = toHkd(a.quantity * a.purchasePrice, a.currency);
                       const gain = mv - cost;
                       const gainPct = cost > 0 ? (gain / cost) * 100 : 0;
                       return (
@@ -460,8 +460,8 @@ export default function Dashboard() {
                           </td>
                           <td className="px-3 py-3"><Badge variant="secondary" className="capitalize text-xs">{ASSET_TYPE_LABELS[a.assetType] ?? a.assetType}</Badge></td>
                           <td className="px-3 py-3 text-right font-mono tabular-nums">{a.quantity.toLocaleString()}</td>
-                          <td className="px-3 py-3 text-right font-mono tabular-nums text-muted-foreground">{a.currency !== "USD" ? `${a.currency} ` : ""}{a.purchasePrice.toLocaleString()}</td>
-                          <td className="px-3 py-3 text-right font-mono tabular-nums">{a.currency !== "USD" ? `${a.currency} ` : ""}{a.currentPrice.toLocaleString()}</td>
+                          <td className="px-3 py-3 text-right font-mono tabular-nums text-muted-foreground">{a.currency !== "HKD" ? `${a.currency} ` : ""}{a.purchasePrice.toLocaleString()}</td>
+                          <td className="px-3 py-3 text-right font-mono tabular-nums">{a.currency !== "HKD" ? `${a.currency} ` : ""}{a.currentPrice.toLocaleString()}</td>
                           <td className="px-3 py-3 text-right font-mono tabular-nums font-medium">{fmtCcy(mv)}</td>
                           <td className="px-5 py-3 text-right">
                             <div className={`font-mono tabular-nums font-medium ${gain >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>{fmtCcy(gain)}</div>
@@ -476,8 +476,8 @@ export default function Dashboard() {
               {/* Mobile */}
               <div className="sm:hidden divide-y divide-border">
                 {assets.map((a) => {
-                  const mv   = toUsd(a.quantity * a.currentPrice, a.currency);
-                  const cost = toUsd(a.quantity * a.purchasePrice, a.currency);
+                  const mv   = toHkd(a.quantity * a.currentPrice, a.currency);
+                  const cost = toHkd(a.quantity * a.purchasePrice, a.currency);
                   const gain = mv - cost;
                   const gainPct = cost > 0 ? (gain / cost) * 100 : 0;
                   return (
@@ -501,7 +501,7 @@ export default function Dashboard() {
                       <div className="flex items-center gap-2 mt-1">
                         <Badge variant="secondary" className="capitalize text-xs">{ASSET_TYPE_LABELS[a.assetType] ?? a.assetType}</Badge>
                         <span className="text-xs text-muted-foreground">Qty: {a.quantity.toLocaleString()}</span>
-                        <span className="ml-auto text-xs text-muted-foreground font-mono">{a.currency !== "USD" ? a.currency : "$"}{a.currentPrice.toLocaleString()} / unit</span>
+                        <span className="ml-auto text-xs text-muted-foreground font-mono">{a.currency !== "HKD" ? a.currency : "HK$"}{a.currentPrice.toLocaleString()} / unit</span>
                       </div>
                     </div>
                   );

@@ -1,411 +1,240 @@
+import {
+  assets, transactions, portfolioSnapshots,
+  type Asset, type InsertAsset,
+  type Transaction, type InsertTransaction,
+  type PortfolioSnapshot, type InsertSnapshot,
+} from "@shared/schema";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import { eq, desc } from "drizzle-orm";
-import {
-  assets,
-  transactions,
-  portfolioSnapshots,
-  type Asset,
-  type InsertAsset,
-  type Transaction,
-  type InsertTransaction,
-  type PortfolioSnapshot,
-  type InsertSnapshot,
-} from "@shared/schema";
+import { eq, desc, sql } from "drizzle-orm";
+import { runMigrations } from "../db/migrate";
 
 export interface IStorage {
   // Assets
   getAssets(): Promise<Asset[]>;
   getAsset(id: number): Promise<Asset | undefined>;
   createAsset(asset: InsertAsset): Promise<Asset>;
-  updateAsset(id: number, asset: Partial<InsertAsset>): Promise<Asset | undefined>;
-  deleteAsset(id: number): Promise<boolean>;
+  updateAsset(id: number, asset: Partial<InsertAsset>): Promise<Asset>;
+  deleteAsset(id: number): Promise<void>;
 
   // Transactions
   getTransactions(assetId?: number): Promise<Transaction[]>;
   createTransaction(tx: InsertTransaction): Promise<Transaction>;
-  deleteTransaction(id: number): Promise<boolean>;
+  deleteTransaction(id: number): Promise<void>;
 
-  // Portfolio snapshots
+  // Snapshots
+  getSnapshots(): Promise<PortfolioSnapshot[]>;
   saveSnapshot(snap: InsertSnapshot): Promise<PortfolioSnapshot>;
-  getSnapshots(limit?: number): Promise<PortfolioSnapshot[]>;
-  getSnapshotByDate(date: string): Promise<PortfolioSnapshot | undefined>;
 }
-
-// ─── PostgreSQL Storage ───────────────────────────────────────────────────────
 
 export class DatabaseStorage implements IStorage {
   private pool: Pool;
-  private db: ReturnType<typeof drizzle>;
-  private tablesReady: Promise<void> | null;
+  public db: any;
 
-  constructor(connectionString: string) {
-    this.pool = new Pool({
-      connectionString,
-      ssl: connectionString.includes("localhost") ? false : { rejectUnauthorized: false },
-      connectionTimeoutMillis: 3000,
-      idleTimeoutMillis: 500,
-      allowExitOnIdle: true,   // critical: lets Node.js exit after response
-      max: 1,
-    });
-    this.db = drizzle(this.pool);
-    // Tables are created lazily on first query (via ready())
-    this.tablesReady = null;
-  }
-
-  private async ensureTables() {
-    await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS assets (
-        id            SERIAL PRIMARY KEY,
-        name          TEXT NOT NULL,
-        ticker        TEXT,
-        asset_type    TEXT NOT NULL,
-        quantity      REAL NOT NULL,
-        purchase_price REAL NOT NULL,
-        current_price  REAL NOT NULL,
-        currency      TEXT NOT NULL DEFAULT 'USD',
-        notes         TEXT,
-        purchase_date TEXT,
-        category      TEXT
-      );
-    `);
-    await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS transactions (
-        id        SERIAL PRIMARY KEY,
-        asset_id  INTEGER NOT NULL,
-        type      TEXT NOT NULL,
-        quantity  REAL NOT NULL,
-        price     REAL NOT NULL,
-        date      TEXT NOT NULL,
-        notes     TEXT
-      );
-    `);
-    await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS portfolio_snapshots (
-        id          SERIAL PRIMARY KEY,
-        date        TEXT NOT NULL UNIQUE,
-        total_value REAL NOT NULL,
-        total_cost  REAL NOT NULL,
-        asset_count INTEGER NOT NULL,
-        created_at  TEXT NOT NULL
-      );
-    `);
-  }
-
-  private async ready() {
-    if (!this.tablesReady) {
-      this.tablesReady = this.ensureTables()
-        .then(() => this.runMigrations())
-        .catch(() => {/* non-fatal */});
+  constructor() {
+    const dbUrl = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+    if (!dbUrl) {
+      throw new Error("DATABASE_URL or POSTGRES_URL is not set");
     }
-    await this.tablesReady;
+
+    this.pool = new Pool({
+      connectionString: dbUrl,
+      ssl: dbUrl.includes("localhost") ? false : { rejectUnauthorized: false },
+    });
+
+    this.db = drizzle(this.pool);
+
+    // Run migrations on start
+    runMigrations().catch(err => console.error("Migration failed", err));
   }
 
-  private async runMigrations() {
-    // v1: move commodity tickers from 'other' → 'commodity' asset type
-    await this.pool.query(`
-      UPDATE assets
-      SET asset_type = 'commodity'
-      WHERE asset_type = 'other'
-        AND ticker IN ('GC=F', 'SI=F', 'PAXG', 'GLD', 'SLV', 'IAU', 'SGOL', 'GC', 'SI')
-    `).catch(() => {});
+  // --- INTERNAL HELPER ---
+  // If the database is empty, we can optionally seed it here or just let the user add.
+  // For this prototype, let's keep it simple. We'll add a helper to ensure tables exist.
+  async ensureTables() {
+    try {
+      await this.db.execute(sql`
+        CREATE TABLE IF NOT EXISTS assets (
+          id            SERIAL PRIMARY KEY,
+          name          TEXT NOT NULL,
+          ticker        TEXT,
+          asset_type    TEXT NOT NULL,
+          quantity      REAL NOT NULL,
+          purchase_price REAL NOT NULL,
+          current_price  REAL NOT NULL,
+          currency      TEXT NOT NULL DEFAULT 'HKD',
+          notes         TEXT,
+          purchase_date TEXT,
+          category      TEXT
+        );
+      `);
+      await this.db.execute(sql`
+        CREATE TABLE IF NOT EXISTS transactions (
+          id        SERIAL PRIMARY KEY,
+          asset_id  INTEGER NOT NULL,
+          type      TEXT NOT NULL,
+          quantity  REAL NOT NULL,
+          price     REAL NOT NULL,
+          date      TEXT NOT NULL,
+          notes     TEXT
+        );
+      `);
+      await this.db.execute(sql`
+        CREATE TABLE IF NOT EXISTS portfolio_snapshots (
+          id          SERIAL PRIMARY KEY,
+          date        TEXT NOT NULL,
+          total_value REAL NOT NULL,
+          total_cost  REAL NOT NULL,
+          asset_count INTEGER NOT NULL,
+          created_at  TEXT NOT NULL
+        );
+      `);
+    } catch (e) {
+      console.error("ensureTables failed", e);
+    }
   }
 
-  async end() {
-    try { await this.pool.end(); } catch {}
-  }
-
+  // Assets
   async getAssets(): Promise<Asset[]> {
-    await this.ready();
-    return this.db.select().from(assets);
+    return await this.db.select().from(assets);
   }
 
   async getAsset(id: number): Promise<Asset | undefined> {
-    await this.ready();
-    const rows = await this.db.select().from(assets).where(eq(assets.id, id));
-    return rows[0];
+    const [a] = await this.db.select().from(assets).where(eq(assets.id, id));
+    return a;
   }
 
-  async createAsset(asset: InsertAsset): Promise<Asset> {
-    await this.ready();
-    const rows = await this.db.insert(assets).values(asset).returning();
-    return rows[0];
+  async createAsset(insertAsset: InsertAsset): Promise<Asset> {
+    const [a] = await this.db.insert(assets).values(insertAsset).returning();
+    return a;
   }
 
-  async updateAsset(id: number, asset: Partial<InsertAsset>): Promise<Asset | undefined> {
-    await this.ready();
-    const rows = await this.db
-      .update(assets)
-      .set(asset)
-      .where(eq(assets.id, id))
-      .returning();
-    return rows[0];
+  async updateAsset(id: number, updates: Partial<InsertAsset>): Promise<Asset> {
+    const [a] = await this.db.update(assets).set(updates).where(eq(assets.id, id)).returning();
+    if (!a) throw new Error("Asset not found");
+    return a;
   }
 
-  async deleteAsset(id: number): Promise<boolean> {
-    await this.ready();
-    const rows = await this.db
-      .delete(assets)
-      .where(eq(assets.id, id))
-      .returning();
-    return rows.length > 0;
+  async deleteAsset(id: number): Promise<void> {
+    await this.db.delete(transactions).where(eq(transactions.assetId, id));
+    await this.db.delete(assets).where(eq(assets.id, id));
   }
 
+  // Transactions
   async getTransactions(assetId?: number): Promise<Transaction[]> {
-    await this.ready();
-    if (assetId !== undefined) {
-      return this.db
-        .select()
-        .from(transactions)
-        .where(eq(transactions.assetId, assetId));
+    if (assetId) {
+      return await this.db.select().from(transactions).where(eq(transactions.assetId, assetId)).orderBy(desc(transactions.date));
     }
-    return this.db.select().from(transactions);
+    return await this.db.select().from(transactions).orderBy(desc(transactions.date));
   }
 
   async createTransaction(tx: InsertTransaction): Promise<Transaction> {
-    await this.ready();
-    const rows = await this.db.insert(transactions).values(tx).returning();
-    return rows[0];
+    const [res] = await this.db.insert(transactions).values(tx).returning();
+    return res;
   }
 
-  async deleteTransaction(id: number): Promise<boolean> {
-    await this.ready();
-    const rows = await this.db
-      .delete(transactions)
-      .where(eq(transactions.id, id))
-      .returning();
-    return rows.length > 0;
+  async deleteTransaction(id: number): Promise<void> {
+    await this.db.delete(transactions).where(eq(transactions.id, id));
   }
 
-  // ── Snapshots ──
+  // Snapshots
+  async getSnapshots(): Promise<PortfolioSnapshot[]> {
+    return await this.db.select().from(portfolioSnapshots).orderBy(portfolioSnapshots.date);
+  }
+
   async saveSnapshot(snap: InsertSnapshot): Promise<PortfolioSnapshot> {
-    await this.ready();
-    // Upsert: replace existing row for the same date
-    await this.pool.query(
-      `INSERT INTO portfolio_snapshots (date, total_value, total_cost, asset_count, created_at)
-       VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (date) DO UPDATE
-         SET total_value = EXCLUDED.total_value,
-             total_cost  = EXCLUDED.total_cost,
-             asset_count = EXCLUDED.asset_count,
-             created_at  = EXCLUDED.created_at`,
-      [snap.date, snap.totalValue, snap.totalCost, snap.assetCount, snap.createdAt]
-    );
-    const rows = await this.db
-      .select().from(portfolioSnapshots)
-      .where(eq(portfolioSnapshots.date, snap.date));
-    return rows[0];
-  }
-
-  async getSnapshots(limit = 400): Promise<PortfolioSnapshot[]> {
-    await this.ready();
-    return this.db
-      .select().from(portfolioSnapshots)
-      .orderBy(desc(portfolioSnapshots.date))
-      .limit(limit);
-  }
-
-  async getSnapshotByDate(date: string): Promise<PortfolioSnapshot | undefined> {
-    await this.ready();
-    const rows = await this.db
-      .select().from(portfolioSnapshots)
-      .where(eq(portfolioSnapshots.date, date));
-    return rows[0];
+    const [res] = await this.db.insert(portfolioSnapshots).values(snap).returning();
+    return res;
   }
 }
 
-// ─── In-Memory Storage (fallback / local dev without DB) ─────────────────────
-
+// Memory Storage for fallback / local testing
 export class MemStorage implements IStorage {
   private assets: Map<number, Asset> = new Map();
   private transactions: Map<number, Transaction> = new Map();
-  private assetIdCounter = 1;
-  private txIdCounter = 1;
+  private snapshots: Map<number, PortfolioSnapshot> = new Map();
+  private assetId = 1;
+  private txId = 1;
+  private snapId = 1;
 
   constructor() {
-    // Seed with sample data
-    const sampleAssets: InsertAsset[] = [
+    // Initial mock data for quick demo
+    const initialAssets: InsertAsset[] = [
       {
         name: "Apple Inc",
         ticker: "AAPL",
         assetType: "stock",
-        quantity: 50,
+        quantity: 10,
         purchasePrice: 150,
-        currentPrice: 178.5,
-        currency: "USD",
-        notes: "Long-term hold",
-        purchaseDate: "2023-01-15",
-        category: "Technology",
+        currentPrice: 185,
+        currency: "HKD",
+        category: "Tech",
+        notes: "Long term hold",
+        purchaseDate: "2023-01-15"
       },
       {
         name: "Bitcoin",
         ticker: "BTC",
         assetType: "crypto",
         quantity: 0.5,
-        purchasePrice: 28000,
-        currentPrice: 65000,
-        currency: "USD",
-        notes: "Cold storage",
-        purchaseDate: "2023-05-10",
-        category: "Layer 1",
+        purchasePrice: 25000,
+        currentPrice: 42000,
+        currency: "HKD",
+        category: "Crypto",
+        notes: "Store of value",
+        purchaseDate: "2023-03-10"
       },
       {
-        name: "S&P 500 ETF",
-        ticker: "SPY",
-        assetType: "stock",
-        quantity: 30,
-        purchasePrice: 420,
-        currentPrice: 510,
-        currency: "USD",
-        notes: "Index fund",
-        purchaseDate: "2022-11-01",
-        category: "Index",
-      },
-      {
-        name: "Ethereum",
-        ticker: "ETH",
-        assetType: "crypto",
-        quantity: 3,
-        purchasePrice: 1600,
-        currentPrice: 3400,
-        currency: "USD",
-        notes: "Staking rewards",
-        purchaseDate: "2023-03-20",
-        category: "Layer 1",
-      },
-      {
-        name: "123 Oak Street",
+        name: "London Flat",
         ticker: null,
         assetType: "property",
         quantity: 1,
-        purchasePrice: 320000,
-        currentPrice: 375000,
-        currency: "USD",
-        notes: "Primary residence",
-        purchaseDate: "2021-06-15",
-        category: "Residential",
-      },
-      {
-        name: "Gold ETF",
-        ticker: "GLD",
-        assetType: "other",
-        quantity: 20,
-        purchasePrice: 170,
-        currentPrice: 195,
-        currency: "USD",
-        notes: "Inflation hedge",
-        purchaseDate: "2023-08-01",
-        category: "Commodities",
-      },
+        purchasePrice: 450000,
+        currentPrice: 475000,
+        currency: "HKD",
+        category: "Real Estate",
+        notes: "Rental property",
+        purchaseDate: "2022-05-20"
+      }
     ];
 
-    for (const a of sampleAssets) {
-      const id = this.assetIdCounter++;
-      this.assets.set(id, {
-        ...a,
-        id,
-        notes: a.notes ?? null,
-        ticker: a.ticker ?? null,
-        purchaseDate: a.purchaseDate ?? null,
-        category: a.category ?? null,
-        currency: a.currency ?? "USD",
-      });
-    }
+    initialAssets.forEach(a => this.createAsset(a));
   }
 
-  async getAssets(): Promise<Asset[]> {
-    return Array.from(this.assets.values());
+  async getAssets(): Promise<Asset[]> { return Array.from(this.assets.values()); }
+  async getAsset(id: number): Promise<Asset | undefined> { return this.assets.get(id); }
+  async createAsset(a: InsertAsset): Promise<Asset> {
+    const asset: Asset = { ...a, id: this.assetId++ };
+    this.assets.set(asset.id, asset);
+    return asset;
   }
-
-  async getAsset(id: number): Promise<Asset | undefined> {
-    return this.assets.get(id);
-  }
-
-  async createAsset(asset: InsertAsset): Promise<Asset> {
-    const id = this.assetIdCounter++;
-    const newAsset: Asset = {
-      ...asset,
-      id,
-      notes: asset.notes ?? null,
-      ticker: asset.ticker ?? null,
-      purchaseDate: asset.purchaseDate ?? null,
-      category: asset.category ?? null,
-      currency: asset.currency ?? "USD",
-    };
-    this.assets.set(id, newAsset);
-    return newAsset;
-  }
-
-  async updateAsset(id: number, asset: Partial<InsertAsset>): Promise<Asset | undefined> {
+  async updateAsset(id: number, updates: Partial<InsertAsset>): Promise<Asset> {
     const existing = this.assets.get(id);
-    if (!existing) return undefined;
-    const updated: Asset = { ...existing, ...asset };
+    if (!existing) throw new Error("Asset not found");
+    const updated = { ...existing, ...updates };
     this.assets.set(id, updated);
     return updated;
   }
-
-  async deleteAsset(id: number): Promise<boolean> {
-    return this.assets.delete(id);
-  }
+  async deleteAsset(id: number): Promise<void> { this.assets.delete(id); }
 
   async getTransactions(assetId?: number): Promise<Transaction[]> {
-    const all = Array.from(this.transactions.values());
-    if (assetId !== undefined) return all.filter((t) => t.assetId === assetId);
-    return all;
+    const list = Array.from(this.transactions.values());
+    if (assetId) return list.filter(t => t.assetId === assetId);
+    return list;
   }
-
   async createTransaction(tx: InsertTransaction): Promise<Transaction> {
-    const id = this.txIdCounter++;
-    const newTx: Transaction = { ...tx, id, notes: tx.notes ?? null };
-    this.transactions.set(id, newTx);
-    return newTx;
+    const res: Transaction = { ...tx, id: this.txId++ };
+    this.transactions.set(res.id, res);
+    return res;
   }
+  async deleteTransaction(id: number): Promise<void> { this.transactions.delete(id); }
 
-  async deleteTransaction(id: number): Promise<boolean> {
-    return this.transactions.delete(id);
-  }
-
-  // Snapshot stubs for in-memory dev
-  private snapshots: Map<string, PortfolioSnapshot> = new Map();
-  private snapIdCounter = 1;
-
-  async saveSnapshot(snap: InsertSnapshot): Promise<PortfolioSnapshot> {
-    const id = this.snapshots.get(snap.date)?.id ?? this.snapIdCounter++;
-    const row: PortfolioSnapshot = { ...snap, id };
-    this.snapshots.set(snap.date, row);
-    return row;
-  }
-
-  async getSnapshots(limit = 400): Promise<PortfolioSnapshot[]> {
-    return [...this.snapshots.values()]
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .slice(0, limit);
-  }
-
-  async getSnapshotByDate(date: string): Promise<PortfolioSnapshot | undefined> {
-    return this.snapshots.get(date);
+  async getSnapshots(): Promise<PortfolioSnapshot[]> { return Array.from(this.snapshots.values()); }
+  async saveSnapshot(s: InsertSnapshot): Promise<PortfolioSnapshot> {
+    const res: PortfolioSnapshot = { ...s, id: this.snapId++ };
+    this.snapshots.set(res.id, res);
+    return res;
   }
 }
 
-// ─── Export the right storage based on environment ───────────────────────────
-// Use a lazy proxy so DatabaseStorage (and its pg Pool) are NOT created at
-// module load time. In serverless, module-level Pool construction causes a
-// connection attempt that keeps the Lambda alive before any request arrives.
-
-let _storage: IStorage | null = null;
-
-function getStorage(): IStorage {
-  if (!_storage) {
-    const dbUrl = process.env.POSTGRES_URL || process.env.DATABASE_URL;
-    _storage = dbUrl ? new DatabaseStorage(dbUrl) : new MemStorage();
-  }
-  return _storage;
-}
-
-export const storage: IStorage = new Proxy({} as IStorage, {
-  get(_target, prop: string) {
-    const s = getStorage();
-    const val = (s as any)[prop];
-    return typeof val === "function" ? val.bind(s) : val;
-  },
-});
+export const storage = new DatabaseStorage();

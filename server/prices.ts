@@ -75,7 +75,7 @@ const COINGECKO_ID_MAP: Record<string, string> = {
   CAKE: "pancakeswap-token",
   SUSHI: "sushi",
   YFI: "yearn-finance",
-  // Stablecoins — return 1 directly, no API call needed
+  // Stablecoins — return value based on currency
   USDT: "__stable__",
   USDC: "__stable__",
   BUSD: "__stable__",
@@ -105,19 +105,24 @@ async function coinGeckoIdFromSymbol(symbol: string): Promise<string | null> {
   }
 }
 
-export async function fetchCryptoPrice(ticker: string): Promise<number | null> {
+export async function fetchCryptoPrice(ticker: string, currency = "HKD"): Promise<number | null> {
   try {
     const id = await coinGeckoIdFromSymbol(ticker);
     if (!id) return null;
-    if (id === "__stable__") return 1.0;
+    
+    // For stablecoins, return 1.0 if USD, or 7.8 if HKD (approx)
+    if (id === "__stable__") {
+      return currency === "HKD" ? 7.8 : 1.0;
+    }
 
+    const vs = currency.toLowerCase() === "hkd" ? "hkd" : "usd";
     const res = await fetch(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=usd`,
+      `https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=${vs}`,
       { signal: AbortSignal.timeout(8000) }
     );
     if (!res.ok) return null;
     const data = await res.json() as any;
-    const price = data?.[id]?.usd;
+    const price = data?.[id]?.[vs];
     return typeof price === "number" ? price : null;
   } catch {
     return null;
@@ -135,48 +140,34 @@ export type PriceResult = {
 };
 
 export async function fetchPrices(
-  assets: Array<{ id: number; ticker: string | null; assetType: string }>
+  assets: Array<{ id: number; ticker: string | null; assetType: string; currency: string }>
 ): Promise<PriceResult[]> {
-  // Deduplicate: fetch each unique (ticker, assetType) pair only once,
-  // then fan out the same price to all assets sharing that pair.
-  const stockTickers = [...new Set(
-    assets.filter((a) => a.assetType === "stock" && a.ticker).map((a) => a.ticker!.trim())
-  )];
-  const cryptoTickers = [...new Set(
-    assets.filter((a) => a.assetType === "crypto" && a.ticker).map((a) => a.ticker!.trim())
-  )];
+  // We fetch each asset individually to respect its currency
+  const results = await Promise.all(
+    assets.map(async (asset): Promise<PriceResult> => {
+      const ticker = asset.ticker?.trim() ?? "";
+      if (!ticker) return { assetId: asset.id, ticker, assetType: asset.assetType, price: null, error: "No ticker" };
 
-  // Fetch all unique tickers in parallel (one API call per unique ticker)
-  const [stockPrices, cryptoPrices] = await Promise.all([
-    Promise.all(stockTickers.map(async (t) => ({ ticker: t, price: await fetchStockPrice(t) }))),
-    Promise.all(cryptoTickers.map(async (t) => ({ ticker: t, price: await fetchCryptoPrice(t) }))),
-  ]);
+      let price: number | null = null;
+      let error: string | undefined;
 
-  const stockPriceMap: Record<string, number | null> = {};
-  for (const { ticker, price } of stockPrices) stockPriceMap[ticker] = price;
+      try {
+        if (asset.assetType === "stock") {
+          price = await fetchStockPrice(ticker);
+          if (price === null) error = "Could not fetch price from Yahoo Finance";
+        } else if (asset.assetType === "crypto") {
+          price = await fetchCryptoPrice(ticker, asset.currency);
+          if (price === null) error = "Could not fetch price from CoinGecko";
+        } else {
+          error = "Manual only";
+        }
+      } catch (e: any) {
+        error = e.message;
+      }
 
-  const cryptoPriceMap: Record<string, number | null> = {};
-  for (const { ticker, price } of cryptoPrices) cryptoPriceMap[ticker] = price;
+      return { assetId: asset.id, ticker, assetType: asset.assetType, price, error };
+    })
+  );
 
-  return assets.map((asset): PriceResult => {
-    const ticker = asset.ticker?.trim() ?? "";
-
-    if (!ticker) {
-      return { assetId: asset.id, ticker, assetType: asset.assetType, price: null, error: "No ticker" };
-    }
-
-    if (asset.assetType === "stock") {
-      const price = stockPriceMap[ticker] ?? null;
-      return { assetId: asset.id, ticker, assetType: asset.assetType, price,
-        error: price === null ? "Could not fetch price from Yahoo Finance" : undefined };
-    }
-
-    if (asset.assetType === "crypto") {
-      const price = cryptoPriceMap[ticker] ?? null;
-      return { assetId: asset.id, ticker, assetType: asset.assetType, price,
-        error: price === null ? "Could not fetch price from CoinGecko" : undefined };
-    }
-
-    return { assetId: asset.id, ticker, assetType: asset.assetType, price: null, error: "Manual only" };
-  });
+  return results;
 }
