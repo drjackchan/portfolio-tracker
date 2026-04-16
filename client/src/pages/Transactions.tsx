@@ -34,8 +34,16 @@ const TX_TYPE_COLORS: Record<string, string> = {
   buy: "default", sell: "destructive", dividend: "secondary", rebalance: "outline",
 };
 
+// HKD conversion (approx)
+const USD_RATE = 7.8;
+const toHkd = (v: number, ccy: string) => ccy === "USD" ? v * USD_RATE : v;
+
 function formatCurrency(val: number) {
   return new Intl.NumberFormat("en-HK", { style: "currency", currency: "HKD", minimumFractionDigits: 2 }).format(val);
+}
+
+function formatNativeCurrency(val: number, currency: string) {
+  return new Intl.NumberFormat("en-HK", { style: "currency", currency: currency || "HKD", minimumFractionDigits: 2 }).format(val);
 }
 
 export default function Transactions() {
@@ -182,7 +190,7 @@ export default function Transactions() {
                       <th className="text-left text-xs text-muted-foreground font-medium px-3 py-3">Type</th>
                       <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Qty</th>
                       <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Price</th>
-                      <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Total</th>
+                      <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Total (HKD)</th>
                       <th className="text-left text-xs text-muted-foreground font-medium px-3 py-3">Notes</th>
                       <th className="text-right text-xs text-muted-foreground font-medium px-5 py-3"></th>
                     </tr>
@@ -190,6 +198,7 @@ export default function Transactions() {
                   <tbody>
                     {sorted.map((tx) => {
                       const asset = assetMap[tx.assetId];
+                      const totalHkd = toHkd(tx.quantity * tx.price, asset?.currency ?? "HKD");
                       return (
                         <tr key={tx.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors" data-testid={`tx-row-${tx.id}`}>
                           <td className="px-5 py-3 text-muted-foreground font-mono text-xs">{tx.date}</td>
@@ -199,8 +208,8 @@ export default function Transactions() {
                           </td>
                           <td className="px-3 py-3"><Badge variant={(TX_TYPE_COLORS[tx.type] as any) ?? "secondary"} className="capitalize text-xs">{tx.type}</Badge></td>
                           <td className="px-3 py-3 text-right font-mono tabular-nums">{tx.quantity.toLocaleString()}</td>
-                          <td className="px-3 py-3 text-right font-mono tabular-nums text-muted-foreground">{formatCurrency(tx.price)}</td>
-                          <td className="px-3 py-3 text-right font-mono tabular-nums font-semibold">{formatCurrency(tx.quantity * tx.price)}</td>
+                          <td className="px-3 py-3 text-right font-mono tabular-nums text-muted-foreground">{formatNativeCurrency(tx.price, asset?.currency ?? "HKD")}</td>
+                          <td className="px-3 py-3 text-right font-mono tabular-nums font-semibold">{formatCurrency(totalHkd)}</td>
                           <td className="px-3 py-3 text-muted-foreground text-xs">{tx.notes ?? "—"}</td>
                           <td className="px-5 py-3 text-right">
                             <Button size="icon" variant="ghost" onClick={() => deleteMutation.mutate(tx.id)} data-testid={`delete-tx-${tx.id}`}>
@@ -218,6 +227,7 @@ export default function Transactions() {
               <div className="sm:hidden divide-y divide-border">
                 {sorted.map((tx) => {
                   const asset = assetMap[tx.assetId];
+                  const totalHkd = toHkd(tx.quantity * tx.price, asset?.currency ?? "HKD");
                   return (
                     <div key={tx.id} className="px-4 py-3" data-testid={`tx-row-${tx.id}`}>
                       <div className="flex items-start justify-between gap-2">
@@ -230,7 +240,7 @@ export default function Transactions() {
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
                           <div className="text-right">
-                            <div className="text-sm font-mono font-semibold tabular-nums">{formatCurrency(tx.quantity * tx.price)}</div>
+                            <div className="text-sm font-mono font-semibold tabular-nums">{formatCurrency(totalHkd)}</div>
                             <div className="text-xs text-muted-foreground font-mono">× {tx.quantity.toLocaleString()}</div>
                           </div>
                           <Button size="icon" variant="ghost" onClick={() => deleteMutation.mutate(tx.id)} data-testid={`delete-tx-${tx.id}`}>

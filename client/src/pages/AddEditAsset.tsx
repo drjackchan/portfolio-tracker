@@ -1,6 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
-import { useHashLocation } from "wouter/use-hash-location";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -49,7 +48,7 @@ const ASSET_TYPES = [
 export default function AddEditAsset() {
   const { id } = useParams<{ id?: string }>();
   const isEdit = !!id;
-  const [, navigate] = useHashLocation();
+  const [, navigate] = useLocation();
   const { toast } = useToast();
 
   const { data: existing } = useQuery<Asset>({

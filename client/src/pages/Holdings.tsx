@@ -31,10 +31,18 @@ const ASSET_TYPE_COLORS: Record<string, string> = {
   commodity: "hsl(var(--chart-6))",
 };
 
+// HKD conversion (approx)
+const USD_RATE = 7.8;
+const toHkd = (v: number, ccy: string) => ccy === "USD" ? v * USD_RATE : v;
+
 function formatCurrency(val: number, compact = false) {
   if (compact && Math.abs(val) >= 1_000_000) return `HK$${(val / 1_000_000).toFixed(2)}M`;
   if (compact && Math.abs(val) >= 1_000) return `HK$${(val / 1_000).toFixed(1)}K`;
   return new Intl.NumberFormat("en-HK", { style: "currency", currency: "HKD", minimumFractionDigits: 2 }).format(val);
+}
+
+function formatNativeCurrency(val: number, currency: string) {
+  return new Intl.NumberFormat("en-HK", { style: "currency", currency: currency || "HKD", minimumFractionDigits: 2 }).format(val);
 }
 
 function formatPct(val: number) {
@@ -75,7 +83,7 @@ export default function Holdings() {
       queryClient.invalidateQueries({ queryKey: ["/api/assets"] });
       toast({
         title: "Price updated",
-        description: data?.ticker ? `${data.ticker}: ${formatCurrency(data.price)}` : "Price updated",
+        description: data?.ticker ? `${data.ticker}: ${formatNativeCurrency(data.price, data.asset?.currency ?? "HKD")}` : "Price updated",
       });
       setRefreshingId(null);
     },
@@ -202,15 +210,15 @@ export default function Holdings() {
                         <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Qty</th>
                         <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Buy Price</th>
                         <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Current</th>
-                        <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Value</th>
+                        <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Value (HKD)</th>
                         <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Return</th>
                         <th className="text-right text-xs text-muted-foreground font-medium px-5 py-3">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filtered.map((a) => {
-                        const mv = a.quantity * a.currentPrice;
-                        const cost = a.quantity * a.purchasePrice;
+                        const mv = toHkd(a.quantity * a.currentPrice, a.currency);
+                        const cost = toHkd(a.quantity * a.purchasePrice, a.currency);
                         const gain = mv - cost;
                         const gainPct = cost > 0 ? (gain / cost) * 100 : 0;
                         const isRefreshing = refreshingId === a.id;
@@ -231,10 +239,10 @@ export default function Holdings() {
                             <td className="px-3 py-3"><Badge variant="secondary" className="text-xs capitalize">{ASSET_TYPE_LABELS[a.assetType] ?? a.assetType}</Badge></td>
                             <td className="px-3 py-3 text-muted-foreground text-xs">{a.category ?? "—"}</td>
                             <td className="px-3 py-3 text-right font-mono tabular-nums">{a.quantity.toLocaleString()}</td>
-                            <td className="px-3 py-3 text-right font-mono tabular-nums text-muted-foreground">{formatCurrency(a.purchasePrice)}</td>
+                            <td className="px-3 py-3 text-right font-mono tabular-nums text-muted-foreground">{formatNativeCurrency(a.purchasePrice, a.currency)}</td>
                             <td className="px-3 py-3 text-right">
                               <div className="flex items-center justify-end gap-1.5">
-                                <span className="font-mono tabular-nums">{formatCurrency(a.currentPrice)}</span>
+                                <span className="font-mono tabular-nums">{formatNativeCurrency(a.currentPrice, a.currency)}</span>
                                 {canAutoRefresh(a) && (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
@@ -277,8 +285,8 @@ export default function Holdings() {
                 {/* Mobile card list */}
                 <div className="sm:hidden divide-y divide-border">
                   {filtered.map((a) => {
-                    const mv = a.quantity * a.currentPrice;
-                    const cost = a.quantity * a.purchasePrice;
+                    const mv = toHkd(a.quantity * a.currentPrice, a.currency);
+                    const cost = toHkd(a.quantity * a.purchasePrice, a.currency);
                     const gain = mv - cost;
                     const gainPct = cost > 0 ? (gain / cost) * 100 : 0;
                     const isRefreshing = refreshingId === a.id;
@@ -322,7 +330,7 @@ export default function Holdings() {
                           </div>
                           <div>
                             <div className="text-xs text-muted-foreground">Current</div>
-                            <div className="text-sm font-mono tabular-nums">{formatCurrency(a.currentPrice, true)}</div>
+                            <div className="text-sm font-mono tabular-nums">{formatNativeCurrency(a.currentPrice, a.currency)}</div>
                           </div>
                         </div>
                         <div className="mt-1.5 flex items-center gap-2">
