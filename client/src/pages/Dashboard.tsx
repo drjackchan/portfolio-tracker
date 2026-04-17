@@ -282,13 +282,13 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* KPI Cards — 2 cols mobile, 3 on sm, 6 on lg */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      {/* KPI Cards — 2 cols mobile, 4 on sm, 7 on lg */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
         <KpiCard title="Net Worth" value={isLoading ? "—" : fmtCcy(totalNetWorth, true)} icon={DollarSign} loading={isLoading} />
         <KpiCard title="Total Assets" value={isLoading ? "—" : fmtCcy(totalAssetsValue, true)} icon={Briefcase} loading={isLoading} />
         <KpiCard title="Total Debt" value={isLoading ? "—" : fmtCcy(totalLiabilities, true)} icon={CreditCard} loading={isLoading} />
         <KpiCard
-          title="Assets Gain/Loss"
+          title="Assets Gain"
           value={isLoading ? "—" : fmtCcy(totalGain, true)}
           sub={isLoading ? undefined : fmtPct(totalGainPct)}
           subLabel="vs cost"
@@ -297,7 +297,7 @@ export default function Dashboard() {
           loading={isLoading}
         />
         <KpiCard
-          title="Daily Change"
+          title="Daily"
           value={dailyChange === null ? (snapsLoading ? "—" : "No data") : fmtCcy(dailyChange, true)}
           sub={dailyPct !== null ? fmtPct(dailyPct) : undefined}
           subLabel={snap1d ? `vs ${snap1d.date}` : undefined}
@@ -306,13 +306,21 @@ export default function Dashboard() {
           loading={isLoading || snapsLoading}
         />
         <KpiCard
-          title="30-Day Change"
+          title="30-Day"
           value={monthlyChange === null ? (snapsLoading ? "—" : "No data") : fmtCcy(monthlyChange, true)}
           sub={monthlyPct !== null ? fmtPct(monthlyPct) : undefined}
           subLabel={snap30d ? `vs ${snap30d.date}` : undefined}
           positive={monthlyChange !== null ? monthlyChange >= 0 : undefined}
           icon={CalendarRange}
           loading={isLoading || snapsLoading}
+        />
+        <KpiCard
+          title="Safe Spending"
+          value={isLoading ? "—" : fmtCcy(totalNetWorth * 0.04 / 12, true)}
+          sub={isLoading ? undefined : fmtCcy(totalNetWorth * 0.04, true)}
+          subLabel="annual (4%)"
+          icon={Percent}
+          loading={isLoading}
         />
       </div>
 
