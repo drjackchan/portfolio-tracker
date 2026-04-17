@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import {
   TrendingUp, TrendingDown, Plus, DollarSign,
   BarChart3, Percent, RefreshCw, Camera,
-  CalendarDays, CalendarRange, CreditCard, Briefcase
+  CalendarDays, CalendarRange, CreditCard, Briefcase, Wallet
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
