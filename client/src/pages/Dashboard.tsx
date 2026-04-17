@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   PieChart, Pie, Cell, Tooltip as ReTooltip, ResponsiveContainer,
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Sector,
 } from "recharts";
 import type { Asset, Liability } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -109,10 +109,28 @@ const ChartTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
+const renderActiveShape = (props: any) => {
+  const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
+  return (
+    <g>
+      <Sector
+        cx={cx}
+        cy={cy}
+        innerRadius={innerRadius}
+        outerRadius={outerRadius + 8}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        fill={fill}
+      />
+    </g>
+  );
+};
+
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { toast } = useToast();
   const [range, setRange] = useState<Range>("30d");
+  const [activePieIndex, setActivePieIndex] = useState(0);
 
   const { data: assets = [], isLoading: assetsLoading } = useQuery<Asset[]>({ queryKey: ["/api/assets"] });
   const { data: liabilities = [], isLoading: liabLoading } = useQuery<Liability[]>({ queryKey: ["/api/liabilities"] });
@@ -190,7 +208,7 @@ export default function Dashboard() {
     name: ASSET_TYPE_LABELS[type] ?? type,
     value, pct: totalAssetsValue > 0 ? (value / totalAssetsValue) * 100 : 0,
     color: ASSET_TYPE_COLORS[type] ?? "#888",
-  }));
+  })).sort((a, b) => b.value - a.value); // Sort largest to smallest
 
   // Top holdings
   const topHoldings = [...assets]
@@ -357,32 +375,55 @@ export default function Dashboard() {
 
       {/* Allocation + Top Holdings */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        <Card>
+        <Card className="flex flex-col">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold">Asset Allocation</CardTitle>
           </CardHeader>
-          <CardContent>
-            {isLoading ? <Skeleton className="h-40 w-full" /> :
+          <CardContent className="flex-1 flex flex-col justify-center">
+            {isLoading ? <Skeleton className="h-64 w-full" /> :
              allocationData.length === 0 ? (
-              <div className="h-40 flex items-center justify-center text-muted-foreground text-sm">No assets yet</div>
+              <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">No assets yet</div>
             ) : (
-              <div className="flex items-center gap-4 sm:gap-6">
+              <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8 justify-center py-2">
                 <div className="flex-shrink-0">
-                  <ResponsiveContainer width={140} height={140}>
+                  <ResponsiveContainer width={220} height={220}>
                     <PieChart>
-                      <Pie data={allocationData} cx="50%" cy="50%" innerRadius={40} outerRadius={64} paddingAngle={3} dataKey="value">
-                        {allocationData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                      <Pie 
+                        data={allocationData} 
+                        cx="50%" 
+                        cy="50%" 
+                        innerRadius={65} 
+                        outerRadius={95} 
+                        paddingAngle={3} 
+                        dataKey="value"
+                        activeIndex={activePieIndex}
+                        activeShape={renderActiveShape}
+                        onMouseEnter={(_, index) => setActivePieIndex(index)}
+                        stroke="none"
+                      >
+                        {allocationData.map((e, i) => <Cell key={i} fill={e.color} className="transition-all duration-300 ease-in-out cursor-pointer" />)}
                       </Pie>
                       <ReTooltip content={<PieTooltip />} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-                <ul className="space-y-2 flex-1 min-w-0">
-                  {allocationData.map((d) => (
-                    <li key={d.name} className="flex items-center gap-2 text-sm">
-                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: d.color }} />
-                      <span className="text-muted-foreground flex-1 truncate">{d.name}</span>
-                      <span className="font-mono font-medium tabular-nums">{d.pct.toFixed(1)}%</span>
+                <ul className="space-y-2 flex-1 min-w-0 w-full max-w-[280px]">
+                  {allocationData.map((d, i) => (
+                    <li 
+                      key={d.name} 
+                      className={`flex items-center justify-between p-2.5 rounded-lg transition-all cursor-pointer ${
+                        activePieIndex === i ? "bg-sidebar-accent shadow-sm scale-[1.02]" : "hover:bg-muted/50"
+                      }`}
+                      onMouseEnter={() => setActivePieIndex(i)}
+                    >
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <span className="w-3.5 h-3.5 rounded-full flex-shrink-0 shadow-sm" style={{ background: d.color }} />
+                        <span className="text-sm font-medium text-foreground truncate">{d.name}</span>
+                      </div>
+                      <div className="text-right flex-shrink-0 ml-3">
+                        <div className="text-sm font-semibold font-mono tabular-nums leading-tight">{fmtCcy(d.value, true)}</div>
+                        <div className="text-xs font-mono text-muted-foreground">{d.pct.toFixed(1)}%</div>
+                      </div>
                     </li>
                   ))}
                 </ul>
