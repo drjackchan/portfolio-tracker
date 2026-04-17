@@ -27,6 +27,7 @@ export const liabilities = pgTable("liabilities", {
   name: text("name").notNull(),
   type: text("type").notNull(), // "mortgage" | "loan" | "credit_card" | "other"
   balance: real("balance").notNull(),
+  interestRate: real("interest_rate").notNull().default(0), // annual percentage rate
   currency: text("currency").notNull().default("HKD"),
   notes: text("notes"),
 });

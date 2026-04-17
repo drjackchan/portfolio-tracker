@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Percent } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +62,11 @@ export default function Liabilities() {
   });
 
   const totalLiabilities = liabilities.reduce((s, l) => s + toHkd(l.balance, l.currency), 0);
+  const totalMonthlyInterest = liabilities.reduce((s, l) => {
+    const monthlyRate = (l.interestRate || 0) / 100 / 12;
+    const monthlyInterest = l.balance * monthlyRate;
+    return s + toHkd(monthlyInterest, l.currency);
+  }, 0);
 
   return (
     <div className="p-4 sm:p-6 space-y-5 max-w-[1200px]">
@@ -87,6 +92,12 @@ export default function Liabilities() {
           <CardContent className="p-4">
             <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Total Debt</div>
             <div className="text-2xl font-semibold font-mono">{formatCurrency(totalLiabilities)}</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-sidebar-accent/50 border-sidebar-border">
+          <CardContent className="p-4">
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Total Monthly Interest</div>
+            <div className="text-2xl font-semibold font-mono text-destructive">{formatCurrency(totalMonthlyInterest)}</div>
           </CardContent>
         </Card>
       </div>
@@ -136,6 +147,8 @@ export default function Liabilities() {
                     <tr className="border-b border-border">
                       <th className="text-left text-xs text-muted-foreground font-medium px-5 py-3">Name</th>
                       <th className="text-left text-xs text-muted-foreground font-medium px-3 py-3">Type</th>
+                      <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Interest Rate</th>
+                      <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Monthly Interest</th>
                       <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Balance (Native)</th>
                       <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Balance (HKD)</th>
                       <th className="text-left text-xs text-muted-foreground font-medium px-3 py-3">Notes</th>
@@ -145,6 +158,8 @@ export default function Liabilities() {
                   <tbody>
                     {filtered.map((l) => {
                       const hkdBalance = toHkd(l.balance, l.currency);
+                      const monthlyRate = (l.interestRate || 0) / 100 / 12;
+                      const monthlyInterest = l.balance * monthlyRate;
                       return (
                         <tr key={l.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
                           <td className="px-5 py-3">
@@ -157,6 +172,8 @@ export default function Liabilities() {
                             </div>
                           </td>
                           <td className="px-3 py-3"><Badge variant="secondary" className="text-xs capitalize">{LIABILITY_TYPE_LABELS[l.type] ?? l.type}</Badge></td>
+                          <td className="px-3 py-3 text-right font-mono tabular-nums">{l.interestRate?.toFixed(2)}%</td>
+                          <td className="px-3 py-3 text-right font-mono tabular-nums text-destructive">{formatNativeCurrency(monthlyInterest, l.currency)}</td>
                           <td className="px-3 py-3 text-right font-mono tabular-nums text-muted-foreground">{formatNativeCurrency(l.balance, l.currency)}</td>
                           <td className="px-3 py-3 text-right font-mono tabular-nums font-semibold">{formatCurrency(hkdBalance)}</td>
                           <td className="px-3 py-3 text-muted-foreground text-xs">{l.notes ?? "—"}</td>
@@ -179,6 +196,8 @@ export default function Liabilities() {
               <div className="sm:hidden divide-y divide-border">
                 {filtered.map((l) => {
                   const hkdBalance = toHkd(l.balance, l.currency);
+                  const monthlyRate = (l.interestRate || 0) / 100 / 12;
+                  const monthlyInterest = l.balance * monthlyRate;
                   return (
                     <div key={l.id} className="px-4 py-3">
                       <div className="flex items-start justify-between gap-2">
@@ -189,7 +208,10 @@ export default function Liabilities() {
                           </div>
                           <div className="min-w-0">
                             <div className="font-medium text-foreground text-sm truncate">{l.name}</div>
-                            <Badge variant="secondary" className="mt-1 text-[10px] capitalize">{LIABILITY_TYPE_LABELS[l.type] ?? l.type}</Badge>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <Badge variant="secondary" className="text-[10px] capitalize">{LIABILITY_TYPE_LABELS[l.type] ?? l.type}</Badge>
+                              <span className="text-[10px] text-muted-foreground font-mono">{l.interestRate?.toFixed(2)}% APR</span>
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
@@ -201,8 +223,8 @@ export default function Liabilities() {
                       </div>
                       <div className="mt-3 flex items-end justify-between">
                         <div className="text-xs text-muted-foreground">
-                          {l.currency !== "HKD" && <div className="font-mono">{formatNativeCurrency(l.balance, l.currency)}</div>}
-                          {l.notes && <div className="mt-0.5 truncate max-w-[150px]">{l.notes}</div>}
+                          <div className="text-destructive font-mono">Interest: {formatNativeCurrency(monthlyInterest, l.currency)}/mo</div>
+                          {l.notes && <div className="mt-1 truncate max-w-[150px]">{l.notes}</div>}
                         </div>
                         <div className="text-right">
                           <div className="text-xs text-muted-foreground">Balance</div>

@@ -31,6 +31,7 @@ import { useEffect } from "react";
 
 const formSchema = insertLiabilitySchema.extend({
   balance: z.coerce.number().positive("Must be > 0"),
+  interestRate: z.coerce.number().min(0, "Must be >= 0"),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -59,6 +60,7 @@ export default function AddEditLiability() {
       name: "",
       type: "mortgage",
       balance: 0,
+      interestRate: 0,
       currency: "HKD",
       notes: "",
     },
@@ -70,6 +72,7 @@ export default function AddEditLiability() {
         name: existing.name,
         type: existing.type,
         balance: existing.balance,
+        interestRate: existing.interestRate,
         currency: existing.currency,
         notes: existing.notes ?? "",
       });
@@ -217,6 +220,21 @@ export default function AddEditLiability() {
                   )}
                 />
               </div>
+
+              {/* Interest Rate */}
+              <FormField
+                control={form.control}
+                name="interestRate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Annual Interest Rate (%)</FormLabel>
+                    <FormControl>
+                      <Input data-testid="input-interest-rate" type="number" step="0.01" placeholder="0.00" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               {/* Notes */}
               <FormField
