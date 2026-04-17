@@ -114,6 +114,14 @@ export default function Holdings() {
   const canAutoRefresh = (a: Asset) =>
     (a.assetType === "stock" || a.assetType === "crypto") && !!a.ticker;
 
+  // Calculate totals for each category
+  const totalsByCategory = assets.reduce((acc, a) => {
+    const val = toHkd(a.quantity * a.currentPrice, a.currency);
+    acc[a.assetType] = (acc[a.assetType] || 0) + val;
+    acc["total"] = (acc["total"] || 0) + val;
+    return acc;
+  }, {} as Record<string, number>);
+
   return (
     <TooltipProvider>
       <div className="p-4 sm:p-6 space-y-5 max-w-[1200px]">
@@ -157,6 +165,36 @@ export default function Holdings() {
               </Button>
             </Link>
           </div>
+        </div>
+
+        {/* Totals Section */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <Card className="bg-sidebar-accent/50 border-sidebar-border" data-testid="total-assets-card">
+            <CardContent className="p-4">
+              <div className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1 truncate">Total Assets</div>
+              {isLoading ? <Skeleton className="h-6 w-20" /> : (
+                <div className="text-lg sm:text-xl font-semibold font-mono truncate">{formatCurrency(totalsByCategory["total"] || 0, true)}</div>
+              )}
+            </CardContent>
+          </Card>
+          {FILTER_TYPES.filter(t => t !== "All").map(type => {
+            const val = totalsByCategory[type] || 0;
+            if (!isLoading && val === 0) return null; // Hide empty categories to save space
+            
+            return (
+              <Card key={type} data-testid={`total-${type}-card`}>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <div className="w-2 h-2 rounded-full" style={{ background: ASSET_TYPE_COLORS[type] }} />
+                    <div className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">{ASSET_TYPE_LABELS[type]}</div>
+                  </div>
+                  {isLoading ? <Skeleton className="h-6 w-20" /> : (
+                    <div className="text-lg sm:text-xl font-semibold font-mono truncate">{formatCurrency(val, true)}</div>
+                  )}
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
 
         {/* Filters */}
