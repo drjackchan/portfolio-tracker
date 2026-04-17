@@ -174,10 +174,11 @@ export default function Dashboard() {
   const snap1d  = getSnapshotDaysAgo(1);
   const snap30d = getSnapshotDaysAgo(30);
 
-  const dailyChange  = snap1d  ? totalNetWorth - snap1d.totalValue  : null;
-  const monthlyChange = snap30d ? totalNetWorth - snap30d.totalValue : null;
-  const dailyPct     = snap1d  && snap1d.totalValue  > 0 ? (dailyChange! / Math.abs(snap1d.totalValue))  * 100 : null;
-  const monthlyPct   = snap30d && snap30d.totalValue > 0 ? (monthlyChange! / Math.abs(snap30d.totalValue)) * 100 : null;
+  // We compute net worth for old snapshots using `s.totalValue - (s.totalLiability || 0)`
+  const dailyChange  = snap1d  ? totalNetWorth - (snap1d.totalValue - (snap1d.totalLiability || 0)) : null;
+  const monthlyChange = snap30d ? totalNetWorth - (snap30d.totalValue - (snap30d.totalLiability || 0)) : null;
+  const dailyPct     = snap1d  && snap1d.totalValue  > 0 ? (dailyChange! / Math.abs(snap1d.totalValue - (snap1d.totalLiability || 0)))  * 100 : null;
+  const monthlyPct   = snap30d && snap30d.totalValue > 0 ? (monthlyChange! / Math.abs(snap30d.totalValue - (snap30d.totalLiability || 0))) * 100 : null;
 
   // Allocation
   const allocationMap: Record<string, number> = {};
@@ -208,12 +209,13 @@ export default function Dashboard() {
 
   const chartData = sortedSnaps
     .filter((s) => range === "all" || s.date >= cutoffStr)
-    .map((s) => ({ date: fmtDate(s.date), value: s.totalValue, rawDate: s.date }));
+    .map((s) => ({ date: fmtDate(s.date), value: s.totalValue - (s.totalLiability || 0), rawDate: s.date }));
 
-  // Append today's live value as the final point if it's after the last snapshot
-  const lastSnap = sortedSnaps[sortedSnaps.length - 1];
+  // Replace today's snapshot value with the live Net Worth so it doesn't look broken when users add liabilities
   const todayStr = new Date(Date.now() + 8 * 3600_000).toISOString().slice(0, 10);
-  if (!lastSnap || lastSnap.date < todayStr) {
+  if (chartData.length > 0 && chartData[chartData.length - 1].rawDate === todayStr) {
+    chartData[chartData.length - 1].value = totalNetWorth;
+  } else {
     chartData.push({ date: "Today", value: totalNetWorth, rawDate: todayStr });
   }
 

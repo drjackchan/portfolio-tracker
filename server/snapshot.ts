@@ -61,7 +61,8 @@ export async function takeSnapshot(dateOverride?: string): Promise<{
     (s, l) => s + toHkd(l.balance, l.currency), 0
   );
   
-  const totalValue = totalAssetsValue - totalLiability;
+  // Save totalValue as the sum of assets to maintain backward compatibility
+  const totalValue = totalAssetsValue;
 
   const now = new Date();
   // Use HKT (UTC+8) for the date label

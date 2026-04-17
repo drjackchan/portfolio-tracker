@@ -54,7 +54,7 @@ export type Transaction = typeof transactions.$inferSelect;
 export const portfolioSnapshots = pgTable("portfolio_snapshots", {
   id: serial("id").primaryKey(),
   date: text("date").notNull(),          // YYYY-MM-DD
-  totalValue: real("total_value").notNull(),  // sum of all assets - liabilities in HKD equivalent
+  totalValue: real("total_value").notNull(),  // sum of all assets in HKD equivalent
   totalCost:  real("total_cost").notNull(),   // sum of all purchase costs
   totalLiability: real("total_liability").notNull().default(0), // sum of all liabilities in HKD
   assetCount: integer("asset_count").notNull(),
