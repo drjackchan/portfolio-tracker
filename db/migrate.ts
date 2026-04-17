@@ -43,6 +43,7 @@ export async function runMigrations() {
       name          TEXT NOT NULL,
       type          TEXT NOT NULL,
       balance       REAL NOT NULL,
+      interest_rate REAL NOT NULL DEFAULT 0,
       currency      TEXT NOT NULL DEFAULT 'HKD',
       notes         TEXT
     );
@@ -62,6 +63,10 @@ export async function runMigrations() {
 
   await db.execute(sql`
     ALTER TABLE portfolio_snapshots ADD COLUMN IF NOT EXISTS total_liability REAL NOT NULL DEFAULT 0;
+  `);
+
+  await db.execute(sql`
+    ALTER TABLE liabilities ADD COLUMN IF NOT EXISTS interest_rate REAL NOT NULL DEFAULT 0;
   `);
 
   await pool.end();
