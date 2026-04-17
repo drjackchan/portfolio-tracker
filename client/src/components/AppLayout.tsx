@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Briefcase,
   ArrowLeftRight,
+  CreditCard,
   Sun,
   Moon,
   Menu,
@@ -16,7 +17,8 @@ import { useAuth } from "../App";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/holdings", label: "Holdings", icon: Briefcase },
+  { href: "/holdings", label: "Assets", icon: Briefcase },
+  { href: "/liabilities", label: "Liabilities", icon: CreditCard },
   { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
 ];
 

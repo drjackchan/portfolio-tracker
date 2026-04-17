@@ -1,8 +1,9 @@
 import {
-  assets, transactions, portfolioSnapshots,
+  assets, transactions, portfolioSnapshots, liabilities,
   type Asset, type InsertAsset,
   type Transaction, type InsertTransaction,
   type PortfolioSnapshot, type InsertSnapshot,
+  type Liability, type InsertLiability,
 } from "@shared/schema";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
@@ -17,13 +18,20 @@ export interface IStorage {
   updateAsset(id: number, asset: Partial<InsertAsset>): Promise<Asset>;
   deleteAsset(id: number): Promise<void>;
 
+  // Liabilities
+  getLiabilities(): Promise<Liability[]>;
+  getLiability(id: number): Promise<Liability | undefined>;
+  createLiability(liability: InsertLiability): Promise<Liability>;
+  updateLiability(id: number, liability: Partial<InsertLiability>): Promise<Liability>;
+  deleteLiability(id: number): Promise<void>;
+
   // Transactions
   getTransactions(assetId?: number): Promise<Transaction[]>;
   createTransaction(tx: InsertTransaction): Promise<Transaction>;
   deleteTransaction(id: number): Promise<void>;
 
   // Snapshots
-  getSnapshots(): Promise<PortfolioSnapshot[]>;
+  getSnapshots(limit?: number): Promise<PortfolioSnapshot[]>;
   saveSnapshot(snap: InsertSnapshot): Promise<PortfolioSnapshot>;
 }
 
@@ -46,52 +54,6 @@ export class DatabaseStorage implements IStorage {
 
     // Run migrations on start
     runMigrations().catch(err => console.error("Migration failed", err));
-  }
-
-  // --- INTERNAL HELPER ---
-  // If the database is empty, we can optionally seed it here or just let the user add.
-  // For this prototype, let's keep it simple. We'll add a helper to ensure tables exist.
-  async ensureTables() {
-    try {
-      await this.db.execute(sql`
-        CREATE TABLE IF NOT EXISTS assets (
-          id            SERIAL PRIMARY KEY,
-          name          TEXT NOT NULL,
-          ticker        TEXT,
-          asset_type    TEXT NOT NULL,
-          quantity      REAL NOT NULL,
-          purchase_price REAL NOT NULL,
-          current_price  REAL NOT NULL,
-          currency      TEXT NOT NULL DEFAULT 'HKD',
-          notes         TEXT,
-          purchase_date TEXT,
-          category      TEXT
-        );
-      `);
-      await this.db.execute(sql`
-        CREATE TABLE IF NOT EXISTS transactions (
-          id        SERIAL PRIMARY KEY,
-          asset_id  INTEGER NOT NULL,
-          type      TEXT NOT NULL,
-          quantity  REAL NOT NULL,
-          price     REAL NOT NULL,
-          date      TEXT NOT NULL,
-          notes     TEXT
-        );
-      `);
-      await this.db.execute(sql`
-        CREATE TABLE IF NOT EXISTS portfolio_snapshots (
-          id          SERIAL PRIMARY KEY,
-          date        TEXT NOT NULL,
-          total_value REAL NOT NULL,
-          total_cost  REAL NOT NULL,
-          asset_count INTEGER NOT NULL,
-          created_at  TEXT NOT NULL
-        );
-      `);
-    } catch (e) {
-      console.error("ensureTables failed", e);
-    }
   }
 
   // Assets
@@ -120,6 +82,31 @@ export class DatabaseStorage implements IStorage {
     await this.db.delete(assets).where(eq(assets.id, id));
   }
 
+  // Liabilities
+  async getLiabilities(): Promise<Liability[]> {
+    return await this.db.select().from(liabilities);
+  }
+
+  async getLiability(id: number): Promise<Liability | undefined> {
+    const [l] = await this.db.select().from(liabilities).where(eq(liabilities.id, id));
+    return l;
+  }
+
+  async createLiability(insertLiability: InsertLiability): Promise<Liability> {
+    const [l] = await this.db.insert(liabilities).values(insertLiability).returning();
+    return l;
+  }
+
+  async updateLiability(id: number, updates: Partial<InsertLiability>): Promise<Liability> {
+    const [l] = await this.db.update(liabilities).set(updates).where(eq(liabilities.id, id)).returning();
+    if (!l) throw new Error("Liability not found");
+    return l;
+  }
+
+  async deleteLiability(id: number): Promise<void> {
+    await this.db.delete(liabilities).where(eq(liabilities.id, id));
+  }
+
   // Transactions
   async getTransactions(assetId?: number): Promise<Transaction[]> {
     if (assetId) {
@@ -138,7 +125,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Snapshots
-  async getSnapshots(): Promise<PortfolioSnapshot[]> {
+  async getSnapshots(limit?: number): Promise<PortfolioSnapshot[]> {
+    if (limit) {
+      return await this.db.select().from(portfolioSnapshots).orderBy(desc(portfolioSnapshots.date)).limit(limit);
+    }
     return await this.db.select().from(portfolioSnapshots).orderBy(portfolioSnapshots.date);
   }
 
@@ -151,9 +141,11 @@ export class DatabaseStorage implements IStorage {
 // Memory Storage for fallback / local testing
 export class MemStorage implements IStorage {
   private assets: Map<number, Asset> = new Map();
+  private liabilities: Map<number, Liability> = new Map();
   private transactions: Map<number, Transaction> = new Map();
   private snapshots: Map<number, PortfolioSnapshot> = new Map();
   private assetId = 1;
+  private liabilityId = 1;
   private txId = 1;
   private snapId = 1;
 
@@ -216,6 +208,22 @@ export class MemStorage implements IStorage {
     return updated;
   }
   async deleteAsset(id: number): Promise<void> { this.assets.delete(id); }
+
+  async getLiabilities(): Promise<Liability[]> { return Array.from(this.liabilities.values()); }
+  async getLiability(id: number): Promise<Liability | undefined> { return this.liabilities.get(id); }
+  async createLiability(l: InsertLiability): Promise<Liability> {
+    const liability: Liability = { ...l, id: this.liabilityId++ };
+    this.liabilities.set(liability.id, liability);
+    return liability;
+  }
+  async updateLiability(id: number, updates: Partial<InsertLiability>): Promise<Liability> {
+    const existing = this.liabilities.get(id);
+    if (!existing) throw new Error("Liability not found");
+    const updated = { ...existing, ...updates };
+    this.liabilities.set(id, updated);
+    return updated;
+  }
+  async deleteLiability(id: number): Promise<void> { this.liabilities.delete(id); }
 
   async getTransactions(assetId?: number): Promise<Transaction[]> {
     const list = Array.from(this.transactions.values());

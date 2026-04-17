@@ -38,6 +38,17 @@ export async function runMigrations() {
   `);
 
   await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS liabilities (
+      id            SERIAL PRIMARY KEY,
+      name          TEXT NOT NULL,
+      type          TEXT NOT NULL,
+      balance       REAL NOT NULL,
+      currency      TEXT NOT NULL DEFAULT 'HKD',
+      notes         TEXT
+    );
+  `);
+
+  await db.execute(sql`
     CREATE TABLE IF NOT EXISTS transactions (
       id        SERIAL PRIMARY KEY,
       asset_id  INTEGER NOT NULL,
@@ -47,6 +58,10 @@ export async function runMigrations() {
       date      TEXT NOT NULL,
       notes     TEXT
     );
+  `);
+
+  await db.execute(sql`
+    ALTER TABLE portfolio_snapshots ADD COLUMN IF NOT EXISTS total_liability REAL NOT NULL DEFAULT 0;
   `);
 
   await pool.end();

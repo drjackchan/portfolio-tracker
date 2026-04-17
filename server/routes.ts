@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { type Server } from "http";
 import cookieParser from "cookie-parser";
 import { storage } from "./storage";
-import { insertAssetSchema, insertTransactionSchema } from "@shared/schema";
+import { insertAssetSchema, insertTransactionSchema, insertLiabilitySchema } from "@shared/schema";
 import { z } from "zod";
 import { fetchPrices, fetchStockPrice, fetchCryptoPrice } from "./prices";
 import { takeSnapshot } from "./snapshot";
@@ -52,7 +52,41 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.delete("/api/assets/:id", async (req, res) => {
     const id = parseInt(req.params.id);
     const ok = await storage.deleteAsset(id);
-    if (!ok) return res.status(404).json({ message: "Asset not found" });
+    res.status(204).end();
+  });
+
+  // --- Liabilities ---
+  app.get("/api/liabilities", async (req, res) => {
+    const liabilities = await storage.getLiabilities();
+    res.json(liabilities);
+  });
+
+  app.get("/api/liabilities/:id", async (req, res) => {
+    const id = parseInt(req.params.id);
+    const liability = await storage.getLiability(id);
+    if (!liability) return res.status(404).json({ message: "Liability not found" });
+    res.json(liability);
+  });
+
+  app.post("/api/liabilities", async (req, res) => {
+    const result = insertLiabilitySchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
+    const liability = await storage.createLiability(result.data);
+    res.status(201).json(liability);
+  });
+
+  app.patch("/api/liabilities/:id", async (req, res) => {
+    const id = parseInt(req.params.id);
+    const result = insertLiabilitySchema.partial().safeParse(req.body);
+    if (!result.success) return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
+    const liability = await storage.updateLiability(id, result.data);
+    if (!liability) return res.status(404).json({ message: "Liability not found" });
+    res.json(liability);
+  });
+
+  app.delete("/api/liabilities/:id", async (req, res) => {
+    const id = parseInt(req.params.id);
+    await storage.deleteLiability(id);
     res.status(204).end();
   });
 
@@ -72,8 +106,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.delete("/api/transactions/:id", async (req, res) => {
     const id = parseInt(req.params.id);
-    const ok = await storage.deleteTransaction(id);
-    if (!ok) return res.status(404).json({ message: "Transaction not found" });
+    await storage.deleteTransaction(id);
     res.status(204).end();
   });
 

@@ -6,6 +6,8 @@ import { useState, useEffect, useCallback, createContext, useContext } from "rea
 import Dashboard from "@/pages/Dashboard";
 import Holdings from "@/pages/Holdings";
 import AddEditAsset from "@/pages/AddEditAsset";
+import Liabilities from "@/pages/Liabilities";
+import AddEditLiability from "@/pages/AddEditLiability";
 import Transactions from "@/pages/Transactions";
 import NotFound from "@/pages/not-found";
 import AppLayout from "@/components/AppLayout";
@@ -26,6 +28,9 @@ function Router() {
         <Route path="/holdings" component={Holdings} />
         <Route path="/holdings/new" component={AddEditAsset} />
         <Route path="/holdings/:id/edit" component={AddEditAsset} />
+        <Route path="/liabilities" component={Liabilities} />
+        <Route path="/liabilities/new" component={AddEditLiability} />
+        <Route path="/liabilities/:id/edit" component={AddEditLiability} />
         <Route path="/transactions" component={Transactions} />
         <Route component={NotFound} />
       </Switch>

@@ -25,10 +25,13 @@ export async function takeSnapshot(dateOverride?: string): Promise<{
   date: string;
   totalValue: number;
   totalCost: number;
+  totalLiability: number;
   assetCount: number;
 }> {
   const assets = await storage.getAssets();
-  if (assets.length === 0) throw new Error("No assets to snapshot");
+  const liabilities = await storage.getLiabilities();
+  
+  if (assets.length === 0 && liabilities.length === 0) throw new Error("No assets or liabilities to snapshot");
 
   // Refresh prices for stocks + crypto first
   const refreshable = assets.filter(
@@ -48,12 +51,17 @@ export async function takeSnapshot(dateOverride?: string): Promise<{
   // Re-fetch updated assets
   const updated = await storage.getAssets();
 
-  const totalValue = updated.reduce(
+  const totalAssetsValue = updated.reduce(
     (s, a) => s + toHkd(a.quantity * a.currentPrice, a.currency), 0
   );
   const totalCost = updated.reduce(
     (s, a) => s + toHkd(a.quantity * a.purchasePrice, a.currency), 0
   );
+  const totalLiability = liabilities.reduce(
+    (s, l) => s + toHkd(l.balance, l.currency), 0
+  );
+  
+  const totalValue = totalAssetsValue - totalLiability;
 
   const now = new Date();
   // Use HKT (UTC+8) for the date label
@@ -64,9 +72,10 @@ export async function takeSnapshot(dateOverride?: string): Promise<{
     date,
     totalValue,
     totalCost,
+    totalLiability,
     assetCount: updated.length,
     createdAt: now.toISOString(),
   });
 
-  return { date, totalValue, totalCost, assetCount: updated.length };
+  return { date, totalValue, totalCost, totalLiability, assetCount: updated.length };
 }

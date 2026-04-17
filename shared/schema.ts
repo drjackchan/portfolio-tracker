@@ -21,6 +21,20 @@ export const insertAssetSchema = createInsertSchema(assets).omit({ id: true });
 export type InsertAsset = z.infer<typeof insertAssetSchema>;
 export type Asset = typeof assets.$inferSelect;
 
+// Liabilities: mortgage, loans, etc.
+export const liabilities = pgTable("liabilities", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  type: text("type").notNull(), // "mortgage" | "loan" | "credit_card" | "other"
+  balance: real("balance").notNull(),
+  currency: text("currency").notNull().default("HKD"),
+  notes: text("notes"),
+});
+
+export const insertLiabilitySchema = createInsertSchema(liabilities).omit({ id: true });
+export type InsertLiability = z.infer<typeof insertLiabilitySchema>;
+export type Liability = typeof liabilities.$inferSelect;
+
 // Transactions: manual price history / transaction log
 export const transactions = pgTable("transactions", {
   id: serial("id").primaryKey(),
@@ -40,8 +54,9 @@ export type Transaction = typeof transactions.$inferSelect;
 export const portfolioSnapshots = pgTable("portfolio_snapshots", {
   id: serial("id").primaryKey(),
   date: text("date").notNull(),          // YYYY-MM-DD
-  totalValue: real("total_value").notNull(),  // sum of all assets in HKD equivalent
+  totalValue: real("total_value").notNull(),  // sum of all assets - liabilities in HKD equivalent
   totalCost:  real("total_cost").notNull(),   // sum of all purchase costs
+  totalLiability: real("total_liability").notNull().default(0), // sum of all liabilities in HKD
   assetCount: integer("asset_count").notNull(),
   createdAt:  text("created_at").notNull(),   // ISO timestamp
 });

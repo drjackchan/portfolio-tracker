@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import {
   TrendingUp, TrendingDown, Plus, DollarSign,
   BarChart3, Percent, RefreshCw, Camera,
-  CalendarDays, CalendarRange,
+  CalendarDays, CalendarRange, CreditCard, Briefcase
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import {
   PieChart, Pie, Cell, Tooltip as ReTooltip, ResponsiveContainer,
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
 } from "recharts";
-import type { Asset } from "@shared/schema";
+import type { Asset, Liability } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -24,6 +24,7 @@ interface Snapshot {
   date: string;
   totalValue: number;
   totalCost: number;
+  totalLiability: number;
   assetCount: number;
   createdAt: string;
 }
@@ -113,10 +114,13 @@ export default function Dashboard() {
   const { toast } = useToast();
   const [range, setRange] = useState<Range>("30d");
 
-  const { data: assets = [], isLoading } = useQuery<Asset[]>({ queryKey: ["/api/assets"] });
+  const { data: assets = [], isLoading: assetsLoading } = useQuery<Asset[]>({ queryKey: ["/api/assets"] });
+  const { data: liabilities = [], isLoading: liabLoading } = useQuery<Liability[]>({ queryKey: ["/api/liabilities"] });
   const { data: snapshots = [], isLoading: snapsLoading } = useQuery<Snapshot[]>({
     queryKey: ["/api/snapshots"],
   });
+
+  const isLoading = assetsLoading || liabLoading;
 
   // Mutations
   const refreshMutation = useMutation({
@@ -148,9 +152,12 @@ export default function Dashboard() {
   const USD_RATE = 7.8;
   const toHkd = (v: number, ccy: string) => ccy === "USD" ? v * USD_RATE : v;
 
-  const totalValue = assets.reduce((s, a) => s + toHkd(a.quantity * a.currentPrice, a.currency), 0);
+  const totalAssetsValue = assets.reduce((s, a) => s + toHkd(a.quantity * a.currentPrice, a.currency), 0);
   const totalCost  = assets.reduce((s, a) => s + toHkd(a.quantity * a.purchasePrice, a.currency), 0);
-  const totalGain  = totalValue - totalCost;
+  const totalLiabilities = liabilities.reduce((s, l) => s + toHkd(l.balance, l.currency), 0);
+  
+  const totalNetWorth = totalAssetsValue - totalLiabilities;
+  const totalGain  = totalAssetsValue - totalCost;
   const totalGainPct = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
 
   // Daily / monthly change from snapshots
@@ -167,10 +174,10 @@ export default function Dashboard() {
   const snap1d  = getSnapshotDaysAgo(1);
   const snap30d = getSnapshotDaysAgo(30);
 
-  const dailyChange  = snap1d  ? totalValue - snap1d.totalValue  : null;
-  const monthlyChange = snap30d ? totalValue - snap30d.totalValue : null;
-  const dailyPct     = snap1d  && snap1d.totalValue  > 0 ? (dailyChange! / snap1d.totalValue)  * 100 : null;
-  const monthlyPct   = snap30d && snap30d.totalValue > 0 ? (monthlyChange! / snap30d.totalValue) * 100 : null;
+  const dailyChange  = snap1d  ? totalNetWorth - snap1d.totalValue  : null;
+  const monthlyChange = snap30d ? totalNetWorth - snap30d.totalValue : null;
+  const dailyPct     = snap1d  && snap1d.totalValue  > 0 ? (dailyChange! / Math.abs(snap1d.totalValue))  * 100 : null;
+  const monthlyPct   = snap30d && snap30d.totalValue > 0 ? (monthlyChange! / Math.abs(snap30d.totalValue)) * 100 : null;
 
   // Allocation
   const allocationMap: Record<string, number> = {};
@@ -180,7 +187,7 @@ export default function Dashboard() {
   }
   const allocationData = Object.entries(allocationMap).map(([type, value]) => ({
     name: ASSET_TYPE_LABELS[type] ?? type,
-    value, pct: totalValue > 0 ? (value / totalValue) * 100 : 0,
+    value, pct: totalAssetsValue > 0 ? (value / totalAssetsValue) * 100 : 0,
     color: ASSET_TYPE_COLORS[type] ?? "#888",
   }));
 
@@ -207,7 +214,7 @@ export default function Dashboard() {
   const lastSnap = sortedSnaps[sortedSnaps.length - 1];
   const todayStr = new Date(Date.now() + 8 * 3600_000).toISOString().slice(0, 10);
   if (!lastSnap || lastSnap.date < todayStr) {
-    chartData.push({ date: "Today", value: totalValue, rawDate: todayStr });
+    chartData.push({ date: "Today", value: totalNetWorth, rawDate: todayStr });
   }
 
   const refreshableCount = assets.filter(
@@ -257,9 +264,11 @@ export default function Dashboard() {
 
       {/* KPI Cards — 2 cols mobile, 3 on sm, 6 on lg */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <KpiCard title="Total Value" value={isLoading ? "—" : fmtCcy(totalValue, true)} icon={DollarSign} loading={isLoading} />
+        <KpiCard title="Net Worth" value={isLoading ? "—" : fmtCcy(totalNetWorth, true)} icon={DollarSign} loading={isLoading} />
+        <KpiCard title="Total Assets" value={isLoading ? "—" : fmtCcy(totalAssetsValue, true)} icon={Briefcase} loading={isLoading} />
+        <KpiCard title="Total Debt" value={isLoading ? "—" : fmtCcy(totalLiabilities, true)} icon={CreditCard} loading={isLoading} />
         <KpiCard
-          title="Total Gain/Loss"
+          title="Assets Gain/Loss"
           value={isLoading ? "—" : fmtCcy(totalGain, true)}
           sub={isLoading ? undefined : fmtPct(totalGainPct)}
           subLabel="vs cost"
@@ -267,10 +276,6 @@ export default function Dashboard() {
           icon={totalGain >= 0 ? TrendingUp : TrendingDown}
           loading={isLoading}
         />
-        <KpiCard title="Total Cost" value={isLoading ? "—" : fmtCcy(totalCost, true)} icon={BarChart3} loading={isLoading} />
-        <KpiCard title="# Assets" value={isLoading ? "—" : assets.length.toString()}
-          sub={isLoading ? undefined : `${Object.keys(allocationMap).length} categories`}
-          icon={Percent} loading={isLoading} />
         <KpiCard
           title="Daily Change"
           value={dailyChange === null ? (snapsLoading ? "—" : "No data") : fmtCcy(dailyChange, true)}
@@ -295,7 +300,7 @@ export default function Dashboard() {
       <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <CardTitle className="text-sm font-semibold">Portfolio Value History</CardTitle>
+            <CardTitle className="text-sm font-semibold">Net Worth History</CardTitle>
             <div className="flex items-center gap-1">
               {(["30d","90d","1y","all"] as Range[]).map((r) => (
                 <button key={r} onClick={() => setRange(r)}
@@ -314,7 +319,7 @@ export default function Dashboard() {
             <div className="h-52 flex flex-col items-center justify-center text-muted-foreground text-sm gap-2">
               <BarChart3 className="w-8 h-8 opacity-30" />
               <p>No history yet.</p>
-              <p className="text-xs">Click <strong>Take Snapshot</strong> to record today's value — the daily cron will do it automatically every night.</p>
+              <p className="text-xs">Click <strong>Take Snapshot</strong> to record today's net worth — the daily cron will do it automatically every night.</p>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
@@ -352,7 +357,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">Allocation by Type</CardTitle>
+            <CardTitle className="text-sm font-semibold">Asset Allocation</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? <Skeleton className="h-40 w-full" /> :
