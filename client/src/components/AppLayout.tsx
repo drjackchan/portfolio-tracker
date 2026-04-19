@@ -10,6 +10,7 @@ import {
   Menu,
   X,
   LogOut,
+  DollarSign
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import PerplexityAttribution from "./PerplexityAttribution";
@@ -20,6 +21,7 @@ const navItems = [
   { href: "/holdings", label: "Assets", icon: Briefcase },
   { href: "/liabilities", label: "Liabilities", icon: CreditCard },
   { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
+  { href: "/adsense", label: "AdSense Income", icon: DollarSign },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -79,7 +81,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <li key={href}>
               <Link href={href}>
                 <a
-                  data-testid={`nav-${label.toLowerCase()}`}
+                  data-testid={`nav-${label.toLowerCase().replace(/\s+/g, '-')}`}
                   className={`flex items-center gap-2.5 px-3 py-2.5 rounded-md text-sm font-medium transition-colors cursor-pointer ${
                     isActive(href)
                       ? "bg-sidebar-accent text-foreground"

@@ -9,6 +9,7 @@ import AddEditAsset from "@/pages/AddEditAsset";
 import Liabilities from "@/pages/Liabilities";
 import AddEditLiability from "@/pages/AddEditLiability";
 import Transactions from "@/pages/Transactions";
+import AdSense from "@/pages/AdSense";
 import NotFound from "@/pages/not-found";
 import AppLayout from "@/components/AppLayout";
 import LoginPage from "@/pages/LoginPage";
@@ -32,6 +33,7 @@ function Router() {
         <Route path="/liabilities/new" component={AddEditLiability} />
         <Route path="/liabilities/:id/edit" component={AddEditLiability} />
         <Route path="/transactions" component={Transactions} />
+        <Route path="/adsense" component={AdSense} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>
