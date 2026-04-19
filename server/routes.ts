@@ -173,11 +173,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // --- AdSense Income ---
   app.get("/api/adsense/income", async (_req, res) => {
-    const apiKey = process.env.GOOGLE_ADSENSE_API_KEY;
+    const clientId = process.env.GOOGLE_ADSENSE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_ADSENSE_CLIENT_SECRET;
+    const refreshToken = process.env.GOOGLE_ADSENSE_REFRESH_TOKEN;
     const accountId = process.env.GOOGLE_ADSENSE_ACCOUNT_ID;
 
     // Check if configuration exists
-    if (!apiKey || !accountId) {
+    if (!clientId || !clientSecret || !refreshToken || !accountId) {
       // Return dummy data and indicate it's not configured
       return res.json({
         isConfigured: false,
@@ -191,10 +193,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
 
     try {
-      // In a real scenario, we would use the googleapis package or fetch directly:
-      // const url = \`https://adsense.googleapis.com/v2/accounts/\${accountId}/reports:generate?...&key=\${apiKey}\`;
-      // const response = await fetch(url);
-      // const data = await response.json();
+      // In a real scenario, you would use the 'googleapis' package with OAuth2:
+      // const { google } = require('googleapis');
+      // const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
+      // oauth2Client.setCredentials({ refresh_token: refreshToken });
+      // const adsense = google.adsense({ version: 'v2', auth: oauth2Client });
+      // const response = await adsense.accounts.reports.generate({
+      //   account: `accounts/${accountId}`,
+      //   dateRange: 'TODAY', // etc
+      //   metrics: ['ESTIMATED_EARNINGS']
+      // });
+      // const data = response.data;
       
       // For now, even if configured, we return mock success data
       res.json({

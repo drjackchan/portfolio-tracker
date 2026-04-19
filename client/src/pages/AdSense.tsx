@@ -40,7 +40,7 @@ export default function AdSense() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Configuration Required</AlertTitle>
           <AlertDescription>
-            The AdSense API is not fully configured. Please set the <code className="font-mono text-xs bg-yellow-500/20 px-1 py-0.5 rounded">GOOGLE_ADSENSE_API_KEY</code> and <code className="font-mono text-xs bg-yellow-500/20 px-1 py-0.5 rounded">GOOGLE_ADSENSE_ACCOUNT_ID</code> environment variables. Showing dummy data for now.
+            The AdSense API requires OAuth 2.0 configuration. Please set the following environment variables: <code className="font-mono text-xs bg-yellow-500/20 px-1 py-0.5 rounded">GOOGLE_ADSENSE_CLIENT_ID</code>, <code className="font-mono text-xs bg-yellow-500/20 px-1 py-0.5 rounded">GOOGLE_ADSENSE_CLIENT_SECRET</code>, <code className="font-mono text-xs bg-yellow-500/20 px-1 py-0.5 rounded">GOOGLE_ADSENSE_REFRESH_TOKEN</code>, and <code className="font-mono text-xs bg-yellow-500/20 px-1 py-0.5 rounded">GOOGLE_ADSENSE_ACCOUNT_ID</code>. Showing dummy data for now.
           </AlertDescription>
         </Alert>
       )}
@@ -107,7 +107,7 @@ export default function AdSense() {
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">
           <p>
-            When configured with a valid Google AdSense API key and Account ID, this page automatically fetches your estimated earnings data.
+            When configured with valid Google AdSense OAuth 2.0 credentials and Account ID, this page automatically fetches your estimated earnings data.
           </p>
           <p>
             The backend securely communicates with Google's servers without exposing your credentials to the browser. Once you fill in your environment variables, real data will appear here.
