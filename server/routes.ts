@@ -22,8 +22,44 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Protect all other API routes
   app.use("/api", requireAuth);
 
+  // --- Ping ---
   app.get("/api/ping", (req, res) => {
-    res.json({ message: "pong", version: "1.0.1", timestamp: Date.now() });
+    res.json({ message: "pong", version: "1.0.3", timestamp: Date.now() });
+  });
+
+  // --- Subscriptions ---
+  app.get("/api/subscriptions", async (req, res) => {
+    const subs = await storage.getSubscriptions();
+    res.json(subs);
+  });
+
+  app.post("/api/subscriptions", async (req, res) => {
+    const result = insertSubscriptionSchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
+    const sub = await storage.createSubscription(result.data);
+    res.status(201).json(sub);
+  });
+
+  app.get("/api/subscriptions/:id", async (req, res) => {
+    const id = parseInt(req.params.id);
+    const sub = await storage.getSubscription(id);
+    if (!sub) return res.status(404).json({ message: "Subscription not found" });
+    res.json(sub);
+  });
+
+  app.patch("/api/subscriptions/:id", async (req, res) => {
+    const id = parseInt(req.params.id);
+    const result = insertSubscriptionSchema.partial().safeParse(req.body);
+    if (!result.success) return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
+    const sub = await storage.updateSubscription(id, result.data);
+    if (!sub) return res.status(404).json({ message: "Subscription not found" });
+    res.json(sub);
+  });
+
+  app.delete("/api/subscriptions/:id", async (req, res) => {
+    const id = parseInt(req.params.id);
+    await storage.deleteSubscription(id);
+    res.status(204).end();
   });
 
   // --- AdSense Income ---
@@ -135,41 +171,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.delete("/api/liabilities/:id", async (req, res) => {
     const id = parseInt(req.params.id);
     await storage.deleteLiability(id);
-    res.status(204).end();
-  });
-
-  // --- Subscriptions ---
-  app.get("/api/subscriptions", async (req, res) => {
-    const subs = await storage.getSubscriptions();
-    res.json(subs);
-  });
-
-  app.get("/api/subscriptions/:id", async (req, res) => {
-    const id = parseInt(req.params.id);
-    const sub = await storage.getSubscription(id);
-    if (!sub) return res.status(404).json({ message: "Subscription not found" });
-    res.json(sub);
-  });
-
-  app.post("/api/subscriptions", async (req, res) => {
-    const result = insertSubscriptionSchema.safeParse(req.body);
-    if (!result.success) return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
-    const sub = await storage.createSubscription(result.data);
-    res.status(201).json(sub);
-  });
-
-  app.patch("/api/subscriptions/:id", async (req, res) => {
-    const id = parseInt(req.params.id);
-    const result = insertSubscriptionSchema.partial().safeParse(req.body);
-    if (!result.success) return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
-    const sub = await storage.updateSubscription(id, result.data);
-    if (!sub) return res.status(404).json({ message: "Subscription not found" });
-    res.json(sub);
-  });
-
-  app.delete("/api/subscriptions/:id", async (req, res) => {
-    const id = parseInt(req.params.id);
-    await storage.deleteSubscription(id);
     res.status(204).end();
   });
 
