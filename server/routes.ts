@@ -7,6 +7,7 @@ import { z } from "zod";
 import { fetchPrices, fetchStockPrice, fetchCryptoPrice } from "./prices";
 import { takeSnapshot } from "./snapshot";
 import { requireAuth, handleLogin, handleLogout, handleAuthCheck } from "./auth";
+import { OAuth2Client } from "google-auth-library";
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
   // Cookie parser (needed for JWT cookie auth)
@@ -164,7 +165,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
-  app.post("/api/snapshots", async (_req, res) => {
+  app.post("/api/snapshots", async (req, res) => {
     try {
       const result = await takeSnapshot();
       res.json(result);
@@ -180,43 +181,43 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
     // Check if configuration exists
     if (!clientId || !clientSecret || !refreshToken || !accountId) {
-      // Return dummy data and indicate it's not configured
       return res.json({
         isConfigured: false,
-        data: {
-          today: 14.50,
-          thisMonth: 432.10,
-          lastMonth: 1250.00,
-          currency: "USD",
-        },
+        data: { today: 0, thisMonth: 0, lastMonth: 0, currency: "USD" },
       });
     }
 
     try {
-      // In a real scenario, you would use the 'googleapis' package with OAuth2:
-      // const { google } = require('googleapis');
-      // const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
-      // oauth2Client.setCredentials({ refresh_token: refreshToken });
-      // const adsense = google.adsense({ version: 'v2', auth: oauth2Client });
-      // const response = await adsense.accounts.reports.generate({
-      //   account: `accounts/${accountId}`,
-      //   dateRange: 'TODAY', // etc
-      //   metrics: ['ESTIMATED_EARNINGS']
-      // });
-      // const data = response.data;
-      
-      // For now, even if configured, we return mock success data
+      const oauth2Client = new OAuth2Client(clientId, clientSecret);
+      oauth2Client.setCredentials({ refresh_token: refreshToken });
+
+      const getReport = async (dateRange: string) => {
+        // By generating a report at the account level without filtering by ad client,
+        // it aggregates across all ad clients (e.g. AdSense for Content, YouTube, AdMob).
+        const url = \`https://adsense.googleapis.com/v2/accounts/\${accountId}/reports:generate?dateRange=\${dateRange}&metrics=ESTIMATED_EARNINGS\`;
+        const response = await oauth2Client.request({ url });
+        const data = response.data as any;
+        return parseFloat(data.totals?.cells?.[0]?.value || "0");
+      };
+
+      const [today, thisMonth, lastMonth] = await Promise.all([
+        getReport("TODAY"),
+        getReport("MONTH_TO_DATE"),
+        getReport("LAST_MONTH"),
+      ]);
+
       res.json({
         isConfigured: true,
         data: {
-          today: 25.00,
-          thisMonth: 850.50,
-          lastMonth: 2100.75,
-          currency: "USD",
+          today,
+          thisMonth,
+          lastMonth,
+          currency: "USD", // AdSense API returns the currency configured in the account
         },
       });
     } catch (e: any) {
-      res.status(500).json({ message: "Failed to fetch AdSense data: " + e.message });
+      console.error("AdSense Fetch Error:", e.response?.data || e.message);
+      res.status(500).json({ message: "Failed to fetch AdSense data: " + (e.response?.data?.error?.message || e.message) });
     }
   });
 
