@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import { storage } from "./storage";
-import { insertAssetSchema, insertTransactionSchema, insertLiabilitySchema } from "../shared/schema";
+import { insertAssetSchema, insertTransactionSchema, insertLiabilitySchema, insertSubscriptionSchema } from "../shared/schema";
 import { fetchPrices, fetchStockPrice, fetchCryptoPrice } from "./prices";
 import { takeSnapshot } from "./snapshot";
 import { requireAuth, handleLogin, handleLogout, handleAuthCheck } from "./auth";
@@ -49,6 +49,61 @@ app.get("/api/health", (_req, res) => {
 
 // Protect all remaining /api/* routes
 app.use("/api", requireAuth);
+
+// --- Subscriptions ---
+app.get("/api/subscriptions", async (req, res) => {
+  try {
+    const subs = await storage.getSubscriptions();
+    res.json(subs);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+app.get("/api/subscriptions/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const sub = await storage.getSubscription(id);
+    if (!sub) return res.status(404).json({ message: "Subscription not found" });
+    res.json(sub);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+app.post("/api/subscriptions", async (req, res) => {
+  try {
+    const result = insertSubscriptionSchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
+    const sub = await storage.createSubscription(result.data);
+    res.status(201).json(sub);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+app.patch("/api/subscriptions/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const result = insertSubscriptionSchema.partial().safeParse(req.body);
+    if (!result.success) return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
+    const sub = await storage.updateSubscription(id, result.data);
+    if (!sub) return res.status(404).json({ message: "Subscription not found" });
+    res.json(sub);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+app.delete("/api/subscriptions/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await storage.deleteSubscription(id);
+    res.status(204).end();
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
 
 // --- Assets ---
 app.get("/api/assets", async (_req, res) => {
