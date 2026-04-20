@@ -134,9 +134,23 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // --- Subscriptions ---
+  app.post("/api/admin/fix-db", async (req, res) => {
+    try {
+      await runMigrations();
+      res.json({ message: "Migrations run successfully" });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
   app.get("/api/subscriptions", async (req, res) => {
-    const subs = await storage.getSubscriptions();
-    res.json(subs);
+    try {
+      const subs = await storage.getSubscriptions();
+      res.json(subs);
+    } catch (e: any) {
+      console.error("Error fetching subscriptions:", e);
+      res.status(500).json({ message: "Failed to fetch subscriptions. Database table might not exist.", error: e.message });
+    }
   });
 
   app.get("/api/subscriptions/:id", async (req, res) => {
@@ -147,10 +161,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   app.post("/api/subscriptions", async (req, res) => {
+    console.log("POST /api/subscriptions", req.body);
     const result = insertSubscriptionSchema.safeParse(req.body);
-    if (!result.success) return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
-    const sub = await storage.createSubscription(result.data);
-    res.status(201).json(sub);
+    if (!result.success) {
+      console.log("Validation failed:", result.error.errors);
+      return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
+    }
+    try {
+      const sub = await storage.createSubscription(result.data);
+      res.status(201).json(sub);
+    } catch (e: any) {
+      console.error("Storage error:", e);
+      res.status(500).json({ message: e.message });
+    }
   });
 
   app.patch("/api/subscriptions/:id", async (req, res) => {

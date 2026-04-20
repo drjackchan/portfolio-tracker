@@ -96,8 +96,13 @@ export default function AddEditSubscription() {
       toast({ title: "Subscription added successfully" });
       navigate("/subscriptions");
     },
-    onError: () => {
-      toast({ title: "Failed to add subscription", variant: "destructive" });
+    onError: async (error: Error) => {
+      console.error("Create subscription error:", error);
+      toast({ 
+        title: "Failed to add subscription", 
+        description: error.message,
+        variant: "destructive" 
+      });
     },
   });
 
@@ -109,8 +114,13 @@ export default function AddEditSubscription() {
       toast({ title: "Subscription updated" });
       navigate("/subscriptions");
     },
-    onError: () => {
-      toast({ title: "Failed to update", variant: "destructive" });
+    onError: async (error: Error) => {
+      console.error("Update subscription error:", error);
+      toast({ 
+        title: "Failed to update", 
+        description: error.message,
+        variant: "destructive" 
+      });
     },
   });
 
@@ -120,6 +130,7 @@ export default function AddEditSubscription() {
       notes: data.notes || null,
       nextBillingDate: data.nextBillingDate || null,
     };
+    console.log("Submitting subscription:", clean);
     if (isEdit) updateMutation.mutate(clean as any);
     else createMutation.mutate(clean as any);
   };

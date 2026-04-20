@@ -79,6 +79,9 @@ export const subscriptions = pgTable("subscriptions", {
   notes: text("notes"),
 });
 
-export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({ id: true });
+export const insertSubscriptionSchema = createInsertSchema(subscriptions, {
+  amount: z.coerce.number().positive(),
+  nextBillingDate: z.string().nullable().optional().or(z.literal("")),
+}).omit({ id: true });
 export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
 export type Subscription = typeof subscriptions.$inferSelect;
