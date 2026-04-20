@@ -24,7 +24,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // --- Ping ---
   app.get("/api/ping", (req, res) => {
-    res.json({ message: "pong", version: "1.0.3", timestamp: Date.now() });
+    res.json({ message: "pong", version: "1.0.4", timestamp: Date.now() });
   });
 
   // --- Subscriptions ---

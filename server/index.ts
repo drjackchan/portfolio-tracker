@@ -64,6 +64,8 @@ app.use((req, res, next) => {
   // Run DB migrations on startup (creates tables if they don't exist)
   await runMigrations();
 
+  app.get("/ping-root", (req, res) => res.send("root-pong"));
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
