@@ -8,6 +8,8 @@ import Holdings from "@/pages/Holdings";
 import AddEditAsset from "@/pages/AddEditAsset";
 import Liabilities from "@/pages/Liabilities";
 import AddEditLiability from "@/pages/AddEditLiability";
+import Subscriptions from "@/pages/Subscriptions";
+import AddEditSubscription from "@/pages/AddEditSubscription";
 import Transactions from "@/pages/Transactions";
 import AdSense from "@/pages/AdSense";
 import NotFound from "@/pages/not-found";
@@ -32,6 +34,9 @@ function Router() {
         <Route path="/liabilities" component={Liabilities} />
         <Route path="/liabilities/new" component={AddEditLiability} />
         <Route path="/liabilities/:id/edit" component={AddEditLiability} />
+        <Route path="/subscriptions" component={Subscriptions} />
+        <Route path="/subscriptions/new" component={AddEditSubscription} />
+        <Route path="/subscriptions/:id/edit" component={AddEditSubscription} />
         <Route path="/transactions" component={Transactions} />
         <Route path="/adsense" component={AdSense} />
         <Route component={NotFound} />

@@ -50,6 +50,20 @@ export async function runMigrations() {
   `);
 
   await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS subscriptions (
+      id                SERIAL PRIMARY KEY,
+      name              TEXT NOT NULL,
+      amount            REAL NOT NULL,
+      currency          TEXT NOT NULL DEFAULT 'HKD',
+      frequency         TEXT NOT NULL DEFAULT 'monthly',
+      category          TEXT,
+      next_billing_date TEXT,
+      status            TEXT NOT NULL DEFAULT 'active',
+      notes             TEXT
+    );
+  `);
+
+  await db.execute(sql`
     CREATE TABLE IF NOT EXISTS transactions (
       id        SERIAL PRIMARY KEY,
       asset_id  INTEGER NOT NULL,

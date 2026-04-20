@@ -65,3 +65,20 @@ export const portfolioSnapshots = pgTable("portfolio_snapshots", {
 export const insertSnapshotSchema = createInsertSchema(portfolioSnapshots).omit({ id: true });
 export type InsertSnapshot = z.infer<typeof insertSnapshotSchema>;
 export type PortfolioSnapshot = typeof portfolioSnapshots.$inferSelect;
+
+// Subscriptions: Netflix, VPN, AI tools, etc.
+export const subscriptions = pgTable("subscriptions", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  amount: real("amount").notNull(),
+  currency: text("currency").notNull().default("HKD"),
+  frequency: text("frequency").notNull().default("monthly"), // "monthly" | "yearly"
+  category: text("category"), // "Entertainment", "Utility", "Software", etc.
+  nextBillingDate: text("next_billing_date"), // ISO string YYYY-MM-DD
+  status: text("status").notNull().default("active"), // "active" | "inactive"
+  notes: text("notes"),
+});
+
+export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({ id: true });
+export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
+export type Subscription = typeof subscriptions.$inferSelect;

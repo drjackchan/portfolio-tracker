@@ -1,9 +1,10 @@
 import {
-  assets, transactions, portfolioSnapshots, liabilities,
+  assets, transactions, portfolioSnapshots, liabilities, subscriptions,
   type Asset, type InsertAsset,
   type Transaction, type InsertTransaction,
   type PortfolioSnapshot, type InsertSnapshot,
   type Liability, type InsertLiability,
+  type Subscription, type InsertSubscription,
 } from "@shared/schema";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
@@ -24,6 +25,13 @@ export interface IStorage {
   createLiability(liability: InsertLiability): Promise<Liability>;
   updateLiability(id: number, liability: Partial<InsertLiability>): Promise<Liability>;
   deleteLiability(id: number): Promise<void>;
+
+  // Subscriptions
+  getSubscriptions(): Promise<Subscription[]>;
+  getSubscription(id: number): Promise<Subscription | undefined>;
+  createSubscription(sub: InsertSubscription): Promise<Subscription>;
+  updateSubscription(id: number, sub: Partial<InsertSubscription>): Promise<Subscription>;
+  deleteSubscription(id: number): Promise<void>;
 
   // Transactions
   getTransactions(assetId?: number): Promise<Transaction[]>;
@@ -107,6 +115,31 @@ export class DatabaseStorage implements IStorage {
     await this.db.delete(liabilities).where(eq(liabilities.id, id));
   }
 
+  // Subscriptions
+  async getSubscriptions(): Promise<Subscription[]> {
+    return await this.db.select().from(subscriptions);
+  }
+
+  async getSubscription(id: number): Promise<Subscription | undefined> {
+    const [s] = await this.db.select().from(subscriptions).where(eq(subscriptions.id, id));
+    return s;
+  }
+
+  async createSubscription(insertSub: InsertSubscription): Promise<Subscription> {
+    const [s] = await this.db.insert(subscriptions).values(insertSub).returning();
+    return s;
+  }
+
+  async updateSubscription(id: number, updates: Partial<InsertSubscription>): Promise<Subscription> {
+    const [s] = await this.db.update(subscriptions).set(updates).where(eq(subscriptions.id, id)).returning();
+    if (!s) throw new Error("Subscription not found");
+    return s;
+  }
+
+  async deleteSubscription(id: number): Promise<void> {
+    await this.db.delete(subscriptions).where(eq(subscriptions.id, id));
+  }
+
   // Transactions
   async getTransactions(assetId?: number): Promise<Transaction[]> {
     if (assetId) {
@@ -142,10 +175,12 @@ export class DatabaseStorage implements IStorage {
 export class MemStorage implements IStorage {
   private assets: Map<number, Asset> = new Map();
   private liabilities: Map<number, Liability> = new Map();
+  private subscriptions: Map<number, Subscription> = new Map();
   private transactions: Map<number, Transaction> = new Map();
   private snapshots: Map<number, PortfolioSnapshot> = new Map();
   private assetId = 1;
   private liabilityId = 1;
+  private subscriptionId = 1;
   private txId = 1;
   private snapId = 1;
 
@@ -225,6 +260,22 @@ export class MemStorage implements IStorage {
   }
   async deleteLiability(id: number): Promise<void> { this.liabilities.delete(id); }
 
+  async getSubscriptions(): Promise<Subscription[]> { return Array.from(this.subscriptions.values()); }
+  async getSubscription(id: number): Promise<Subscription | undefined> { return this.subscriptions.get(id); }
+  async createSubscription(s: InsertSubscription): Promise<Subscription> {
+    const sub: Subscription = { ...s, id: this.subscriptionId++ };
+    this.subscriptions.set(sub.id, sub);
+    return sub;
+  }
+  async updateSubscription(id: number, updates: Partial<InsertSubscription>): Promise<Subscription> {
+    const existing = this.subscriptions.get(id);
+    if (!existing) throw new Error("Subscription not found");
+    const updated = { ...existing, ...updates };
+    this.subscriptions.set(id, updated);
+    return updated;
+  }
+  async deleteSubscription(id: number): Promise<void> { this.subscriptions.delete(id); }
+
   async getTransactions(assetId?: number): Promise<Transaction[]> {
     const list = Array.from(this.transactions.values());
     if (assetId) return list.filter(t => t.assetId === assetId);
@@ -244,5 +295,7 @@ export class MemStorage implements IStorage {
     return res;
   }
 }
+
+export const storage = new DatabaseStorage();
 
 export const storage = new DatabaseStorage();

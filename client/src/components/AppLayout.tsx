@@ -10,7 +10,8 @@ import {
   Menu,
   X,
   LogOut,
-  DollarSign
+  DollarSign,
+  RefreshCw
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import PerplexityAttribution from "./PerplexityAttribution";
@@ -20,6 +21,7 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/holdings", label: "Assets", icon: Briefcase },
   { href: "/liabilities", label: "Liabilities", icon: CreditCard },
+  { href: "/subscriptions", label: "Subscriptions", icon: RefreshCw },
   { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
   { href: "/adsense", label: "AdSense Income", icon: DollarSign },
 ];
