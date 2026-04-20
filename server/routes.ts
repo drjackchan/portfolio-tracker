@@ -21,6 +21,48 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Protect all other API routes
   app.use("/api", requireAuth);
 
+  // --- AdSense Income ---
+  app.get("/api/adsense/income", async (req, res) => {
+    const clientId = process.env.GOOGLE_ADSENSE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_ADSENSE_CLIENT_SECRET;
+    const refreshToken = process.env.GOOGLE_ADSENSE_REFRESH_TOKEN;
+    const accountId = process.env.GOOGLE_ADSENSE_ACCOUNT_ID;
+
+    if (!clientId || !clientSecret || !refreshToken || !accountId) {
+      return res.json({
+        isConfigured: false,
+        data: { today: 0, thisMonth: 0, lastMonth: 0, currency: "USD" },
+      });
+    }
+
+    try {
+      const oauth2Client = new OAuth2Client(clientId, clientSecret);
+      oauth2Client.setCredentials({ refresh_token: refreshToken });
+
+      const getReport = async (dateRange: string) => {
+        const fullAccountId = accountId.startsWith("accounts/") ? accountId : `accounts/${accountId}`;
+        const url = `https://adsense.googleapis.com/v2/${fullAccountId}/reports:generate?dateRange=${dateRange}&metrics=ESTIMATED_EARNINGS`;
+        const response = await oauth2Client.request({ url });
+        const data = response.data as any;
+        return parseFloat(data.totals?.cells?.[0]?.value || "0");
+      };
+
+      const [today, thisMonth, lastMonth] = await Promise.all([
+        getReport("TODAY"),
+        getReport("MONTH_TO_DATE"),
+        getReport("LAST_MONTH"),
+      ]);
+
+      res.json({
+        isConfigured: true,
+        data: { today, thisMonth, lastMonth, currency: "USD" },
+      });
+    } catch (e: any) {
+      console.error("AdSense Fetch Error:", e.response?.data || e.message);
+      res.status(500).json({ message: "Failed to fetch AdSense data: " + (e.response?.data?.error?.message || e.message) });
+    }
+  });
+
   // --- Assets ---
   app.get("/api/assets", async (req, res) => {
     const assets = await storage.getAssets();
@@ -52,7 +94,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.delete("/api/assets/:id", async (req, res) => {
     const id = parseInt(req.params.id);
-    const ok = await storage.deleteAsset(id);
+    await storage.deleteAsset(id);
     res.status(204).end();
   });
 
@@ -170,55 +212,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const result = await takeSnapshot();
       res.json(result);
     } catch (e: any) { res.status(500).json({ message: e.message }); }
-  });
-
-  // --- AdSense Income ---
-  app.get("/api/adsense/income", async (_req, res) => {
-    const clientId = process.env.GOOGLE_ADSENSE_CLIENT_ID;
-    const clientSecret = process.env.GOOGLE_ADSENSE_CLIENT_SECRET;
-    const refreshToken = process.env.GOOGLE_ADSENSE_REFRESH_TOKEN;
-    const accountId = process.env.GOOGLE_ADSENSE_ACCOUNT_ID;
-
-    // Check if configuration exists
-    if (!clientId || !clientSecret || !refreshToken || !accountId) {
-      return res.json({
-        isConfigured: false,
-        data: { today: 0, thisMonth: 0, lastMonth: 0, currency: "USD" },
-      });
-    }
-
-    try {
-      const oauth2Client = new OAuth2Client(clientId, clientSecret);
-      oauth2Client.setCredentials({ refresh_token: refreshToken });
-
-      const getReport = async (dateRange: string) => {
-        // By generating a report at the account level without filtering by ad client,
-        // it aggregates across all ad clients (e.g. AdSense for Content, YouTube, AdMob).
-        const url = \`https://adsense.googleapis.com/v2/accounts/\${accountId}/reports:generate?dateRange=\${dateRange}&metrics=ESTIMATED_EARNINGS\`;
-        const response = await oauth2Client.request({ url });
-        const data = response.data as any;
-        return parseFloat(data.totals?.cells?.[0]?.value || "0");
-      };
-
-      const [today, thisMonth, lastMonth] = await Promise.all([
-        getReport("TODAY"),
-        getReport("MONTH_TO_DATE"),
-        getReport("LAST_MONTH"),
-      ]);
-
-      res.json({
-        isConfigured: true,
-        data: {
-          today,
-          thisMonth,
-          lastMonth,
-          currency: "USD", // AdSense API returns the currency configured in the account
-        },
-      });
-    } catch (e: any) {
-      console.error("AdSense Fetch Error:", e.response?.data || e.message);
-      res.status(500).json({ message: "Failed to fetch AdSense data: " + (e.response?.data?.error?.message || e.message) });
-    }
   });
 
   return httpServer;
