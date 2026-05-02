@@ -14,7 +14,6 @@ import {
   RefreshCw
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import PerplexityAttribution from "./PerplexityAttribution";
 import { useAuth } from "../App";
 
 const navItems = [
@@ -117,7 +116,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <LogOut className="w-4 h-4" />
           Sign out
         </button>
-        <PerplexityAttribution />
       </div>
     </>
   );

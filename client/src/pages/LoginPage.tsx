@@ -110,13 +110,6 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             </form>
           </CardContent>
         </Card>
-
-        <p className="text-center text-xs text-muted-foreground mt-6">
-          Created with{" "}
-          <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground transition-colors">
-            Perplexity Computer
-          </a>
-        </p>
       </div>
     </div>
   );
