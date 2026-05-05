@@ -18,6 +18,8 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 
+type SortKey = 'value' | 'name' | 'type' | 'quantity' | 'cost' | 'current' | 'gain';
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Snapshot {
   id: number;
@@ -131,6 +133,8 @@ export default function Dashboard() {
   const { toast } = useToast();
   const [range, setRange] = useState<Range>("30d");
   const [activePieIndex, setActivePieIndex] = useState(0);
+  const [sortKey, setSortKey] = useState<SortKey>('value');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   const { data: assets = [], isLoading: assetsLoading } = useQuery<Asset[]>({ queryKey: ["/api/assets"] });
   const { data: liabilities = [], isLoading: liabLoading } = useQuery<Liability[]>({ queryKey: ["/api/liabilities"] });
@@ -219,6 +223,62 @@ export default function Dashboard() {
     }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 5);
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('desc'); // default desc
+    }
+  };
+
+  // Sorted assets for the table
+  const sortedAssets = [...assets].sort((a, b) => {
+    let aVal: string | number, bVal: string | number;
+    switch (sortKey) {
+      case 'value':
+        aVal = toHkd(a.quantity * a.currentPrice, a.currency);
+        bVal = toHkd(b.quantity * b.currentPrice, b.currency);
+        break;
+      case 'name':
+        aVal = a.name.toLowerCase();
+        bVal = b.name.toLowerCase();
+        break;
+      case 'type':
+        aVal = a.assetType;
+        bVal = b.assetType;
+        break;
+      case 'quantity':
+        aVal = a.quantity;
+        bVal = b.quantity;
+        break;
+      case 'cost':
+        aVal = toHkd(a.purchasePrice, a.currency);
+        bVal = toHkd(b.purchasePrice, b.currency);
+        break;
+      case 'current':
+        aVal = toHkd(a.currentPrice, a.currency);
+        bVal = toHkd(b.currentPrice, b.currency);
+        break;
+      case 'gain': {
+        const aMv = toHkd(a.quantity * a.currentPrice, a.currency);
+        const aCost = toHkd(a.quantity * a.purchasePrice, a.currency);
+        aVal = aMv - aCost;
+        const bMv = toHkd(b.quantity * b.currentPrice, b.currency);
+        const bCost = toHkd(b.quantity * b.purchasePrice, b.currency);
+        bVal = bMv - bCost;
+        break;
+      }
+      default:
+        return 0;
+    }
+    if (typeof aVal === 'string') {
+      return sortDir === 'asc' ? aVal.localeCompare(bVal as string) : (bVal as string).localeCompare(aVal);
+    } else {
+      return sortDir === 'asc' ? aVal - (bVal as number) : (bVal as number) - aVal;
+    }
+  });
 
   // Chart data — filter by selected range, oldest→newest for display
   const cutoff = new Date();
@@ -335,7 +395,9 @@ export default function Dashboard() {
                   className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
                     range === r ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
                   }`}
-                >{r}</button>
+                >
+                  {r}
+                </button>
               ))}
             </div>
           </div>
@@ -492,77 +554,142 @@ export default function Dashboard() {
             <div className="p-10 text-center text-muted-foreground text-sm">No assets found.</div>
           ) : (
             <>
-              {/* Desktop */}
-              <div className="hidden sm:block overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border">
-                      {["Asset","Type","Qty","Cost Price","Current","Value (HKD)","Gain/Loss"].map((h, i) => (
-                        <th key={h} className={`text-xs text-muted-foreground font-medium px-${i === 0 || i === 6 ? 5 : 3} py-2.5 ${i >= 2 ? "text-right" : "text-left"}`}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {assets.map((a) => {
-                      const mv   = toHkd(a.quantity * a.currentPrice, a.currency);
-                      const cost = toHkd(a.quantity * a.purchasePrice, a.currency);
-                      const gain = mv - cost;
-                      const gainPct = cost > 0 ? (gain / cost) * 100 : 0;
-                      return (
-                        <tr key={a.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors" data-testid={`row-asset-${a.id}`}>
-                          <td className="px-5 py-3">
-                            <div className="font-medium">{a.name}</div>
-                            {a.ticker && <div className="text-xs text-muted-foreground">{a.ticker}</div>}
-                          </td>
-                          <td className="px-3 py-3"><Badge variant="secondary" className="capitalize text-xs">{ASSET_TYPE_LABELS[a.assetType] ?? a.assetType}</Badge></td>
-                          <td className="px-3 py-3 text-right font-mono tabular-nums">{a.quantity.toLocaleString()}</td>
-                          <td className="px-3 py-3 text-right font-mono tabular-nums text-muted-foreground">{a.currency !== "HKD" ? `${a.currency} ` : ""}{a.purchasePrice.toLocaleString()}</td>
-                          <td className="px-3 py-3 text-right font-mono tabular-nums">{a.currency !== "HKD" ? `${a.currency} ` : ""}{a.currentPrice.toLocaleString()}</td>
-                          <td className="px-3 py-3 text-right font-mono tabular-nums font-medium">{fmtCcy(mv)}</td>
-                          <td className="px-5 py-3 text-right">
-                            <div className={`font-mono tabular-nums font-medium ${gain >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>{fmtCcy(gain)}</div>
-                            <div className={`text-xs font-mono ${gain >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>{fmtPct(gainPct)}</div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              {/* Mobile */}
-              <div className="sm:hidden divide-y divide-border">
-                {assets.map((a) => {
-                  const mv   = toHkd(a.quantity * a.currentPrice, a.currency);
-                  const cost = toHkd(a.quantity * a.purchasePrice, a.currency);
-                  const gain = mv - cost;
-                  const gainPct = cost > 0 ? (gain / cost) * 100 : 0;
-                  return (
-                    <div key={a.id} className="px-4 py-3">
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-7 h-7 rounded-md flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
-                            style={{ background: ASSET_TYPE_COLORS[a.assetType] ?? "#888" }}>
-                            {(a.ticker ?? a.name).slice(0, 3).toUpperCase()}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="font-medium text-sm truncate">{a.name}</div>
-                            {a.ticker && <div className="text-xs text-muted-foreground">{a.ticker}</div>}
-                          </div>
-                        </div>
-                        <div className="text-right ml-2">
-                          <div className="text-sm font-mono font-semibold">{fmtCcy(mv, true)}</div>
-                          <div className={`text-xs font-mono ${gain >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>{fmtPct(gainPct)}</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="secondary" className="capitalize text-xs">{ASSET_TYPE_LABELS[a.assetType] ?? a.assetType}</Badge>
-                        <span className="text-xs text-muted-foreground">Qty: {a.quantity.toLocaleString()}</span>
-                        <span className="ml-auto text-xs text-muted-foreground font-mono">{a.currency !== "HKD" ? a.currency : "HK$"}{a.currentPrice.toLocaleString()} / unit</span>
-                      </div>
+              {(() => {
+                const headers = [
+                  { label: "Asset", key: "name" as SortKey, sortable: true, align: "left" as const },
+                  { label: "Type", key: "type" as SortKey, sortable: true, align: "left" as const },
+                  { label: "Qty", key: "quantity" as SortKey, sortable: true, align: "right" as const },
+                  { label: "Cost Price", key: "cost" as SortKey, sortable: true, align: "right" as const },
+                  { label: "Current", key: "current" as SortKey, sortable: true, align: "right" as const },
+                  { label: "Value (HKD)", key: "value" as SortKey, sortable: true, align: "right" as const },
+                  { label: "Gain/Loss", key: "gain" as SortKey, sortable: true, align: "right" as const },
+                ];
+                return (
+                  <>
+                    {/* Desktop sortable table */}
+                    <div className="hidden sm:block overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border">
+                            {headers.map((h, i) => (
+                              <th
+                                key={h.label}
+                                className={`text-xs text-muted-foreground font-medium px-${i === 0 || i === 6 ? 5 : 3} py-2.5 ${
+                                  h.align === "right" ? "text-right" : "text-left"
+                                } ${h.sortable ? "cursor-pointer hover:text-foreground" : ""}`}
+                                onClick={h.sortable ? () => handleSort(h.key) : undefined}
+                              >
+                                {h.label}
+                                {sortKey === h.key && (sortDir === "asc" ? " ↑" : " ↓")}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sortedAssets.map((a) => {
+                            const mv = toHkd(a.quantity * a.currentPrice, a.currency);
+                            const totalCost = toHkd(a.quantity * a.purchasePrice, a.currency);
+                            const gain = mv - totalCost;
+                            const gainPct = totalCost > 0 ? (gain / totalCost) * 100 : 0;
+                            return (
+                              <tr
+                                key={a.id}
+                                className="border-b border-border/50 hover:bg-muted/30 transition-colors"
+                                data-testid={`row-asset-${a.id}`}
+                              >
+                                <td className="px-5 py-3">
+                                  <div className="font-medium">{a.name}</div>
+                                  {a.ticker && <div className="text-xs text-muted-foreground">{a.ticker}</div>}
+                                </td>
+                                <td className="px-3 py-3">
+                                  <Badge variant="secondary" className="capitalize text-xs">
+                                    {ASSET_TYPE_LABELS[a.assetType] ?? a.assetType}
+                                  </Badge>
+                                </td>
+                                <td className="px-3 py-3 text-right font-mono tabular-nums">
+                                  {a.quantity.toLocaleString()}
+                                </td>
+                                <td className="px-3 py-3 text-right font-mono tabular-nums text-muted-foreground">
+                                  {a.currency !== "HKD" ? `${a.currency} ` : ""}{a.purchasePrice.toLocaleString()}
+                                </td>
+                                <td className="px-3 py-3 text-right font-mono tabular-nums">
+                                  {a.currency !== "HKD" ? `${a.currency} ` : ""}{a.currentPrice.toLocaleString()}
+                                </td>
+                                <td className="px-3 py-3 text-right font-mono tabular-nums font-medium">
+                                  {fmtCcy(mv)}
+                                </td>
+                                <td className="px-5 py-3 text-right">
+                                  <div
+                                    className={`font-mono tabular-nums font-medium ${
+                                      gain >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"
+                                    }`}
+                                  >
+                                    {fmtCcy(gain)}
+                                  </div>
+                                  <div
+                                    className={`text-xs font-mono ${
+                                      gain >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"
+                                    }`}
+                                  >
+                                    {fmtPct(gainPct)}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
-                  );
-                })}
-              </div>
+
+                    {/* Mobile cards — now sorted */}
+                    <div className="sm:hidden divide-y divide-border">
+                      {sortedAssets.map((a) => {
+                        const mv = toHkd(a.quantity * a.currentPrice, a.currency);
+                        const totalCost = toHkd(a.quantity * a.purchasePrice, a.currency);
+                        const gain = mv - totalCost;
+                        const gainPct = totalCost > 0 ? (gain / totalCost) * 100 : 0;
+                        return (
+                          <div key={a.id} className="px-4 py-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div
+                                  className="w-7 h-7 rounded-md flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
+                                  style={{ background: ASSET_TYPE_COLORS[a.assetType] ?? "#888" }}
+                                >
+                                  {(a.ticker ?? a.name).slice(0, 3).toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="font-medium text-sm truncate">{a.name}</div>
+                                  {a.ticker && <div className="text-xs text-muted-foreground">{a.ticker}</div>}
+                                </div>
+                              </div>
+                              <div className="text-right ml-2">
+                                <div className="text-sm font-mono font-semibold">{fmtCcy(mv, true)}</div>
+                                <div
+                                  className={`text-xs font-mono ${
+                                    gain >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"
+                                  }`}
+                                >
+                                  {fmtPct(gainPct)}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="secondary" className="capitalize text-xs">
+                                {ASSET_TYPE_LABELS[a.assetType] ?? a.assetType}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">Qty: {a.quantity.toLocaleString()}</span>
+                              <span className="ml-auto text-xs text-muted-foreground font-mono">
+                                {a.currency !== "HKD" ? a.currency : "HK$"}{a.currentPrice.toLocaleString()} / unit
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                );
+              })()}
             </>
           )}
         </CardContent>
