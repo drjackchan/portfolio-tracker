@@ -16,6 +16,8 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState } from "react";
 import type { Subscription } from "@shared/schema";
 
+type SortKey = 'name' | 'category' | 'frequency' | 'amountNative' | 'monthlyHkd' | 'nextBillingDate' | 'status';
+
 const SUB_CATEGORY_COLORS: Record<string, string> = {
   Entertainment: "hsl(var(--chart-1))",
   Software: "hsl(var(--chart-2))",
@@ -45,6 +47,8 @@ export default function Subscriptions() {
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("All");
+  const [sortKey, setSortKey] = useState<SortKey>('monthlyHkd');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   const { data: subscriptions = [], isLoading } = useQuery<Subscription[]>({ queryKey: ["/api/subscriptions"] });
 
@@ -60,12 +64,62 @@ export default function Subscriptions() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/subscriptions"] }); },
   });
 
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('desc'); // default desc
+    }
+  };
+
   const filtered = subscriptions.filter((s) => {
     const q = search.toLowerCase();
     return (
       (s.name.toLowerCase().includes(q) || (s.notes ?? "").toLowerCase().includes(q)) &&
       (filterCategory === "All" || s.category === filterCategory)
     );
+  });
+
+  const sortedFiltered = [...filtered].sort((a, b) => {
+    let aVal: string | number, bVal: string | number;
+    switch (sortKey) {
+      case 'name':
+        aVal = a.name.toLowerCase();
+        bVal = b.name.toLowerCase();
+        break;
+      case 'category':
+        aVal = a.category ?? '';
+        bVal = b.category ?? '';
+        break;
+      case 'frequency':
+        aVal = a.frequency;
+        bVal = b.frequency;
+        break;
+      case 'amountNative':
+        aVal = a.amount;
+        bVal = b.amount;
+        break;
+      case 'monthlyHkd':
+        aVal = toHkd(a.frequency === "monthly" ? a.amount : a.amount / 12, a.currency);
+        bVal = toHkd(b.frequency === "monthly" ? b.amount : b.amount / 12, b.currency);
+        break;
+      case 'nextBillingDate':
+        aVal = a.nextBillingDate ? new Date(a.nextBillingDate).getTime() : Infinity;
+        bVal = b.nextBillingDate ? new Date(b.nextBillingDate).getTime() : Infinity;
+        break;
+      case 'status':
+        aVal = a.status;
+        bVal = b.status;
+        break;
+      default:
+        return 0;
+    }
+    if (typeof aVal === 'string') {
+      return sortDir === 'asc' ? aVal.localeCompare(bVal as string) : (bVal as string).localeCompare(aVal);
+    } else {
+      return sortDir === 'asc' ? aVal - (bVal as number) : (bVal as number) - aVal;
+    }
   });
 
   const activeSubs = subscriptions.filter(s => s.status === "active");
@@ -76,6 +130,17 @@ export default function Subscriptions() {
   }, 0);
 
   const totalYearlyHkd = totalMonthlyHkd * 12;
+
+  const headers = [
+    { label: "Service", key: "name" as SortKey, sortable: true, align: "left" },
+    { label: "Category", key: "category" as SortKey, sortable: true, align: "left" },
+    { label: "Frequency", key: "frequency" as SortKey, sortable: true, align: "left" },
+    { label: "Amount (Native)", key: "amountNative" as SortKey, sortable: true, align: "right" },
+    { label: "Monthly (HKD)", key: "monthlyHkd" as SortKey, sortable: true, align: "right" },
+    { label: "Next Bill", key: "nextBillingDate" as SortKey, sortable: true, align: "left" },
+    { label: "Status", key: "status" as SortKey, sortable: true, align: "left" },
+    { label: "Actions", key: null, sortable: false, align: "right" },
+  ];
 
   return (
     <div className="p-4 sm:p-6 space-y-5 max-w-[1200px]">
@@ -175,7 +240,7 @@ export default function Subscriptions() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((s) => {
+                    {sortedFiltered.map((s) => {
                       const monthlyHkd = toHkd(s.frequency === "monthly" ? s.amount : s.amount / 12, s.currency);
                       return (
                         <tr key={s.id} className={`border-b border-border/50 hover:bg-muted/20 transition-colors ${s.status === "inactive" ? "opacity-60" : ""}`}>
@@ -235,7 +300,7 @@ export default function Subscriptions() {
 
               {/* Mobile card list */}
               <div className="sm:hidden divide-y divide-border">
-                {filtered.map((s) => {
+                {sortedFiltered.map((s) => {
                   const monthlyHkd = toHkd(s.frequency === "monthly" ? s.amount : s.amount / 12, s.currency);
                   return (
                     <div key={s.id} className={`px-4 py-3 ${s.status === "inactive" ? "opacity-60" : ""}`}>
