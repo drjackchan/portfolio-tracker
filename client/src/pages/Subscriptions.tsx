@@ -16,7 +16,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState } from "react";
 import type { Subscription } from "@shared/schema";
 
-type SortKey = 'name' | 'category' | 'frequency' | 'amountNative' | 'monthlyHkd' | 'nextBillingDate' | 'status';
+type SortKey = 'name' | 'category' | 'frequency' | 'amountNative' | 'monthlyHkd' | 'nextBillingDate' | 'status' | null;
 
 const SUB_CATEGORY_COLORS: Record<string, string> = {
   Entertainment: "hsl(var(--chart-1))",
@@ -229,14 +229,16 @@ export default function Subscriptions() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border">
-                      <th className="text-left text-xs text-muted-foreground font-medium px-5 py-3">Service</th>
-                      <th className="text-left text-xs text-muted-foreground font-medium px-3 py-3">Category</th>
-                      <th className="text-left text-xs text-muted-foreground font-medium px-3 py-3">Frequency</th>
-                      <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Amount (Native)</th>
-                      <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Monthly (HKD)</th>
-                      <th className="text-left text-xs text-muted-foreground font-medium px-3 py-3">Next Bill</th>
-                      <th className="text-left text-xs text-muted-foreground font-medium px-3 py-3">Status</th>
-                      <th className="text-right text-xs text-muted-foreground font-medium px-5 py-3">Actions</th>
+                      {headers.map((header, index) => (
+                        <th
+                          key={header.key || header.label}
+                          className={`text-${header.align} text-xs text-muted-foreground font-medium px-${index === 0 || index === headers.length - 1 ? 5 : 3} py-3 ${header.sortable ? 'cursor-pointer hover:bg-muted/50' : ''}`}
+                          onClick={header.sortable ? () => handleSort(header.key) : undefined}
+                        >
+                          {header.label}
+                          {header.sortable && sortKey === header.key && (sortDir === 'asc' ? ' ↑' : ' ↓')}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
