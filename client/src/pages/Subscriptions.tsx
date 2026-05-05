@@ -24,6 +24,7 @@ const SUB_CATEGORY_COLORS: Record<string, string> = {
   Utility: "hsl(var(--chart-3))",
   AI: "hsl(var(--chart-4))",
   VPN: "hsl(var(--chart-5))",
+  "Management Fee": "hsl(var(--chart-7))",
   Other: "hsl(var(--chart-6))",
 };
 
@@ -41,7 +42,7 @@ function formatNativeCurrency(val: number, currency: string) {
   return new Intl.NumberFormat("en-HK", { style: "currency", currency: currency || "HKD", minimumFractionDigits: 2 }).format(val);
 }
 
-const FILTER_CATEGORIES = ["All", "Entertainment", "Software", "Utility", "AI", "VPN", "Other"] as const;
+const FILTER_CATEGORIES = ["All", "Entertainment", "Software", "Utility", "AI", "VPN", "Management Fee", "Other"] as const;
 
 export default function Subscriptions() {
   const { toast } = useToast();

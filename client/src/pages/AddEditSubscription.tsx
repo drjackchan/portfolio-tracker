@@ -41,6 +41,7 @@ const SUB_CATEGORIES = [
   { value: "Utility", label: "Utility" },
   { value: "AI", label: "AI" },
   { value: "VPN", label: "VPN" },
+  { value: "Management Fee", label: "Management Fee" },
   { value: "Other", label: "Other" },
 ];
 
