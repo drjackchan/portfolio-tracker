@@ -75,10 +75,21 @@ async function getYouTubeReport(
   startDate: string,
   endDate: string
 ): Promise<number> {
-  const ids =
-    channelId.toUpperCase() === "MINE" || channelId.startsWith("UC")
-      ? `channel==${channelId}`
-      : `channel==${channelId}`;
+  // Allow user to specify full ids= value, or just the ID.
+  // Supports:
+  //   MINE
+  //   UCxxxxxxxxxxxx (channel)
+  //   contentOwner==xxxxxxxx (for YouTube Partner / content owner accounts)
+  //   channel==UCxxxxxxxxxxxx
+  let ids = channelId;
+  if (!ids.includes("==")) {
+    const upper = ids.toUpperCase();
+    if (upper === "MINE" || upper.startsWith("UC")) {
+      ids = `channel==${ids}`;
+    } else {
+      ids = `contentOwner==${ids}`;
+    }
+  }
   const url = `https://youtubeanalytics.googleapis.com/v2/reports?ids=${encodeURIComponent(
     ids
   )}&startDate=${startDate}&endDate=${endDate}&metrics=estimatedRevenue&currency=USD`;
@@ -91,6 +102,22 @@ async function getYouTubeReport(
   return 0;
 }
 
+async function listUserChannels(oauth2Client: OAuth2Client): Promise<string[]> {
+  try {
+    // Requires youtube.readonly scope on the token.
+    // If missing, this will fail and we fall back to MINE.
+    const url = `https://www.googleapis.com/youtube/v3/channels?part=id,snippet&mine=true&maxResults=50`;
+    const response = await oauth2Client.request({ url });
+    const data = response.data as any;
+    const ids = (data.items || []).map((item: any) => item.id).filter(Boolean);
+    console.log(`[adsense] Discovered ${ids.length} YouTube channel(s) via Data API`);
+    return ids;
+  } catch (e: any) {
+    console.warn("[adsense] Could not list channels (probably missing youtube.readonly scope on token). Falling back to MINE.", e.response?.data || e.message);
+    return [];
+  }
+}
+
 function formatGoogleError(e: any): string {
   const msg = e?.response?.data?.error?.message || e?.message || String(e);
   let hint = "";
@@ -98,7 +125,7 @@ function formatGoogleError(e: any): string {
   if (msg.includes("invalid_grant") || msg.toLowerCase().includes("expired or revoked")) {
     hint = " (Refresh token invalid/revoked — re-authorize via OAuth Playground with the required scopes and get a fresh refresh_token.)";
   } else if (msg.toLowerCase().includes("insufficient") || msg.toLowerCase().includes("permission") || msg.includes("accessNotConfigured")) {
-    hint = " (Missing scope or API not enabled. For YouTube revenue you must include yt-analytics-monetary.readonly when generating the token. Also enable the AdSense Management API and YouTube Analytics API in Google Cloud Console.)";
+    hint = " (Missing scope or API not enabled. For YouTube revenue: yt-analytics-monetary.readonly. For AUTO channel discovery: also add youtube.readonly. Enable AdSense Management API + YouTube Analytics API in Google Cloud Console.)";
   } else if (msg.includes("account")) {
     hint = " (Check that GOOGLE_ADSENSE_ACCOUNT_ID or the YouTube channel ID is correct for your account.)";
   }
@@ -110,10 +137,10 @@ async function fetchRevenue(): Promise<RevenueResponse> {
   const clientSecret = process.env.GOOGLE_ADSENSE_CLIENT_SECRET;
   const refreshToken = process.env.GOOGLE_ADSENSE_REFRESH_TOKEN;
   const accountId = process.env.GOOGLE_ADSENSE_ACCOUNT_ID;
-  const ytChannelId = process.env.GOOGLE_YOUTUBE_CHANNEL_ID;
+  const ytChannelConfig = process.env.GOOGLE_YOUTUBE_CHANNEL_ID || "AUTO";
 
   const hasAdSenseCreds = !!(clientId && clientSecret && refreshToken && accountId);
-  const hasYT = !!(refreshToken && ytChannelId);
+  const hasYT = !!refreshToken;  // If we have a refresh token, we can attempt YouTube (supports AUTO discovery)
 
   if (!hasAdSenseCreds && !hasYT) {
     return { isConfigured: false, adsense: null, youtube: null };
@@ -148,12 +175,36 @@ async function fetchRevenue(): Promise<RevenueResponse> {
 
   if (hasYT) {
     try {
-      const [today, thisMonth, lastMonth] = await Promise.all([
-        getYouTubeReport(oauth2Client, ytChannelId!, dates.today.start, dates.today.end),
-        getYouTubeReport(oauth2Client, ytChannelId!, dates.thisMonth.start, dates.thisMonth.end),
-        getYouTubeReport(oauth2Client, ytChannelId!, dates.lastMonth.start, dates.lastMonth.end),
-      ]);
-      youtube = { today, thisMonth, lastMonth, currency: "USD" };
+      let channelIdsToFetch: string[] = [];
+
+      if (ytChannelConfig.toUpperCase() === "AUTO") {
+        const discovered = await listUserChannels(oauth2Client);
+        if (discovered.length > 0) {
+          channelIdsToFetch = discovered;
+        } else {
+          channelIdsToFetch = ["MINE"];
+        }
+      } else {
+        channelIdsToFetch = [ytChannelConfig];
+      }
+
+      let totalToday = 0;
+      let totalThisMonth = 0;
+      let totalLastMonth = 0;
+
+      for (const ch of channelIdsToFetch) {
+        const [t, tm, lm] = await Promise.all([
+          getYouTubeReport(oauth2Client, ch, dates.today.start, dates.today.end),
+          getYouTubeReport(oauth2Client, ch, dates.thisMonth.start, dates.thisMonth.end),
+          getYouTubeReport(oauth2Client, ch, dates.lastMonth.start, dates.lastMonth.end),
+        ]);
+        totalToday += t;
+        totalThisMonth += tm;
+        totalLastMonth += lm;
+      }
+
+      youtube = { today: totalToday, thisMonth: totalThisMonth, lastMonth: totalLastMonth, currency: "USD" };
+      console.log(`[adsense] YouTube revenue aggregated across ${channelIdsToFetch.length} channel(s)`);
     } catch (e: any) {
       const friendly = formatGoogleError(e);
       errors.push(`YouTube: ${friendly}`);
@@ -186,12 +237,12 @@ async function handleTest(_req: Request, res: Response) {
   const clientSecret = process.env.GOOGLE_ADSENSE_CLIENT_SECRET;
   const refreshToken = process.env.GOOGLE_ADSENSE_REFRESH_TOKEN;
   const accountId = process.env.GOOGLE_ADSENSE_ACCOUNT_ID;
-  const ytChannelId = process.env.GOOGLE_YOUTUBE_CHANNEL_ID;
+  const ytChannelConfig = process.env.GOOGLE_YOUTUBE_CHANNEL_ID || "AUTO";
 
   const result: any = {
     timestamp: new Date().toISOString(),
     adsense: { configured: false, ok: false, message: "Not configured" },
-    youtube: { configured: false, ok: false, message: "Not configured (set GOOGLE_YOUTUBE_CHANNEL_ID=MINE or UC... to enable)" },
+    youtube: { configured: false, ok: false, message: "Not configured (set GOOGLE_YOUTUBE_CHANNEL_ID=AUTO / MINE / UC... or content owner ID to enable)" },
   };
 
   if (!refreshToken) {
@@ -218,14 +269,30 @@ async function handleTest(_req: Request, res: Response) {
   }
 
   // Test YouTube
-  if (ytChannelId) {
+  if (refreshToken) {
     result.youtube.configured = true;
     const dates = getReportDates();
     try {
-      const val = await getYouTubeReport(oauth2Client, ytChannelId, dates.lastMonth.start, dates.lastMonth.end);
+      let channelIdsToFetch: string[] = [];
+      if (ytChannelConfig.toUpperCase() === "AUTO") {
+        const discovered = await listUserChannels(oauth2Client);
+        channelIdsToFetch = discovered.length > 0 ? discovered : ["MINE"];
+      } else {
+        channelIdsToFetch = [ytChannelConfig];
+      }
+
+      let total = 0;
+      for (const ch of channelIdsToFetch) {
+        total += await getYouTubeReport(oauth2Client, ch, dates.lastMonth.start, dates.lastMonth.end);
+      }
+
       result.youtube.ok = true;
-      result.youtube.message = `OK — sample last month estimatedRevenue: $${val.toFixed(2)} (USD)`;
-      result.youtube.sample = val;
+      let msg = `OK — last month (${dates.lastMonth.start} to ${dates.lastMonth.end}) estimatedRevenue across ${channelIdsToFetch.length} channel(s): $${total.toFixed(2)} (USD)`;
+      if (total === 0) {
+        msg += " (zero may be normal due to data delay — check YouTube Studio for same dates. Try setting GOOGLE_YOUTUBE_CHANNEL_ID to your content owner ID if you have multiple channels.)";
+      }
+      result.youtube.message = msg;
+      result.youtube.sample = total;
     } catch (e: any) {
       result.youtube.ok = false;
       result.youtube.message = formatGoogleError(e);

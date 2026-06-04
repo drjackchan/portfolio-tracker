@@ -135,9 +135,9 @@ export default function AdSense() {
             <br />
             <strong>AdSense:</strong> <code>GOOGLE_ADSENSE_CLIENT_ID</code>, <code>GOOGLE_ADSENSE_CLIENT_SECRET</code>, <code>GOOGLE_ADSENSE_REFRESH_TOKEN</code>, <code>GOOGLE_ADSENSE_ACCOUNT_ID</code>
             <br />
-            <strong>YouTube (reuses the refresh token):</strong> <code>GOOGLE_YOUTUBE_CHANNEL_ID</code> (use <code>MINE</code> or your <code>UC...</code> id)
+            <strong>YouTube (reuses the refresh token):</strong> <code>GOOGLE_YOUTUBE_CHANNEL_ID=AUTO</code> (recommended — auto-discovers channels you manage). Or set to <code>MINE</code>, <code>UC...</code> channel ID, or your content owner ID.
             <br />
-            The refresh token must include the <code>adsense.readonly</code> and (for YouTube) <code>yt-analytics-monetary.readonly</code> scopes.
+            The refresh token must include the <code>adsense.readonly</code> and (for YouTube) <code>yt-analytics-monetary.readonly</code> scopes. For AUTO discovery add <code>youtube.readonly</code>.
           </AlertDescription>
         </Alert>
       )}
@@ -238,11 +238,11 @@ export default function AdSense() {
             1. In Google Cloud Console create OAuth 2.0 Client ID (Desktop app is easiest).<br />
             2. Go to <a href="https://developers.google.com/oauthplayground" target="_blank" className="underline">OAuth Playground</a>, select the two scopes above, authorize, then exchange for refresh token.<br />
             3. Enable the "AdSense Management API" (and "YouTube Analytics API" for YT revenue) in the same project.<br />
-            4. Set the env vars (in Vercel: Project Settings → Environment Variables). Use the same refresh token for both AdSense and YouTube if you authorized both scopes.<br />
+            4. Set the env vars (in Vercel: Project Settings → Environment Variables). Use the same refresh token for both AdSense and YouTube if you authorized both scopes. For AUTO channel discovery, also include <code>https://www.googleapis.com/auth/youtube.readonly</code>.<br />
             5. Click "Test Connection" on this page to validate before expecting numbers.
           </p>
           <p className="text-xs pt-1 text-yellow-600 dark:text-yellow-400">
-            YouTube revenue requires the monetary scope and a valid channel. AdSense v2 does not include most YouTube earnings.
+            YouTube revenue requires the monetary scope and a valid channel/content owner. AdSense v2 does not include most YouTube earnings. YouTube Analytics revenue data has delays (often days) before estimates appear.
           </p>
         </CardContent>
       </Card>
