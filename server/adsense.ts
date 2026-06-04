@@ -48,12 +48,17 @@ function getReportDates() {
 async function getAdSenseReport(
   oauth2Client: OAuth2Client,
   accountId: string,
-  dateRange: "TODAY" | "MONTH_TO_DATE" | "LAST_MONTH"
+  dateRangeOrDates: "TODAY" | "MONTH_TO_DATE" | { start: string; end: string }
 ): Promise<number> {
   const fullAccountId = accountId.startsWith("accounts/")
     ? accountId
     : `accounts/${accountId}`;
-  const url = `https://adsense.googleapis.com/v2/${fullAccountId}/reports:generate?dateRange=${dateRange}&metrics=ESTIMATED_EARNINGS`;
+  let url = `https://adsense.googleapis.com/v2/${fullAccountId}/reports:generate?metrics=ESTIMATED_EARNINGS`;
+  if (typeof dateRangeOrDates === "string") {
+    url += `&dateRange=${dateRangeOrDates}`;
+  } else {
+    url += `&dateRange=CUSTOM&startDate=${dateRangeOrDates.start}&endDate=${dateRangeOrDates.end}`;
+  }
   const response = await oauth2Client.request({ url });
   const data = response.data as any;
   return parseFloat(data.totals?.cells?.[0]?.value || "0");
@@ -126,7 +131,7 @@ async function fetchRevenue(): Promise<RevenueResponse> {
       const [today, thisMonth, lastMonth] = await Promise.all([
         getAdSenseReport(oauth2Client, accountId!, "TODAY"),
         getAdSenseReport(oauth2Client, accountId!, "MONTH_TO_DATE"),
-        getAdSenseReport(oauth2Client, accountId!, "LAST_MONTH"),
+        getAdSenseReport(oauth2Client, accountId!, dates.lastMonth),
       ]);
       adsense = { today, thisMonth, lastMonth, currency: "USD" };
     } catch (e: any) {
@@ -195,11 +200,11 @@ async function handleTest(_req: Request, res: Response) {
   if (clientId && clientSecret && accountId) {
     result.adsense.configured = true;
     try {
-      // Use a narrow historical range that is likely to exist
-      const testDate = "LAST_MONTH";
-      const val = await getAdSenseReport(oauth2Client, accountId, testDate);
+      // Use a narrow historical range that is likely to exist (use CUSTOM for last month)
+      const dates = getReportDates();
+      const val = await getAdSenseReport(oauth2Client, accountId, dates.lastMonth);
       result.adsense.ok = true;
-      result.adsense.message = `OK — sample LAST_MONTH: $${val.toFixed(2)}`;
+      result.adsense.message = `OK — sample last month: $${val.toFixed(2)}`;
       result.adsense.sample = val;
     } catch (e: any) {
       result.adsense.ok = false;
