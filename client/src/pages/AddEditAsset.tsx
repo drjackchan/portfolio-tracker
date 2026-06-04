@@ -96,8 +96,13 @@ export default function AddEditAsset() {
       toast({ title: "Asset added successfully" });
       navigate("/holdings");
     },
-    onError: () => {
-      toast({ title: "Failed to add asset", variant: "destructive" });
+    onError: (error: Error) => {
+      console.error("Create asset error:", error);
+      toast({ 
+        title: "Failed to add asset", 
+        description: error.message,
+        variant: "destructive" 
+      });
     },
   });
 
@@ -109,8 +114,13 @@ export default function AddEditAsset() {
       toast({ title: "Asset updated" });
       navigate("/holdings");
     },
-    onError: () => {
-      toast({ title: "Failed to update", variant: "destructive" });
+    onError: (error: Error) => {
+      console.error("Update asset error:", error);
+      toast({ 
+        title: "Failed to update", 
+        description: error.message,
+        variant: "destructive" 
+      });
     },
   });
 

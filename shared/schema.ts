@@ -21,6 +21,13 @@ export const insertAssetSchema = createInsertSchema(assets).omit({ id: true });
 export type InsertAsset = z.infer<typeof insertAssetSchema>;
 export type Asset = typeof assets.$inferSelect;
 
+export const updateAssetSchema = insertAssetSchema.partial().extend({
+  quantity: z.coerce.number().optional(),
+  purchasePrice: z.coerce.number().optional(),
+  currentPrice: z.coerce.number().optional(),
+});
+export type UpdateAsset = z.infer<typeof updateAssetSchema>;
+
 // Liabilities: mortgage, loans, etc.
 export const liabilities = pgTable("liabilities", {
   id: serial("id").primaryKey(),

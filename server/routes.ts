@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { type Server } from "http";
 import cookieParser from "cookie-parser";
 import { storage } from "./storage";
-import { insertAssetSchema, insertTransactionSchema, insertLiabilitySchema, insertSubscriptionSchema } from "@shared/schema";
+import { insertAssetSchema, insertTransactionSchema, insertLiabilitySchema, insertSubscriptionSchema, updateAssetSchema } from "@shared/schema";
 import { z } from "zod";
 import { fetchPrices, fetchStockPrice, fetchCryptoPrice } from "./prices";
 import { takeSnapshot } from "./snapshot";
@@ -87,7 +87,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.patch("/api/assets/:id", async (req, res) => {
     const id = parseInt(req.params.id);
-    const result = insertAssetSchema.partial().safeParse(req.body);
+    const result = updateAssetSchema.safeParse(req.body);
     if (!result.success) return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
     const asset = await storage.updateAsset(id, result.data);
     if (!asset) return res.status(404).json({ message: "Asset not found" });

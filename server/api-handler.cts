@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import { storage } from "./storage";
-import { insertAssetSchema, insertTransactionSchema, insertLiabilitySchema, insertSubscriptionSchema } from "../shared/schema";
+import { insertAssetSchema, insertTransactionSchema, insertLiabilitySchema, insertSubscriptionSchema, updateAssetSchema } from "../shared/schema";
 import { fetchPrices, fetchStockPrice, fetchCryptoPrice } from "./prices";
 import { takeSnapshot } from "./snapshot";
 import { requireAuth, handleLogin, handleLogout, handleAuthCheck } from "./auth";
@@ -144,8 +144,8 @@ app.post("/api/assets", async (req, res) => {
 app.patch("/api/assets/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const result = insertAssetSchema.partial().safeParse(req.body);
-    if (!result.success) return res.status(400).json({ message: "Invalid data" });
+    const result = updateAssetSchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
     const asset = await storage.updateAsset(id, result.data);
     if (!asset) return res.status(404).json({ message: "Asset not found" });
     res.json(asset);
