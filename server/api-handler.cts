@@ -5,6 +5,7 @@ import { insertAssetSchema, insertTransactionSchema, insertLiabilitySchema, inse
 import { fetchPrices, fetchStockPrice, fetchCryptoPrice } from "./prices";
 import { takeSnapshot } from "./snapshot";
 import { requireAuth, handleLogin, handleLogout, handleAuthCheck } from "./auth";
+import { registerAdSenseRoutes } from "./adsense";
 
 const app = express();
 app.use(express.json());
@@ -49,6 +50,9 @@ app.get("/api/health", (_req, res) => {
 
 // Protect all remaining /api/* routes
 app.use("/api", requireAuth);
+
+// --- AdSense / YouTube Revenue (shared implementation) ---
+registerAdSenseRoutes(app);
 
 // --- Subscriptions ---
 app.get("/api/subscriptions", async (req, res) => {

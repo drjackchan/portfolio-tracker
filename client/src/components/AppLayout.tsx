@@ -22,7 +22,7 @@ const navItems = [
   { href: "/liabilities", label: "Liabilities", icon: CreditCard },
   { href: "/subscriptions", label: "Subscriptions", icon: RefreshCw },
   { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
-  { href: "/adsense", label: "AdSense Income", icon: DollarSign },
+  { href: "/adsense", label: "Google Revenue", icon: DollarSign },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

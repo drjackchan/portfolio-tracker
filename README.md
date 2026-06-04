@@ -127,8 +127,7 @@ portfolio-tracker/
 - `DELETE /api/transactions/:id` - Delete a transaction
 
 ### AdSense Income
-- `GET /api/adsense` - Get AdSense income data
-- `POST /api/adsense` - Add new AdSense income entry
+- `GET /api/adsense/income` - Get estimated earnings (today, this month, last month) from AdSense (requires 4 `GOOGLE_ADSENSE_*` env vars; see AdSense page in app for details). Note: YouTube earnings typically not included via this API.
 
 ## Contributing
 
