@@ -93,6 +93,7 @@ async function getYouTubeReport(
   const url = `https://youtubeanalytics.googleapis.com/v2/reports?ids=${encodeURIComponent(
     ids
   )}&startDate=${startDate}&endDate=${endDate}&metrics=estimatedRevenue&currency=USD`;
+  console.log(`[adsense] Calling YouTube Analytics with ids=${ids}`);
   const response = await oauth2Client.request({ url });
   const data = response.data as any;
   if (data.rows && data.rows.length > 0) {
@@ -146,7 +147,7 @@ function formatGoogleError(e: any): string {
   if (msg.includes("invalid_grant") || msg.toLowerCase().includes("expired or revoked")) {
     hint = " (Refresh token invalid/revoked — re-authorize via OAuth Playground with the required scopes and get a fresh refresh_token.)";
   } else if (status === 403 || msg.toLowerCase().includes("insufficient") || msg.toLowerCase().includes("permission") || msg.includes("accessNotConfigured") || msg.includes("forbidden")) {
-    hint = " (403 Permission denied. This usually means the refresh token was generated under a different Google account than the one that owns the YouTube channel, or the yt-analytics-monetary.readonly scope was not granted. Log into the correct Google account (the one that can see revenue for UCSrNlRGmymuyQ6eWtmN4GbQ) in OAuth Playground, select the yt-analytics-monetary.readonly scope, get a fresh refresh_token, and update your env var. Also ensure YouTube Analytics API is enabled in your GCP project.)";
+    hint = " (403 Permission denied on YouTube Analytics reports. Even if the channel is owned by jackccy@gmail.com, Brand Accounts often require the OAuth token to be authorized in the specific context of that channel/brand. Re-authorize in OAuth Playground while signed into jackccy@gmail.com AND switched to the brand account for UCSrNlRGmymuyQ6eWtmN4GbQ (visit YouTube Studio as that channel first). Make sure yt-analytics-monetary.readonly is selected. Then get a fresh refresh token. The previous token only had analytics access to the other channel (UCn5d2nd...).)";
   } else if (msg.includes("account")) {
     hint = " (Check that GOOGLE_ADSENSE_ACCOUNT_ID or the YouTube channel ID is correct for your account.)";
   }

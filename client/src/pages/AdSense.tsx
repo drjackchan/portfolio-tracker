@@ -239,7 +239,7 @@ export default function AdSense() {
             2. Go to <a href="https://developers.google.com/oauthplayground" target="_blank" className="underline">OAuth Playground</a>, select the two scopes above, authorize, then exchange for refresh token.<br />
             3. Enable the "AdSense Management API" (and "YouTube Analytics API" for YT revenue) in the same project.<br />
             4. Set the env vars (in Vercel: Project Settings → Environment Variables). Use the same refresh token for both AdSense and YouTube if you authorized both scopes. For AUTO discovery of channels + content owners, also include <code>https://www.googleapis.com/auth/youtube.readonly</code>.<br />
-            <strong>Important for multiple channels:</strong> The refresh token is tied to the Google account you were signed into when authorizing. If revenue is on a different channel (e.g. UCSrNlRGmymuyQ6eWtmN4GbQ), you must re-authorize while signed in as the owner of that channel.
+            <strong>Important for multiple channels / Brand Accounts:</strong> Even if both channels are under jackccy@gmail.com, Brand Accounts create separate OAuth contexts. The token that worked for UCn5d2nd... may not have report access to UCSrNlRGmymuyQ6eWtmN4GbQ. Re-authorize in the Playground after switching to the brand account in YouTube Studio. Or just set GOOGLE_YOUTUBE_CHANNEL_ID=MINE to use whatever the current token can access.
             5. Click "Test Connection" on this page to validate before expecting numbers.
           </p>
           <p className="text-xs pt-1 text-yellow-600 dark:text-yellow-400">
