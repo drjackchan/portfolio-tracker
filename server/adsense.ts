@@ -213,7 +213,7 @@ async function fetchRevenue(): Promise<RevenueResponse> {
       if (ytChannelConfig.toUpperCase() === "AUTO") {
         const discoveredChannels = await listUserChannels(youtubeClient);
         const discoveredOwners = await listContentOwners(youtubeClient);
-        channelIdsToFetch = [...new Set([...discoveredChannels, ...discoveredOwners])];
+        channelIdsToFetch = Array.from(new Set([...discoveredChannels, ...discoveredOwners]));
         if (channelIdsToFetch.length === 0) {
           channelIdsToFetch = ["MINE"];
         }
@@ -319,7 +319,7 @@ async function handleTest(_req: Request, res: Response) {
       if (ytChannelConfig.toUpperCase() === "AUTO") {
         const discoveredChannels = await listUserChannels(youtubeClient);
         const discoveredOwners = await listContentOwners(youtubeClient);
-        channelIdsToFetch = [...new Set([...discoveredChannels, ...discoveredOwners])];
+        channelIdsToFetch = Array.from(new Set([...discoveredChannels, ...discoveredOwners]));
         if (channelIdsToFetch.length === 0) {
           channelIdsToFetch = ["MINE"];
         }
