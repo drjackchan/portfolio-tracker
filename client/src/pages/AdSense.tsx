@@ -35,7 +35,7 @@ export default function AdSense() {
   const [testResult, setTestResult] = useState<TestResult | null>(null);
   const [testLoading, setTestLoading] = useState(false);
 
-  const formatCurrency = (val: number, currency: string = "USD") => {
+  const formatCurrency = (val: number, currency: string = "HKD") => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: currency,
@@ -131,13 +131,13 @@ export default function AdSense() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Configuration Required</AlertTitle>
           <AlertDescription>
-            Set at least one of the following groups in your environment (Vercel or .env):
+            Set at least one of the following groups in your environment (Vercel or .env). AdSense and YouTube can use completely separate credentials:
             <br />
             <strong>AdSense:</strong> <code>GOOGLE_ADSENSE_CLIENT_ID</code>, <code>GOOGLE_ADSENSE_CLIENT_SECRET</code>, <code>GOOGLE_ADSENSE_REFRESH_TOKEN</code>, <code>GOOGLE_ADSENSE_ACCOUNT_ID</code>
             <br />
-            <strong>YouTube (reuses the refresh token):</strong> <code>GOOGLE_YOUTUBE_CHANNEL_ID=AUTO</code> (recommended — auto-discovers channels + content owners you manage via Data + Analytics APIs). Or hardcode <code>MINE</code> or the exact <code>UC...</code> / content owner ID (e.g. UCSrNlRGmymuyQ6eWtmN4GbQ).
+            <strong>YouTube:</strong> <code>GOOGLE_YOUTUBE_CLIENT_ID</code>, <code>GOOGLE_YOUTUBE_CLIENT_SECRET</code>, <code>GOOGLE_YOUTUBE_REFRESH_TOKEN</code>, <code>GOOGLE_YOUTUBE_CHANNEL_ID=AUTO</code> (recommended — auto-discovers channels + content owners). Or hardcode <code>MINE</code> or the exact ID.
             <br />
-            The refresh token must include the <code>adsense.readonly</code> and (for YouTube) <code>yt-analytics-monetary.readonly</code> scopes. For AUTO discovery of channels + content owners add <code>youtube.readonly</code>.
+            The refresh token(s) must include the <code>adsense.readonly</code> and/or <code>yt-analytics-monetary.readonly</code> scopes. For AUTO discovery add <code>youtube.readonly</code>.
           </AlertDescription>
         </Alert>
       )}
@@ -238,8 +238,9 @@ export default function AdSense() {
             1. In Google Cloud Console create OAuth 2.0 Client ID (Desktop app is easiest).<br />
             2. Go to <a href="https://developers.google.com/oauthplayground" target="_blank" className="underline">OAuth Playground</a>, select the two scopes above, authorize, then exchange for refresh token.<br />
             3. Enable the "AdSense Management API" (and "YouTube Analytics API" for YT revenue) in the same project.<br />
-            4. Set the env vars (in Vercel: Project Settings → Environment Variables). Use the same refresh token for both AdSense and YouTube if you authorized both scopes. For AUTO discovery of channels + content owners, also include <code>https://www.googleapis.com/auth/youtube.readonly</code>.<br />
-            <strong>Important for multiple channels / Brand Accounts:</strong> Even if both channels are under jackccy@gmail.com, Brand Accounts create separate OAuth contexts. The token that worked for UCn5d2nd... may not have report access to UCSrNlRGmymuyQ6eWtmN4GbQ. Re-authorize in the Playground after switching to the brand account in YouTube Studio. Or just set GOOGLE_YOUTUBE_CHANNEL_ID=MINE to use whatever the current token can access.
+            4. Set the env vars (in Vercel: Project Settings → Environment Variables). AdSense and YouTube can (and often should) use completely separate OAuth clients and refresh tokens if under different Google accounts.<br />
+            For YouTube AUTO, also include <code>https://www.googleapis.com/auth/youtube.readonly</code>.<br />
+            <strong>Brand Account gotcha:</strong> If you get 403 on one source, re-authorize while switched to the correct account/brand in YouTube Studio. Or use MINE for the token's context.
             5. Click "Test Connection" on this page to validate before expecting numbers.
           </p>
           <p className="text-xs pt-1 text-yellow-600 dark:text-yellow-400">

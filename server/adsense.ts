@@ -53,7 +53,7 @@ async function getAdSenseReport(
   const fullAccountId = accountId.startsWith("accounts/")
     ? accountId
     : `accounts/${accountId}`;
-  let url = `https://adsense.googleapis.com/v2/${fullAccountId}/reports:generate?metrics=ESTIMATED_EARNINGS`;
+  let url = `https://adsense.googleapis.com/v2/${fullAccountId}/reports:generate?metrics=ESTIMATED_EARNINGS&currencyCode=HKD`;
   if (typeof dateRangeOrDates === "string") {
     url += `&dateRange=${dateRangeOrDates}`;
   } else {
@@ -92,8 +92,8 @@ async function getYouTubeReport(
   }
   const url = `https://youtubeanalytics.googleapis.com/v2/reports?ids=${encodeURIComponent(
     ids
-  )}&startDate=${startDate}&endDate=${endDate}&metrics=estimatedRevenue&currency=USD`;
-  console.log(`[adsense] Calling YouTube Analytics with ids=${ids}`);
+  )}&startDate=${startDate}&endDate=${endDate}&metrics=estimatedRevenue&currency=HKD`;
+  console.log(`[adsense] Calling YouTube Analytics with ids=${ids} (currency HKD)`);
   const response = await oauth2Client.request({ url });
   const data = response.data as any;
   if (data.rows && data.rows.length > 0) {
@@ -147,7 +147,7 @@ function formatGoogleError(e: any): string {
   if (msg.includes("invalid_grant") || msg.toLowerCase().includes("expired or revoked")) {
     hint = " (Refresh token invalid/revoked — re-authorize via OAuth Playground with the required scopes and get a fresh refresh_token.)";
   } else if (status === 403 || msg.toLowerCase().includes("insufficient") || msg.toLowerCase().includes("permission") || msg.includes("accessNotConfigured") || msg.includes("forbidden")) {
-    hint = " (403 Permission denied on YouTube Analytics reports. Even if the channel is owned by jackccy@gmail.com, Brand Accounts often require the OAuth token to be authorized in the specific context of that channel/brand. Re-authorize in OAuth Playground while signed into jackccy@gmail.com AND switched to the brand account for UCSrNlRGmymuyQ6eWtmN4GbQ (visit YouTube Studio as that channel first). Make sure yt-analytics-monetary.readonly is selected. Then get a fresh refresh token. The previous token only had analytics access to the other channel (UCn5d2nd...).)";
+    hint = " (403 Permission denied on YouTube Analytics reports. This usually means the refresh token does not have access to the specified channel (common with Brand Accounts or separate Google accounts). Re-authorize in OAuth Playground with the yt-analytics-monetary.readonly scope while signed into the correct account for that channel. Make sure YouTube Analytics API is enabled in your GCP project.)";
   } else if (msg.includes("account")) {
     hint = " (Check that GOOGLE_ADSENSE_ACCOUNT_ID or the YouTube channel ID is correct for your account.)";
   }
@@ -155,39 +155,50 @@ function formatGoogleError(e: any): string {
 }
 
 async function fetchRevenue(): Promise<RevenueResponse> {
-  const clientId = process.env.GOOGLE_ADSENSE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_ADSENSE_CLIENT_SECRET;
-  const refreshToken = process.env.GOOGLE_ADSENSE_REFRESH_TOKEN;
+  // AdSense credentials (can be completely separate Google account)
+  const adsClientId = process.env.GOOGLE_ADSENSE_CLIENT_ID;
+  const adsClientSecret = process.env.GOOGLE_ADSENSE_CLIENT_SECRET;
+  const adsRefreshToken = process.env.GOOGLE_ADSENSE_REFRESH_TOKEN;
   const accountId = process.env.GOOGLE_ADSENSE_ACCOUNT_ID;
+
+  // YouTube credentials (can be completely separate Google account)
+  const ytClientId = process.env.GOOGLE_YOUTUBE_CLIENT_ID;
+  const ytClientSecret = process.env.GOOGLE_YOUTUBE_CLIENT_SECRET;
+  const ytRefreshToken = process.env.GOOGLE_YOUTUBE_REFRESH_TOKEN;
   const ytChannelConfig = process.env.GOOGLE_YOUTUBE_CHANNEL_ID || "AUTO";
 
-  const hasAdSenseCreds = !!(clientId && clientSecret && refreshToken && accountId);
-  const hasYT = !!refreshToken;  // If we have a refresh token, we can attempt YouTube (supports AUTO discovery)
+  const hasAdSenseCreds = !!(adsClientId && adsClientSecret && adsRefreshToken && accountId);
+  const hasYT = !!ytRefreshToken;
 
   if (!hasAdSenseCreds && !hasYT) {
     return { isConfigured: false, adsense: null, youtube: null };
   }
 
-  if (!refreshToken) {
-    return { isConfigured: false, adsense: null, youtube: null };
+  let adsenseClient = null;
+  if (hasAdSenseCreds) {
+    adsenseClient = new OAuth2Client(adsClientId, adsClientSecret);
+    adsenseClient.setCredentials({ refresh_token: adsRefreshToken });
   }
 
-  const oauth2Client = new OAuth2Client(clientId || "not-used", clientSecret || "not-used");
-  oauth2Client.setCredentials({ refresh_token: refreshToken });
+  let youtubeClient = null;
+  if (hasYT) {
+    youtubeClient = new OAuth2Client(ytClientId || "not-used", ytClientSecret || "not-used");
+    youtubeClient.setCredentials({ refresh_token: ytRefreshToken });
+  }
 
   const dates = getReportDates();
   let adsense: SourceData | null = null;
   let youtube: SourceData | null = null;
   const errors: string[] = [];
 
-  if (hasAdSenseCreds) {
+  if (hasAdSenseCreds && adsenseClient) {
     try {
       const [today, thisMonth, lastMonth] = await Promise.all([
-        getAdSenseReport(oauth2Client, accountId!, "TODAY"),
-        getAdSenseReport(oauth2Client, accountId!, "MONTH_TO_DATE"),
-        getAdSenseReport(oauth2Client, accountId!, dates.lastMonth),
+        getAdSenseReport(adsenseClient, accountId!, "TODAY"),
+        getAdSenseReport(adsenseClient, accountId!, "MONTH_TO_DATE"),
+        getAdSenseReport(adsenseClient, accountId!, dates.lastMonth),
       ]);
-      adsense = { today, thisMonth, lastMonth, currency: "USD" };
+      adsense = { today, thisMonth, lastMonth, currency: "HKD" };
     } catch (e: any) {
       const friendly = formatGoogleError(e);
       errors.push(`AdSense: ${friendly}`);
@@ -195,13 +206,13 @@ async function fetchRevenue(): Promise<RevenueResponse> {
     }
   }
 
-  if (hasYT) {
+  if (hasYT && youtubeClient) {
     try {
       let channelIdsToFetch: string[] = [];
 
       if (ytChannelConfig.toUpperCase() === "AUTO") {
-        const discoveredChannels = await listUserChannels(oauth2Client);
-        const discoveredOwners = await listContentOwners(oauth2Client);
+        const discoveredChannels = await listUserChannels(youtubeClient);
+        const discoveredOwners = await listContentOwners(youtubeClient);
         channelIdsToFetch = [...new Set([...discoveredChannels, ...discoveredOwners])];
         if (channelIdsToFetch.length === 0) {
           channelIdsToFetch = ["MINE"];
@@ -216,16 +227,16 @@ async function fetchRevenue(): Promise<RevenueResponse> {
 
       for (const ch of channelIdsToFetch) {
         const [t, tm, lm] = await Promise.all([
-          getYouTubeReport(oauth2Client, ch, dates.today.start, dates.today.end),
-          getYouTubeReport(oauth2Client, ch, dates.thisMonth.start, dates.thisMonth.end),
-          getYouTubeReport(oauth2Client, ch, dates.lastMonth.start, dates.lastMonth.end),
+          getYouTubeReport(youtubeClient, ch, dates.today.start, dates.today.end),
+          getYouTubeReport(youtubeClient, ch, dates.thisMonth.start, dates.thisMonth.end),
+          getYouTubeReport(youtubeClient, ch, dates.lastMonth.start, dates.lastMonth.end),
         ]);
         totalToday += t;
         totalThisMonth += tm;
         totalLastMonth += lm;
       }
 
-      youtube = { today: totalToday, thisMonth: totalThisMonth, lastMonth: totalLastMonth, currency: "USD" };
+      youtube = { today: totalToday, thisMonth: totalThisMonth, lastMonth: totalLastMonth, currency: "HKD" };
       console.log(`[adsense] YouTube revenue aggregated across ${channelIdsToFetch.length} channel(s)`);
     } catch (e: any) {
       const friendly = formatGoogleError(e);
@@ -255,10 +266,14 @@ async function handleIncome(_req: Request, res: Response) {
 async function handleTest(_req: Request, res: Response) {
   // Run the same fetch but also attempt a very small validation query for each source
   // so the user gets immediate feedback on credential validity.
-  const clientId = process.env.GOOGLE_ADSENSE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_ADSENSE_CLIENT_SECRET;
-  const refreshToken = process.env.GOOGLE_ADSENSE_REFRESH_TOKEN;
+  const adsClientId = process.env.GOOGLE_ADSENSE_CLIENT_ID;
+  const adsClientSecret = process.env.GOOGLE_ADSENSE_CLIENT_SECRET;
+  const adsRefreshToken = process.env.GOOGLE_ADSENSE_REFRESH_TOKEN;
   const accountId = process.env.GOOGLE_ADSENSE_ACCOUNT_ID;
+
+  const ytClientId = process.env.GOOGLE_YOUTUBE_CLIENT_ID;
+  const ytClientSecret = process.env.GOOGLE_YOUTUBE_CLIENT_SECRET;
+  const ytRefreshToken = process.env.GOOGLE_YOUTUBE_REFRESH_TOKEN;
   const ytChannelConfig = process.env.GOOGLE_YOUTUBE_CHANNEL_ID || "AUTO";
 
   const result: any = {
@@ -267,22 +282,27 @@ async function handleTest(_req: Request, res: Response) {
     youtube: { configured: false, ok: false, message: "Not configured (set GOOGLE_YOUTUBE_CHANNEL_ID=AUTO or your channel/content owner ID)" },
   };
 
-  if (!refreshToken) {
-    return res.json(result);
+  let adsenseClient = null;
+  if (adsRefreshToken) {
+    adsenseClient = new OAuth2Client(adsClientId || "not-used", adsClientSecret || "not-used");
+    adsenseClient.setCredentials({ refresh_token: adsRefreshToken });
   }
 
-  const oauth2Client = new OAuth2Client(clientId || "not-used", clientSecret || "not-used");
-  oauth2Client.setCredentials({ refresh_token: refreshToken });
+  let youtubeClient = null;
+  if (ytRefreshToken) {
+    youtubeClient = new OAuth2Client(ytClientId || "not-used", ytClientSecret || "not-used");
+    youtubeClient.setCredentials({ refresh_token: ytRefreshToken });
+  }
 
   // Test AdSense
-  if (clientId && clientSecret && accountId) {
+  if (adsClientId && adsClientSecret && accountId && adsenseClient) {
     result.adsense.configured = true;
     try {
       // Use a narrow historical range that is likely to exist (use CUSTOM for last month)
       const dates = getReportDates();
-      const val = await getAdSenseReport(oauth2Client, accountId, dates.lastMonth);
+      const val = await getAdSenseReport(adsenseClient, accountId, dates.lastMonth);
       result.adsense.ok = true;
-      result.adsense.message = `OK — sample last month: $${val.toFixed(2)}`;
+      result.adsense.message = `OK — sample last month: $${val.toFixed(2)} (HKD)`;
       result.adsense.sample = val;
     } catch (e: any) {
       result.adsense.ok = false;
@@ -291,14 +311,14 @@ async function handleTest(_req: Request, res: Response) {
   }
 
   // Test YouTube
-  if (refreshToken) {
+  if (ytRefreshToken && youtubeClient) {
     result.youtube.configured = true;
     const dates = getReportDates();
     try {
       let channelIdsToFetch: string[] = [];
       if (ytChannelConfig.toUpperCase() === "AUTO") {
-        const discoveredChannels = await listUserChannels(oauth2Client);
-        const discoveredOwners = await listContentOwners(oauth2Client);
+        const discoveredChannels = await listUserChannels(youtubeClient);
+        const discoveredOwners = await listContentOwners(youtubeClient);
         channelIdsToFetch = [...new Set([...discoveredChannels, ...discoveredOwners])];
         if (channelIdsToFetch.length === 0) {
           channelIdsToFetch = ["MINE"];
@@ -309,13 +329,13 @@ async function handleTest(_req: Request, res: Response) {
 
       let total = 0;
       for (const ch of channelIdsToFetch) {
-        total += await getYouTubeReport(oauth2Client, ch, dates.lastMonth.start, dates.lastMonth.end);
+        total += await getYouTubeReport(youtubeClient, ch, dates.lastMonth.start, dates.lastMonth.end);
       }
 
       result.youtube.ok = true;
-      let msg = `OK — last month (${dates.lastMonth.start} to ${dates.lastMonth.end}) estimatedRevenue across ${channelIdsToFetch.length} channel(s): $${total.toFixed(2)} (USD)`;
+      let msg = `OK — last month (${dates.lastMonth.start} to ${dates.lastMonth.end}) estimatedRevenue across ${channelIdsToFetch.length} channel(s): $${total.toFixed(2)} (HKD)`;
       if (total === 0) {
-        msg += " (zero may be normal due to data delay — check YouTube Studio for same dates. Check server logs for [adsense] YouTube API details (no rows, headers, discovered IDs). If wrong channels (e.g. UCn5d2nd... instead of your revenue one), hardcode GOOGLE_YOUTUBE_CHANNEL_ID to the correct UC... ID like UCSrNlRGmymuyQ6eWtmN4GbQ.)";
+        msg += " (zero may be normal due to data delay — check YouTube Studio for same dates. Check server logs for [adsense] YouTube API details (no rows, headers, discovered IDs). If the wrong channel was used, hardcode the correct channel/content owner ID.)";
       }
       result.youtube.message = msg;
       result.youtube.sample = total;
