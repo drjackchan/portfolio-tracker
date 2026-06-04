@@ -57,7 +57,12 @@ async function getAdSenseReport(
   if (typeof dateRangeOrDates === "string") {
     url += `&dateRange=${dateRangeOrDates}`;
   } else {
-    url += `&dateRange=CUSTOM&startDate=${dateRangeOrDates.start}&endDate=${dateRangeOrDates.end}`;
+    // For CUSTOM, startDate/endDate must be passed as google.type.Date fields
+    // because they are message types, not primitive strings.
+    // See: https://developers.google.com/adsense/management/reporting/date_ranges
+    const [sy, sm, sd] = dateRangeOrDates.start.split("-").map(Number);
+    const [ey, em, ed] = dateRangeOrDates.end.split("-").map(Number);
+    url += `&dateRange=CUSTOM&startDate.year=${sy}&startDate.month=${sm}&startDate.day=${sd}&endDate.year=${ey}&endDate.month=${em}&endDate.day=${ed}`;
   }
   const response = await oauth2Client.request({ url });
   const data = response.data as any;
@@ -186,7 +191,7 @@ async function handleTest(_req: Request, res: Response) {
   const result: any = {
     timestamp: new Date().toISOString(),
     adsense: { configured: false, ok: false, message: "Not configured" },
-    youtube: { configured: false, ok: false, message: "Not configured" },
+    youtube: { configured: false, ok: false, message: "Not configured (set GOOGLE_YOUTUBE_CHANNEL_ID=MINE or UC... to enable)" },
   };
 
   if (!refreshToken) {
