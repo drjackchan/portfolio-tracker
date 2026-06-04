@@ -139,13 +139,14 @@ async function listContentOwners(oauth2Client: OAuth2Client): Promise<string[]> 
 }
 
 function formatGoogleError(e: any): string {
+  const status = e?.response?.status || e?.status;
   const msg = e?.response?.data?.error?.message || e?.message || String(e);
   let hint = "";
 
   if (msg.includes("invalid_grant") || msg.toLowerCase().includes("expired or revoked")) {
     hint = " (Refresh token invalid/revoked — re-authorize via OAuth Playground with the required scopes and get a fresh refresh_token.)";
-  } else if (msg.toLowerCase().includes("insufficient") || msg.toLowerCase().includes("permission") || msg.includes("accessNotConfigured")) {
-    hint = " (Missing scope or API not enabled. For YouTube revenue: yt-analytics-monetary.readonly. For AUTO discovery of channels+contentOwners: also add youtube.readonly. Enable AdSense Management API + YouTube Analytics API in Google Cloud Console.)";
+  } else if (status === 403 || msg.toLowerCase().includes("insufficient") || msg.toLowerCase().includes("permission") || msg.includes("accessNotConfigured") || msg.includes("forbidden")) {
+    hint = " (403 Permission denied. This usually means the refresh token was generated under a different Google account than the one that owns the YouTube channel, or the yt-analytics-monetary.readonly scope was not granted. Log into the correct Google account (the one that can see revenue for UCSrNlRGmymuyQ6eWtmN4GbQ) in OAuth Playground, select the yt-analytics-monetary.readonly scope, get a fresh refresh_token, and update your env var. Also ensure YouTube Analytics API is enabled in your GCP project.)";
   } else if (msg.includes("account")) {
     hint = " (Check that GOOGLE_ADSENSE_ACCOUNT_ID or the YouTube channel ID is correct for your account.)";
   }
@@ -228,7 +229,7 @@ async function fetchRevenue(): Promise<RevenueResponse> {
     } catch (e: any) {
       const friendly = formatGoogleError(e);
       errors.push(`YouTube: ${friendly}`);
-      console.error("[adsense] YouTube fetch error:", e.response?.data || e.message);
+      console.error("[adsense] YouTube fetch error (full):", JSON.stringify(e.response?.data || e, null, 2));
     }
   }
 
@@ -322,6 +323,7 @@ async function handleTest(_req: Request, res: Response) {
     } catch (e: any) {
       result.youtube.ok = false;
       result.youtube.message = formatGoogleError(e);
+      console.error("[adsense] YouTube test error (full):", JSON.stringify(e.response?.data || e, null, 2));
     }
   }
 
