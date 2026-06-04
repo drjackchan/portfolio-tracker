@@ -242,7 +242,7 @@ export default function AdSense() {
             5. Click "Test Connection" on this page to validate before expecting numbers.
           </p>
           <p className="text-xs pt-1 text-yellow-600 dark:text-yellow-400">
-            YouTube revenue requires the monetary scope and a valid channel/content owner. AdSense v2 does not include most YouTube earnings. YouTube Analytics revenue data has delays (often days) before estimates appear.
+            YouTube revenue requires the monetary scope and a valid channel/content owner. AdSense v2 does not include most YouTube earnings. YouTube Analytics revenue data has delays (often days) before estimates appear. With AUTO, check Test Connection output for "channelsQueried" and server logs for API details if showing zero.
           </p>
         </CardContent>
       </Card>

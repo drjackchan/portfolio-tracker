@@ -99,6 +99,11 @@ async function getYouTubeReport(
     // Single metric, no extra dimensions => first (only) value in the row
     return parseFloat(data.rows[0][0] || "0");
   }
+  // Debug when no data
+  console.log(`[adsense] YouTube API returned no rows for ids=${ids} (${startDate} to ${endDate}). Response keys:`, Object.keys(data || {}));
+  if (data && data.columnHeaders) {
+    console.log(`[adsense] YouTube headers:`, data.columnHeaders.map((h: any) => h.name));
+  }
   return 0;
 }
 
@@ -242,7 +247,7 @@ async function handleTest(_req: Request, res: Response) {
   const result: any = {
     timestamp: new Date().toISOString(),
     adsense: { configured: false, ok: false, message: "Not configured" },
-    youtube: { configured: false, ok: false, message: "Not configured (set GOOGLE_YOUTUBE_CHANNEL_ID=AUTO / MINE / UC... or content owner ID to enable)" },
+    youtube: { configured: false, ok: false, message: "Not configured (set GOOGLE_YOUTUBE_CHANNEL_ID=AUTO or your channel/content owner ID)" },
   };
 
   if (!refreshToken) {
@@ -289,10 +294,12 @@ async function handleTest(_req: Request, res: Response) {
       result.youtube.ok = true;
       let msg = `OK — last month (${dates.lastMonth.start} to ${dates.lastMonth.end}) estimatedRevenue across ${channelIdsToFetch.length} channel(s): $${total.toFixed(2)} (USD)`;
       if (total === 0) {
-        msg += " (zero may be normal due to data delay — check YouTube Studio for same dates. Try setting GOOGLE_YOUTUBE_CHANNEL_ID to your content owner ID if you have multiple channels.)";
+        msg += " (zero may be normal due to data delay — check YouTube Studio for same dates. Check server logs for [adsense] YouTube API details (no rows, headers). Try content owner ID.)";
       }
       result.youtube.message = msg;
       result.youtube.sample = total;
+      result.youtube.channelsQueried = channelIdsToFetch;
+      result.youtube.discoveryUsed = ytChannelConfig.toUpperCase() === "AUTO";
     } catch (e: any) {
       result.youtube.ok = false;
       result.youtube.message = formatGoogleError(e);
