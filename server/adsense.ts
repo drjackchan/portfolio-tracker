@@ -146,6 +146,8 @@ function formatGoogleError(e: any): string {
 
   if (msg.includes("invalid_grant") || msg.toLowerCase().includes("expired or revoked")) {
     hint = " (Refresh token invalid/revoked — re-authorize via OAuth Playground with the required scopes and get a fresh refresh_token.)";
+  } else if (msg.includes("invalid_client")) {
+    hint = " (invalid_client — the CLIENT_ID / CLIENT_SECRET do not match the ones used to obtain the REFRESH_TOKEN. Make sure you use the exact Client ID/Secret from the OAuth client when getting the refresh token in the Playground.)";
   } else if (status === 403 || msg.toLowerCase().includes("insufficient") || msg.toLowerCase().includes("permission") || msg.includes("accessNotConfigured") || msg.includes("forbidden")) {
     hint = " (403 Permission denied on YouTube Analytics reports. This usually means the refresh token does not have access to the specified channel (common with Brand Accounts or separate Google accounts). Re-authorize in OAuth Playground with the yt-analytics-monetary.readonly scope while signed into the correct account for that channel. Make sure YouTube Analytics API is enabled in your GCP project.)";
   } else if (msg.includes("account")) {

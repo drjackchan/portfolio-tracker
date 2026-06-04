@@ -235,9 +235,9 @@ export default function AdSense() {
           </p>
           <p className="text-xs pt-1">
             <strong>Setup steps (do this once):</strong><br />
-            1. In Google Cloud Console create OAuth 2.0 Client ID (Desktop app is easiest).<br />
-            2. Go to <a href="https://developers.google.com/oauthplayground" target="_blank" className="underline">OAuth Playground</a>, select the two scopes above, authorize, then exchange for refresh token.<br />
-            3. Enable the "AdSense Management API" (and "YouTube Analytics API" for YT revenue) in the same project.<br />
+            1. In Google Cloud Console, create a project, enable the required APIs (AdSense Management API and/or YouTube Analytics API + YouTube Data API v3 for discovery), then create OAuth 2.0 Client ID (choose "Desktop app").<br />
+            2. For each service (if separate accounts), go to <a href="https://developers.google.com/oauthplayground" target="_blank" className="underline">OAuth Playground</a> with that service's Client ID/Secret, select the scopes, authorize with the correct Google account, exchange for the refresh token.<br />
+            3. Enable the "AdSense Management API" (and "YouTube Analytics API" for YT revenue) in the project.<br />
             4. Set the env vars (in Vercel: Project Settings → Environment Variables). AdSense and YouTube can (and often should) use completely separate OAuth clients and refresh tokens if under different Google accounts.<br />
             For YouTube AUTO, also include <code>https://www.googleapis.com/auth/youtube.readonly</code>.<br />
             <strong>Brand Account gotcha:</strong> If you get 403 on one source, re-authorize while switched to the correct account/brand in YouTube Studio. Or use MINE for the token's context.
