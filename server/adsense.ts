@@ -115,10 +115,25 @@ async function listUserChannels(oauth2Client: OAuth2Client): Promise<string[]> {
     const response = await oauth2Client.request({ url });
     const data = response.data as any;
     const ids = (data.items || []).map((item: any) => item.id).filter(Boolean);
-    console.log(`[adsense] Discovered ${ids.length} YouTube channel(s) via Data API`);
+    console.log(`[adsense] Discovered ${ids.length} YouTube channel(s) via Data API: ${ids.join(', ')}`);
     return ids;
   } catch (e: any) {
     console.warn("[adsense] Could not list channels (probably missing youtube.readonly scope on token). Falling back to MINE.", e.response?.data || e.message);
+    return [];
+  }
+}
+
+async function listContentOwners(oauth2Client: OAuth2Client): Promise<string[]> {
+  try {
+    // Requires yt-analytics.readonly or monetary scope.
+    const url = `https://www.googleapis.com/youtube/analytics/v2/contentOwners`;
+    const response = await oauth2Client.request({ url });
+    const data = response.data as any;
+    const ids = (data.items || []).map((item: any) => item.id).filter(Boolean);
+    console.log(`[adsense] Discovered ${ids.length} YouTube content owner(s): ${ids.join(', ')}`);
+    return ids;
+  } catch (e: any) {
+    console.warn("[adsense] Could not list content owners.", e.response?.data || e.message);
     return [];
   }
 }
@@ -130,7 +145,7 @@ function formatGoogleError(e: any): string {
   if (msg.includes("invalid_grant") || msg.toLowerCase().includes("expired or revoked")) {
     hint = " (Refresh token invalid/revoked — re-authorize via OAuth Playground with the required scopes and get a fresh refresh_token.)";
   } else if (msg.toLowerCase().includes("insufficient") || msg.toLowerCase().includes("permission") || msg.includes("accessNotConfigured")) {
-    hint = " (Missing scope or API not enabled. For YouTube revenue: yt-analytics-monetary.readonly. For AUTO channel discovery: also add youtube.readonly. Enable AdSense Management API + YouTube Analytics API in Google Cloud Console.)";
+    hint = " (Missing scope or API not enabled. For YouTube revenue: yt-analytics-monetary.readonly. For AUTO discovery of channels+contentOwners: also add youtube.readonly. Enable AdSense Management API + YouTube Analytics API in Google Cloud Console.)";
   } else if (msg.includes("account")) {
     hint = " (Check that GOOGLE_ADSENSE_ACCOUNT_ID or the YouTube channel ID is correct for your account.)";
   }
@@ -183,10 +198,10 @@ async function fetchRevenue(): Promise<RevenueResponse> {
       let channelIdsToFetch: string[] = [];
 
       if (ytChannelConfig.toUpperCase() === "AUTO") {
-        const discovered = await listUserChannels(oauth2Client);
-        if (discovered.length > 0) {
-          channelIdsToFetch = discovered;
-        } else {
+        const discoveredChannels = await listUserChannels(oauth2Client);
+        const discoveredOwners = await listContentOwners(oauth2Client);
+        channelIdsToFetch = [...new Set([...discoveredChannels, ...discoveredOwners])];
+        if (channelIdsToFetch.length === 0) {
           channelIdsToFetch = ["MINE"];
         }
       } else {
@@ -280,8 +295,12 @@ async function handleTest(_req: Request, res: Response) {
     try {
       let channelIdsToFetch: string[] = [];
       if (ytChannelConfig.toUpperCase() === "AUTO") {
-        const discovered = await listUserChannels(oauth2Client);
-        channelIdsToFetch = discovered.length > 0 ? discovered : ["MINE"];
+        const discoveredChannels = await listUserChannels(oauth2Client);
+        const discoveredOwners = await listContentOwners(oauth2Client);
+        channelIdsToFetch = [...new Set([...discoveredChannels, ...discoveredOwners])];
+        if (channelIdsToFetch.length === 0) {
+          channelIdsToFetch = ["MINE"];
+        }
       } else {
         channelIdsToFetch = [ytChannelConfig];
       }
@@ -294,7 +313,7 @@ async function handleTest(_req: Request, res: Response) {
       result.youtube.ok = true;
       let msg = `OK — last month (${dates.lastMonth.start} to ${dates.lastMonth.end}) estimatedRevenue across ${channelIdsToFetch.length} channel(s): $${total.toFixed(2)} (USD)`;
       if (total === 0) {
-        msg += " (zero may be normal due to data delay — check YouTube Studio for same dates. Check server logs for [adsense] YouTube API details (no rows, headers). Try content owner ID.)";
+        msg += " (zero may be normal due to data delay — check YouTube Studio for same dates. Check server logs for [adsense] YouTube API details (no rows, headers, discovered IDs). If wrong channels (e.g. UCn5d2nd... instead of your revenue one), hardcode GOOGLE_YOUTUBE_CHANNEL_ID to the correct UC... ID like UCSrNlRGmymuyQ6eWtmN4GbQ.)";
       }
       result.youtube.message = msg;
       result.youtube.sample = total;
