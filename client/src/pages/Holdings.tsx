@@ -61,6 +61,9 @@ export default function Holdings() {
   const [sortKey, setSortKey] = useState<string>("value");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
+  // Grouping by ticker (for assets with same symbol/ticker but different account names)
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
   const { data: assets = [], isLoading } = useQuery<Asset[]>({ queryKey: ["/api/assets"] });
 
   type MarketData = {
@@ -141,7 +144,19 @@ export default function Holdings() {
     }
   };
 
-  // Apply search + type filter, then sorting
+  const toggleGroup = (ticker: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(ticker)) {
+        next.delete(ticker);
+      } else {
+        next.add(ticker);
+      }
+      return next;
+    });
+  };
+
+  // Apply search + type filter
   const filtered = assets.filter((a) => {
     const q = search.toLowerCase();
     return (
@@ -150,90 +165,172 @@ export default function Holdings() {
     );
   });
 
-  const sortedFiltered = useMemo(() => {
-    const arr = [...filtered];
-    arr.sort((a, b) => {
-      const mda = marketData[a.id];
-      const mdb = marketData[b.id];
+  // Group by ticker (only assets with the same non-empty ticker are grouped)
+  // We build groups, compute aggregates, sort the groups (respecting current sort), then decide display rows
+  type AssetGroup = {
+    ticker: string; // the group key (or `single-${id}` for ungrouped)
+    assets: Asset[];
+    totalQty: number;
+    totalValue: number; // in HKD
+    totalCost: number; // in HKD
+    totalGain: number; // in HKD
+    gainPct: number;
+    md?: MarketData;
+    representative: Asset;
+  };
 
-      const mva = toHkd(a.quantity * a.currentPrice, a.currency);
-      const mvb = toHkd(b.quantity * b.currentPrice, b.currency);
-      const costa = toHkd(a.quantity * a.purchasePrice, a.currency);
-      const costb = toHkd(b.quantity * b.purchasePrice, b.currency);
-      const gaina = mva - costa;
-      const gainb = mvb - costb;
-      const gainPcta = costa > 0 ? (gaina / costa) * 100 : -Infinity;
-      const gainPctb = costb > 0 ? (gainb / costb) * 100 : -Infinity;
+  const groupMap = new Map<string, Asset[]>();
+  const singleAssets: Asset[] = [];
 
-      let va: number | string;
-      let vb: number | string;
+  for (const a of filtered) {
+    const t = a.ticker?.trim();
+    if (t) {
+      if (!groupMap.has(t)) groupMap.set(t, []);
+      groupMap.get(t)!.push(a);
+    } else {
+      singleAssets.push(a);
+    }
+  }
 
-      switch (sortKey) {
-        case "name":
-          va = a.name.toLowerCase();
-          vb = b.name.toLowerCase();
-          break;
-        case "type":
-          va = a.assetType;
-          vb = b.assetType;
-          break;
-        case "category":
-          va = (a.category || "").toLowerCase();
-          vb = (b.category || "").toLowerCase();
-          break;
-        case "qty":
-          va = a.quantity;
-          vb = b.quantity;
-          break;
-        case "buy":
-          va = a.purchasePrice;
-          vb = b.purchasePrice;
-          break;
-        case "current":
-          va = mda?.price ?? a.currentPrice;
-          vb = mdb?.price ?? b.currentPrice;
-          break;
-        case "1h":
-          va = mda?.change1h ?? -Infinity;
-          vb = mdb?.change1h ?? -Infinity;
-          break;
-        case "24h":
-          va = mda?.change24h ?? -Infinity;
-          vb = mdb?.change24h ?? -Infinity;
-          break;
-        case "7d":
-          va = mda?.change7d ?? -Infinity;
-          vb = mdb?.change7d ?? -Infinity;
-          break;
-        case "value":
-          va = mva;
-          vb = mvb;
-          break;
-        case "return":
-          va = gainPcta;
-          vb = gainPctb;
-          break;
-        default:
-          va = 0;
-          vb = 0;
-      }
+  const groups: AssetGroup[] = [];
 
-      if (typeof va === "string" && typeof vb === "string") {
-        const cmp = va.localeCompare(vb);
-        return sortDir === "asc" ? cmp : -cmp;
-      }
+  // Multi-asset groups
+  for (const [ticker, assetsInGroup] of groupMap.entries()) {
+    const totalQty = assetsInGroup.reduce((s, a) => s + a.quantity, 0);
+    const totalValue = assetsInGroup.reduce((s, a) => s + toHkd(a.quantity * a.currentPrice, a.currency), 0);
+    const totalCost = assetsInGroup.reduce((s, a) => s + toHkd(a.quantity * a.purchasePrice, a.currency), 0);
+    const totalGain = totalValue - totalCost;
+    const gainPct = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
+    const md = marketData[assetsInGroup[0].id];
+    const representative = assetsInGroup[0];
 
-      const na = va as number;
-      const nb = vb as number;
-      if (isNaN(na) && isNaN(nb)) return 0;
-      if (isNaN(na)) return 1;
-      if (isNaN(nb)) return -1;
-      if (na < nb) return sortDir === "asc" ? -1 : 1;
-      if (na > nb) return sortDir === "asc" ? 1 : -1;
-      return 0;
+    groups.push({
+      ticker,
+      assets: assetsInGroup,
+      totalQty,
+      totalValue,
+      totalCost,
+      totalGain,
+      gainPct,
+      md,
+      representative,
     });
-    return arr;
-  }, [filtered, sortKey, sortDir, marketData]);
+  }
+
+  // Single (no ticker or unique)
+  for (const a of singleAssets) {
+    const value = toHkd(a.quantity * a.currentPrice, a.currency);
+    const cost = toHkd(a.quantity * a.purchasePrice, a.currency);
+    const gain = value - cost;
+    const gainPct = cost > 0 ? (gain / cost) * 100 : 0;
+    const md = marketData[a.id];
+    groups.push({
+      ticker: `single-${a.id}`,
+      assets: [a],
+      totalQty: a.quantity,
+      totalValue: value,
+      totalCost: cost,
+      totalGain: gain,
+      gainPct,
+      md,
+      representative: a,
+    });
+  }
+
+  // Sort groups according to current sortKey / sortDir (group-level aggregates for numeric fields)
+  groups.sort((ga, gb) => {
+    let va: number | string;
+    let vb: number | string;
+
+    const mda = ga.md;
+    const mdb = gb.md;
+
+    switch (sortKey) {
+      case "name":
+        va = ga.representative.name.toLowerCase();
+        vb = gb.representative.name.toLowerCase();
+        break;
+      case "type":
+        va = ga.representative.assetType;
+        vb = gb.representative.assetType;
+        break;
+      case "category":
+        va = (ga.representative.category || "").toLowerCase();
+        vb = (gb.representative.category || "").toLowerCase();
+        break;
+      case "qty":
+        va = ga.totalQty;
+        vb = gb.totalQty;
+        break;
+      case "buy":
+        va = ga.representative.purchasePrice;
+        vb = gb.representative.purchasePrice;
+        break;
+      case "current":
+        va = mda?.price ?? ga.representative.currentPrice;
+        vb = mdb?.price ?? gb.representative.currentPrice;
+        break;
+      case "1h":
+        va = mda?.change1h ?? -Infinity;
+        vb = mdb?.change1h ?? -Infinity;
+        break;
+      case "24h":
+        va = mda?.change24h ?? -Infinity;
+        vb = mdb?.change24h ?? -Infinity;
+        break;
+      case "7d":
+        va = mda?.change7d ?? -Infinity;
+        vb = mdb?.change7d ?? -Infinity;
+        break;
+      case "value":
+        va = ga.totalValue;
+        vb = gb.totalValue;
+        break;
+      case "return":
+        va = ga.gainPct;
+        vb = gb.gainPct;
+        break;
+      default:
+        va = 0;
+        vb = 0;
+    }
+
+    if (typeof va === "string" && typeof vb === "string") {
+      const cmp = va.localeCompare(vb);
+      return sortDir === "asc" ? cmp : -cmp;
+    }
+
+    const na = va as number;
+    const nb = vb as number;
+    if (isNaN(na) && isNaN(nb)) return 0;
+    if (isNaN(na)) return 1;
+    if (isNaN(nb)) return -1;
+    if (na < nb) return sortDir === "asc" ? -1 : 1;
+    if (na > nb) return sortDir === "asc" ? 1 : -1;
+    return 0;
+  });
+
+  // Build display rows: for multi-ticker groups we can collapse
+  type DisplayItem =
+    | { kind: "summary"; group: AssetGroup }
+    | { kind: "detail"; asset: Asset; groupTicker: string };
+
+  const displayItems: DisplayItem[] = [];
+
+  for (const group of groups) {
+    const isMulti = group.assets.length > 1;
+    const isExpanded = isMulti && expandedGroups.has(group.ticker);
+
+    if (isMulti && !isExpanded) {
+      // collapsed summary row for the group
+      displayItems.push({ kind: "summary", group });
+    } else {
+      // show all members (for singles, or expanded groups)
+      for (const asset of group.assets) {
+        displayItems.push({ kind: "detail", asset, groupTicker: group.ticker });
+      }
+    }
+  }
 
   // Calculate totals for each category
   const totalsByCategory = assets.reduce((acc, a) => {
@@ -440,7 +537,92 @@ export default function Holdings() {
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedFiltered.map((a) => {
+                      {displayItems.map((item) => {
+                        if (item.kind === "summary") {
+                          const g = item.group;
+                          const isExpanded = expandedGroups.has(g.ticker);
+                          const mv = g.totalValue;
+                          const gain = g.totalGain;
+                          const gainPct = g.gainPct;
+                          const md = g.md;
+                          const isAuto = true;
+                          return (
+                            <tr key={`group-${g.ticker}`} className="border-b border-border/50 bg-muted/10 hover:bg-muted/30 transition-colors" data-testid={`group-${g.ticker}`}>
+                              <td className="px-5 py-3">
+                                <div className="flex items-center gap-2.5">
+                                  <button
+                                    onClick={() => toggleGroup(g.ticker)}
+                                    className="p-0.5 text-base leading-none rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                                    aria-label={isExpanded ? "Collapse group" : "Expand group"}
+                                  >
+                                    {isExpanded ? "−" : "+"}
+                                  </button>
+                                  <div>
+                                    <div className="font-medium text-foreground leading-tight">{g.ticker}</div>
+                                    <div className="text-xs text-muted-foreground">{g.assets.length} accounts</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-3 py-3"><Badge variant="secondary" className="text-xs capitalize">{ASSET_TYPE_LABELS[g.representative.assetType] ?? g.representative.assetType}</Badge></td>
+                              <td className="px-3 py-3 text-muted-foreground text-xs">—</td>
+                              <td className="px-3 py-3 text-right font-mono tabular-nums">{g.totalQty.toLocaleString()}</td>
+                              <td className="px-3 py-3 text-right font-mono tabular-nums text-muted-foreground">—</td>
+                              <td className="px-3 py-3 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <span className="font-mono tabular-nums">{formatNativeCurrency(md?.price ?? g.representative.currentPrice, g.representative.currency)}</span>
+                                </div>
+                              </td>
+                              {/* 1h % */}
+                              <td className="px-2 py-3 text-right font-mono tabular-nums text-xs">
+                                {md?.change1h != null ? (
+                                  <span className={md.change1h >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}>
+                                    {md.change1h >= 0 ? "▲" : "▼"}{md.change1h.toFixed(2)}%
+                                  </span>
+                                ) : "—"}
+                              </td>
+                              {/* 24h % */}
+                              <td className="px-2 py-3 text-right font-mono tabular-nums text-xs">
+                                {md?.change24h != null ? (
+                                  <span className={md.change24h >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}>
+                                    {md.change24h >= 0 ? "▲" : "▼"}{md.change24h.toFixed(2)}%
+                                  </span>
+                                ) : "—"}
+                              </td>
+                              {/* 7d % */}
+                              <td className="px-2 py-3 text-right font-mono tabular-nums text-xs font-medium">
+                                {md?.change7d != null ? (
+                                  <span className={md.change7d >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}>
+                                    {md.change7d >= 0 ? "▲" : "▼"}{md.change7d.toFixed(2)}%
+                                  </span>
+                                ) : "—"}
+                              </td>
+                              {/* 7d sparkline */}
+                              <td className="px-1 py-3">
+                                {md?.sparkline?.length ? (
+                                  <Sparkline data={md.sparkline} positive={(md.change7d ?? 0) >= 0} />
+                                ) : <span className="text-muted-foreground/60 text-[10px]">—</span>}
+                              </td>
+                              <td className="px-3 py-3 text-right font-mono tabular-nums font-semibold">{formatCurrency(mv)}</td>
+                              <td className="px-3 py-3 text-right">
+                                <div className={`font-mono tabular-nums text-xs font-medium ${gain >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>
+                                  {gain >= 0 ? "+" : ""}{formatCurrency(gain)}
+                                </div>
+                                <div className={`text-xs font-mono ${gain >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>{formatPct(gainPct)}</div>
+                              </td>
+                              <td className="px-5 py-3 text-right">
+                                <button
+                                  onClick={() => toggleGroup(g.ticker)}
+                                  className="text-xs text-muted-foreground hover:text-foreground underline"
+                                >
+                                  {isExpanded ? "Collapse" : "Expand"}
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        // detail row
+                        const a = item.asset;
                         const mv = toHkd(a.quantity * a.currentPrice, a.currency);
                         const cost = toHkd(a.quantity * a.purchasePrice, a.currency);
                         const gain = mv - cost;
@@ -448,8 +630,9 @@ export default function Holdings() {
                         const isRefreshing = refreshingId === a.id;
                         const md = marketData[a.id];
                         const isAuto = canAutoRefresh(a);
+                        const isInGroup = item.groupTicker && !item.groupTicker.startsWith("single-");
                         return (
-                          <tr key={a.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors" data-testid={`holding-row-${a.id}`}>
+                          <tr key={a.id} className={`border-b border-border/50 hover:bg-muted/20 transition-colors ${isInGroup ? "bg-muted/5" : ""}`} data-testid={`holding-row-${a.id}`}>
                             <td className="px-5 py-3">
                               <div className="flex items-center gap-2.5">
                                 <div className="w-7 h-7 rounded-md flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
@@ -469,7 +652,7 @@ export default function Holdings() {
                             <td className="px-3 py-3 text-right">
                               <div className="flex items-center justify-end gap-1.5">
                                 <span className="font-mono tabular-nums">{formatNativeCurrency((isAuto && md?.price != null ? md.price : a.currentPrice), a.currency)}</span>
-                                {canAutoRefresh(a) && (
+                                {isAuto && (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <button
@@ -540,7 +723,68 @@ export default function Holdings() {
 
                 {/* Mobile card list */}
                 <div className="sm:hidden divide-y divide-border">
-                  {sortedFiltered.map((a) => {
+                  {displayItems.map((item) => {
+                    if (item.kind === "summary") {
+                      const g = item.group;
+                      const isExpanded = expandedGroups.has(g.ticker);
+                      const mv = g.totalValue;
+                      const cost = g.totalCost;
+                      const gain = g.totalGain;
+                      const gainPct = g.gainPct;
+                      const md = g.md;
+                      const isAuto = true;
+                      return (
+                        <div key={`group-${g.ticker}`} className="px-4 py-3 bg-muted/10" data-testid={`group-${g.ticker}`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <button
+                                onClick={() => toggleGroup(g.ticker)}
+                                className="p-1 text-base leading-none rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                                aria-label={isExpanded ? "Collapse group" : "Expand group"}
+                              >
+                                {isExpanded ? "−" : "+"}
+                              </button>
+                              <div className="min-w-0">
+                                <div className="font-medium text-sm truncate">{g.ticker}</div>
+                                <div className="text-xs text-muted-foreground">{g.assets.length} accounts</div>
+                              </div>
+                            </div>
+                            <div className="text-right ml-2">
+                              <div className="text-sm font-mono font-semibold">{formatCurrency(mv, true)}</div>
+                              <div className={`text-xs font-mono ${gain >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>
+                                {formatPct(gainPct)}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-2 flex items-center gap-2 text-xs">
+                            <Badge variant="secondary" className="capitalize text-xs">{ASSET_TYPE_LABELS[g.representative.assetType] ?? g.representative.assetType}</Badge>
+                            <span className="text-muted-foreground">Total Qty: {g.totalQty.toLocaleString()}</span>
+                            <button
+                              onClick={() => toggleGroup(g.ticker)}
+                              className="ml-auto text-xs text-muted-foreground hover:text-foreground underline"
+                            >
+                              {isExpanded ? "Collapse" : "Expand"}
+                            </button>
+                          </div>
+
+                          {/* Compact market data for group */}
+                          {md && (
+                            <div className="mt-1.5 flex items-center gap-2 text-[10px] text-muted-foreground">
+                              <span>1h % <span className={md.change1h != null && md.change1h >= 0 ? "text-green-600 dark:text-green-400 font-medium" : "text-destructive font-medium"}>{md.change1h != null ? `${md.change1h >= 0 ? "+" : ""}${md.change1h.toFixed(1)}` : "—"}</span></span>
+                              <span>24h % <span className={md.change24h != null && md.change24h >= 0 ? "text-green-600 dark:text-green-400 font-medium" : "text-destructive font-medium"}>{md.change24h != null ? `${md.change24h >= 0 ? "+" : ""}${md.change24h.toFixed(1)}` : "—"}</span></span>
+                              <span>7d % <span className={md.change7d != null && md.change7d >= 0 ? "text-green-600 dark:text-green-400 font-medium" : "text-destructive font-medium"}>{md.change7d != null ? `${md.change7d >= 0 ? "+" : ""}${md.change7d.toFixed(1)}` : "—"}</span></span>
+                              <span className="ml-auto -mr-0.5">
+                                {md.sparkline?.length ? <Sparkline data={md.sparkline} positive={(md.change7d ?? 0) >= 0} width={46} height={15} /> : null}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    // detail card
+                    const a = item.asset;
                     const mv = toHkd(a.quantity * a.currentPrice, a.currency);
                     const cost = toHkd(a.quantity * a.purchasePrice, a.currency);
                     const gain = mv - cost;
@@ -548,6 +792,7 @@ export default function Holdings() {
                     const isRefreshing = refreshingId === a.id;
                     const md = marketData[a.id];
                     const isAuto = canAutoRefresh(a);
+                    const isInGroup = item.groupTicker && !item.groupTicker.startsWith("single-");
                     return (
                       <div key={a.id} className="px-4 py-3" data-testid={`holding-row-${a.id}`}>
                         <div className="flex items-start justify-between gap-2">
