@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { Asset } from "@shared/schema";
 
 const ASSET_TYPE_LABELS: Record<string, string> = {
@@ -56,6 +56,10 @@ export default function Holdings() {
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("All");
   const [refreshingId, setRefreshingId] = useState<number | null>(null);
+
+  // Sorting state (similar to Dashboard)
+  const [sortKey, setSortKey] = useState<string>("value");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const { data: assets = [], isLoading } = useQuery<Asset[]>({ queryKey: ["/api/assets"] });
 
@@ -120,6 +124,24 @@ export default function Holdings() {
     onError: () => { toast({ title: "Failed to delete", variant: "destructive" }); },
   });
 
+  const refreshableCount = assets.filter(
+    (a) => (a.assetType === "stock" || a.assetType === "crypto" || a.assetType === "commodity") && a.ticker
+  ).length;
+
+  const canAutoRefresh = (a: Asset) =>
+    (a.assetType === "stock" || a.assetType === "crypto" || a.assetType === "commodity") && !!a.ticker;
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir(sortDir === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      // Default direction: asc for text, desc for numeric values
+      setSortDir(key === "name" || key === "type" || key === "category" ? "asc" : "desc");
+    }
+  };
+
+  // Apply search + type filter, then sorting
   const filtered = assets.filter((a) => {
     const q = search.toLowerCase();
     return (
@@ -128,12 +150,90 @@ export default function Holdings() {
     );
   });
 
-  const refreshableCount = assets.filter(
-    (a) => (a.assetType === "stock" || a.assetType === "crypto" || a.assetType === "commodity") && a.ticker
-  ).length;
+  const sortedFiltered = useMemo(() => {
+    const arr = [...filtered];
+    arr.sort((a, b) => {
+      const mda = marketData[a.id];
+      const mdb = marketData[b.id];
 
-  const canAutoRefresh = (a: Asset) =>
-    (a.assetType === "stock" || a.assetType === "crypto" || a.assetType === "commodity") && !!a.ticker;
+      const mva = toHkd(a.quantity * a.currentPrice, a.currency);
+      const mvb = toHkd(b.quantity * b.currentPrice, b.currency);
+      const costa = toHkd(a.quantity * a.purchasePrice, a.currency);
+      const costb = toHkd(b.quantity * b.purchasePrice, b.currency);
+      const gaina = mva - costa;
+      const gainb = mvb - costb;
+      const gainPcta = costa > 0 ? (gaina / costa) * 100 : -Infinity;
+      const gainPctb = costb > 0 ? (gainb / costb) * 100 : -Infinity;
+
+      let va: number | string;
+      let vb: number | string;
+
+      switch (sortKey) {
+        case "name":
+          va = a.name.toLowerCase();
+          vb = b.name.toLowerCase();
+          break;
+        case "type":
+          va = a.assetType;
+          vb = b.assetType;
+          break;
+        case "category":
+          va = (a.category || "").toLowerCase();
+          vb = (b.category || "").toLowerCase();
+          break;
+        case "qty":
+          va = a.quantity;
+          vb = b.quantity;
+          break;
+        case "buy":
+          va = a.purchasePrice;
+          vb = b.purchasePrice;
+          break;
+        case "current":
+          va = mda?.price ?? a.currentPrice;
+          vb = mdb?.price ?? b.currentPrice;
+          break;
+        case "1h":
+          va = mda?.change1h ?? -Infinity;
+          vb = mdb?.change1h ?? -Infinity;
+          break;
+        case "24h":
+          va = mda?.change24h ?? -Infinity;
+          vb = mdb?.change24h ?? -Infinity;
+          break;
+        case "7d":
+          va = mda?.change7d ?? -Infinity;
+          vb = mdb?.change7d ?? -Infinity;
+          break;
+        case "value":
+          va = mva;
+          vb = mvb;
+          break;
+        case "return":
+          va = gainPcta;
+          vb = gainPctb;
+          break;
+        default:
+          va = 0;
+          vb = 0;
+      }
+
+      if (typeof va === "string" && typeof vb === "string") {
+        const cmp = va.localeCompare(vb);
+        return sortDir === "asc" ? cmp : -cmp;
+      }
+
+      const na = va as number;
+      const nb = vb as number;
+      if (isNaN(na) && isNaN(nb)) return 0;
+      if (isNaN(na)) return 1;
+      if (isNaN(nb)) return -1;
+      if (na < nb) return sortDir === "asc" ? -1 : 1;
+      if (na > nb) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir, marketData]);
 
   // Calculate totals for each category
   const totalsByCategory = assets.reduce((acc, a) => {
@@ -263,23 +363,84 @@ export default function Holdings() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border">
-                        <th className="text-left text-xs text-muted-foreground font-medium px-5 py-3">Asset</th>
-                        <th className="text-left text-xs text-muted-foreground font-medium px-3 py-3">Type</th>
-                        <th className="text-left text-xs text-muted-foreground font-medium px-3 py-3">Category</th>
-                        <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Qty</th>
-                        <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Buy Price</th>
-                        <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Current</th>
-                        <th className="text-right text-xs text-muted-foreground font-medium px-2 py-3">1h %</th>
-                        <th className="text-right text-xs text-muted-foreground font-medium px-2 py-3">24h %</th>
-                        <th className="text-right text-xs text-muted-foreground font-medium px-2 py-3">7d %</th>
-                        <th className="w-24 text-center text-xs text-muted-foreground font-medium px-1 py-3" title="Last 7 days price trend">Last 7 Days</th>
-                        <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Value (HKD)</th>
-                        <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Return</th>
+                        <th
+                          className={`text-left text-xs text-muted-foreground font-medium px-5 py-3 cursor-pointer hover:text-foreground ${sortKey === "name" ? "text-foreground" : ""}`}
+                          onClick={() => handleSort("name")}
+                        >
+                          Asset {sortKey === "name" && (sortDir === "asc" ? "↑" : "↓")}
+                        </th>
+                        <th
+                          className={`text-left text-xs text-muted-foreground font-medium px-3 py-3 cursor-pointer hover:text-foreground ${sortKey === "type" ? "text-foreground" : ""}`}
+                          onClick={() => handleSort("type")}
+                        >
+                          Type {sortKey === "type" && (sortDir === "asc" ? "↑" : "↓")}
+                        </th>
+                        <th
+                          className={`text-left text-xs text-muted-foreground font-medium px-3 py-3 cursor-pointer hover:text-foreground ${sortKey === "category" ? "text-foreground" : ""}`}
+                          onClick={() => handleSort("category")}
+                        >
+                          Category {sortKey === "category" && (sortDir === "asc" ? "↑" : "↓")}
+                        </th>
+                        <th
+                          className={`text-right text-xs text-muted-foreground font-medium px-3 py-3 cursor-pointer hover:text-foreground ${sortKey === "qty" ? "text-foreground" : ""}`}
+                          onClick={() => handleSort("qty")}
+                        >
+                          Qty {sortKey === "qty" && (sortDir === "asc" ? "↑" : "↓")}
+                        </th>
+                        <th
+                          className={`text-right text-xs text-muted-foreground font-medium px-3 py-3 cursor-pointer hover:text-foreground ${sortKey === "buy" ? "text-foreground" : ""}`}
+                          onClick={() => handleSort("buy")}
+                        >
+                          Buy Price {sortKey === "buy" && (sortDir === "asc" ? "↑" : "↓")}
+                        </th>
+                        <th
+                          className={`text-right text-xs text-muted-foreground font-medium px-3 py-3 cursor-pointer hover:text-foreground ${sortKey === "current" ? "text-foreground" : ""}`}
+                          onClick={() => handleSort("current")}
+                        >
+                          Current {sortKey === "current" && (sortDir === "asc" ? "↑" : "↓")}
+                        </th>
+                        <th
+                          className={`text-right text-xs text-muted-foreground font-medium px-2 py-3 cursor-pointer hover:text-foreground ${sortKey === "1h" ? "text-foreground" : ""}`}
+                          onClick={() => handleSort("1h")}
+                        >
+                          1h % {sortKey === "1h" && (sortDir === "asc" ? "↑" : "↓")}
+                        </th>
+                        <th
+                          className={`text-right text-xs text-muted-foreground font-medium px-2 py-3 cursor-pointer hover:text-foreground ${sortKey === "24h" ? "text-foreground" : ""}`}
+                          onClick={() => handleSort("24h")}
+                        >
+                          24h % {sortKey === "24h" && (sortDir === "asc" ? "↑" : "↓")}
+                        </th>
+                        <th
+                          className={`text-right text-xs text-muted-foreground font-medium px-2 py-3 cursor-pointer hover:text-foreground ${sortKey === "7d" ? "text-foreground" : ""}`}
+                          onClick={() => handleSort("7d")}
+                        >
+                          7d % {sortKey === "7d" && (sortDir === "asc" ? "↑" : "↓")}
+                        </th>
+                        <th
+                          className={`w-24 text-center text-xs text-muted-foreground font-medium px-1 py-3 cursor-pointer hover:text-foreground ${sortKey === "7d" ? "text-foreground" : ""}`}
+                          title="Last 7 days price trend"
+                          onClick={() => handleSort("7d")}
+                        >
+                          Last 7 Days {sortKey === "7d" && (sortDir === "asc" ? "↑" : "↓")}
+                        </th>
+                        <th
+                          className={`text-right text-xs text-muted-foreground font-medium px-3 py-3 cursor-pointer hover:text-foreground ${sortKey === "value" ? "text-foreground" : ""}`}
+                          onClick={() => handleSort("value")}
+                        >
+                          Value (HKD) {sortKey === "value" && (sortDir === "asc" ? "↑" : "↓")}
+                        </th>
+                        <th
+                          className={`text-right text-xs text-muted-foreground font-medium px-3 py-3 cursor-pointer hover:text-foreground ${sortKey === "return" ? "text-foreground" : ""}`}
+                          onClick={() => handleSort("return")}
+                        >
+                          Return {sortKey === "return" && (sortDir === "asc" ? "↑" : "↓")}
+                        </th>
                         <th className="text-right text-xs text-muted-foreground font-medium px-5 py-3">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filtered.map((a) => {
+                      {sortedFiltered.map((a) => {
                         const mv = toHkd(a.quantity * a.currentPrice, a.currency);
                         const cost = toHkd(a.quantity * a.purchasePrice, a.currency);
                         const gain = mv - cost;
@@ -379,7 +540,7 @@ export default function Holdings() {
 
                 {/* Mobile card list */}
                 <div className="sm:hidden divide-y divide-border">
-                  {filtered.map((a) => {
+                  {sortedFiltered.map((a) => {
                     const mv = toHkd(a.quantity * a.currentPrice, a.currency);
                     const cost = toHkd(a.quantity * a.purchasePrice, a.currency);
                     const gain = mv - cost;
