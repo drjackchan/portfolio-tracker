@@ -71,7 +71,7 @@ export default function Holdings() {
   const { data: marketData = {} as Record<number, MarketData> } = useQuery<Record<number, MarketData>>({
     queryKey: ["/api/prices/market-data"],
     enabled: assets.some((a) => (a.assetType === "stock" || a.assetType === "crypto" || a.assetType === "commodity") && !!a.ticker),
-    staleTime: 1000 * 60 * 2, // 2 minutes
+    staleTime: 1000 * 60 * 3, // 3 minutes – crypto providers (especially CG) are rate-limited
     refetchOnWindowFocus: false,
   });
 
@@ -81,7 +81,9 @@ export default function Holdings() {
     onSuccess: async (res: any) => {
       const data = await res.json().catch(() => null);
       queryClient.invalidateQueries({ queryKey: ["/api/assets"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/prices/market-data"] });
+      // Do NOT aggressively invalidate market-data here — server has caching and the provider
+      // (CoinGecko especially) is rate-limited. The query has its own staleTime.
+      // A page reload or waiting a couple minutes will bring fresh 1h/24h/7d + sparklines.
       toast({
         title: "Prices updated",
         description: data?.message ?? "All prices refreshed",
@@ -98,7 +100,8 @@ export default function Holdings() {
     onSuccess: async (res: any, id: number) => {
       const data = await res.json().catch(() => null);
       queryClient.invalidateQueries({ queryKey: ["/api/assets"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/prices/market-data"] });
+      // Market % / sparklines are intentionally not force-refetched on every single price update
+      // to avoid hammering rate-limited providers (CoinGecko). They refresh on their own schedule.
       toast({
         title: "Price updated",
         description: data?.ticker ? `${data.ticker}: ${formatNativeCurrency(data.price, data.asset?.currency ?? "HKD")}` : "Price updated",
@@ -170,8 +173,8 @@ export default function Holdings() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Auto-fetch latest prices + 1h/24h/7d % and trend for {refreshableCount} stock{refreshableCount !== 1 ? "s" : ""}/crypto/commodity</p>
-                  <p className="text-xs text-muted-foreground">Yahoo Finance · CoinGecko</p>
+                  <p>Auto-fetch latest prices for {refreshableCount} stock{refreshableCount !== 1 ? "s" : ""}/crypto/commodity</p>
+                  <p className="text-xs text-muted-foreground">1h/24h/7d % + 7d trend update on their own schedule (cached)</p>
                 </TooltipContent>
               </Tooltip>
             )}
@@ -317,7 +320,7 @@ export default function Holdings() {
                                         <RefreshCw className={`w-3 h-3 ${isRefreshing ? "animate-spin" : ""}`} />
                                       </button>
                                     </TooltipTrigger>
-                                    <TooltipContent><p>Refresh price &amp; market data (1h/24h/7d)</p></TooltipContent>
+                                    <TooltipContent><p>Refresh price (persisted current price)</p></TooltipContent>
                                   </Tooltip>
                                 )}
                               </div>
