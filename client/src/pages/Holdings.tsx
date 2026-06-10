@@ -59,12 +59,29 @@ export default function Holdings() {
 
   const { data: assets = [], isLoading } = useQuery<Asset[]>({ queryKey: ["/api/assets"] });
 
+  type MarketData = {
+    price: number | null;
+    change1h: number | null;
+    change24h: number | null;
+    change7d: number | null;
+    sparkline: number[];
+  };
+
+  // Live market stats (1h/24h/7d % + sparkline) for assets that support auto price (stock/crypto/commodity with ticker)
+  const { data: marketData = {} as Record<number, MarketData> } = useQuery<Record<number, MarketData>>({
+    queryKey: ["/api/prices/market-data"],
+    enabled: assets.some((a) => (a.assetType === "stock" || a.assetType === "crypto" || a.assetType === "commodity") && !!a.ticker),
+    staleTime: 1000 * 60 * 2, // 2 minutes
+    refetchOnWindowFocus: false,
+  });
+
   // Refresh ALL prices
   const refreshAllMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/prices/refresh"),
     onSuccess: async (res: any) => {
       const data = await res.json().catch(() => null);
       queryClient.invalidateQueries({ queryKey: ["/api/assets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/prices/market-data"] });
       toast({
         title: "Prices updated",
         description: data?.message ?? "All prices refreshed",
@@ -81,6 +98,7 @@ export default function Holdings() {
     onSuccess: async (res: any, id: number) => {
       const data = await res.json().catch(() => null);
       queryClient.invalidateQueries({ queryKey: ["/api/assets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/prices/market-data"] });
       toast({
         title: "Price updated",
         description: data?.ticker ? `${data.ticker}: ${formatNativeCurrency(data.price, data.asset?.currency ?? "HKD")}` : "Price updated",
@@ -152,7 +170,7 @@ export default function Holdings() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Auto-fetch latest prices for {refreshableCount} stock{refreshableCount !== 1 ? "s" : ""}/crypto/commodity</p>
+                  <p>Auto-fetch latest prices + 1h/24h/7d % and trend for {refreshableCount} stock{refreshableCount !== 1 ? "s" : ""}/crypto/commodity</p>
                   <p className="text-xs text-muted-foreground">Yahoo Finance · CoinGecko</p>
                 </TooltipContent>
               </Tooltip>
@@ -248,6 +266,10 @@ export default function Holdings() {
                         <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Qty</th>
                         <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Buy Price</th>
                         <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Current</th>
+                        <th className="text-right text-xs text-muted-foreground font-medium px-2 py-3">1h</th>
+                        <th className="text-right text-xs text-muted-foreground font-medium px-2 py-3">24h</th>
+                        <th className="text-right text-xs text-muted-foreground font-medium px-2 py-3">7d</th>
+                        <th className="w-[78px] text-center text-xs text-muted-foreground font-medium px-1 py-3" title="Last 7 days price trend">7d</th>
                         <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Value (HKD)</th>
                         <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Return</th>
                         <th className="text-right text-xs text-muted-foreground font-medium px-5 py-3">Actions</th>
@@ -260,6 +282,8 @@ export default function Holdings() {
                         const gain = mv - cost;
                         const gainPct = cost > 0 ? (gain / cost) * 100 : 0;
                         const isRefreshing = refreshingId === a.id;
+                        const md = marketData[a.id];
+                        const isAuto = canAutoRefresh(a);
                         return (
                           <tr key={a.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors" data-testid={`holding-row-${a.id}`}>
                             <td className="px-5 py-3">
@@ -280,7 +304,7 @@ export default function Holdings() {
                             <td className="px-3 py-3 text-right font-mono tabular-nums text-muted-foreground">{formatNativeCurrency(a.purchasePrice, a.currency)}</td>
                             <td className="px-3 py-3 text-right">
                               <div className="flex items-center justify-end gap-1.5">
-                                <span className="font-mono tabular-nums">{formatNativeCurrency(a.currentPrice, a.currency)}</span>
+                                <span className="font-mono tabular-nums">{formatNativeCurrency((isAuto && md?.price != null ? md.price : a.currentPrice), a.currency)}</span>
                                 {canAutoRefresh(a) && (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
@@ -293,10 +317,40 @@ export default function Holdings() {
                                         <RefreshCw className={`w-3 h-3 ${isRefreshing ? "animate-spin" : ""}`} />
                                       </button>
                                     </TooltipTrigger>
-                                    <TooltipContent><p>Fetch latest price</p></TooltipContent>
+                                    <TooltipContent><p>Refresh price &amp; market data (1h/24h/7d)</p></TooltipContent>
                                   </Tooltip>
                                 )}
                               </div>
+                            </td>
+                            {/* 1h % */}
+                            <td className="px-2 py-3 text-right font-mono tabular-nums text-xs">
+                              {isAuto && md?.change1h != null ? (
+                                <span className={md.change1h >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}>
+                                  {md.change1h >= 0 ? "▲" : "▼"}{md.change1h.toFixed(2)}%
+                                </span>
+                              ) : isAuto ? "—" : null}
+                            </td>
+                            {/* 24h % */}
+                            <td className="px-2 py-3 text-right font-mono tabular-nums text-xs">
+                              {isAuto && md?.change24h != null ? (
+                                <span className={md.change24h >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}>
+                                  {md.change24h >= 0 ? "▲" : "▼"}{md.change24h.toFixed(2)}%
+                                </span>
+                              ) : isAuto ? "—" : null}
+                            </td>
+                            {/* 7d % */}
+                            <td className="px-2 py-3 text-right font-mono tabular-nums text-xs font-medium">
+                              {isAuto && md?.change7d != null ? (
+                                <span className={md.change7d >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}>
+                                  {md.change7d >= 0 ? "▲" : "▼"}{md.change7d.toFixed(2)}%
+                                </span>
+                              ) : isAuto ? "—" : null}
+                            </td>
+                            {/* 7d sparkline */}
+                            <td className="px-1 py-3">
+                              {isAuto && md?.sparkline?.length ? (
+                                <Sparkline data={md.sparkline} positive={(md.change7d ?? 0) >= 0} />
+                              ) : isAuto ? <span className="text-muted-foreground/60 text-[10px]">—</span> : null}
                             </td>
                             <td className="px-3 py-3 text-right font-mono tabular-nums font-semibold">{formatCurrency(mv)}</td>
                             <td className="px-3 py-3 text-right">
@@ -328,6 +382,8 @@ export default function Holdings() {
                     const gain = mv - cost;
                     const gainPct = cost > 0 ? (gain / cost) * 100 : 0;
                     const isRefreshing = refreshingId === a.id;
+                    const md = marketData[a.id];
+                    const isAuto = canAutoRefresh(a);
                     return (
                       <div key={a.id} className="px-4 py-3" data-testid={`holding-row-${a.id}`}>
                         <div className="flex items-start justify-between gap-2">
@@ -368,9 +424,20 @@ export default function Holdings() {
                           </div>
                           <div>
                             <div className="text-xs text-muted-foreground">Current</div>
-                            <div className="text-sm font-mono tabular-nums">{formatNativeCurrency(a.currentPrice, a.currency)}</div>
+                            <div className="text-sm font-mono tabular-nums">{formatNativeCurrency((isAuto && md?.price != null ? md.price : a.currentPrice), a.currency)}</div>
                           </div>
                         </div>
+                        {/* Compact market % + sparkline for auto-fetchable assets (mobile) */}
+                        {isAuto && md && (
+                          <div className="mt-1.5 flex items-center gap-2 text-[10px] text-muted-foreground">
+                            <span>1h <span className={md.change1h != null && md.change1h >= 0 ? "text-green-600 dark:text-green-400 font-medium" : "text-destructive font-medium"}>{md.change1h != null ? `${md.change1h >= 0 ? "+" : ""}${md.change1h.toFixed(1)}%` : "—"}</span></span>
+                            <span>24h <span className={md.change24h != null && md.change24h >= 0 ? "text-green-600 dark:text-green-400 font-medium" : "text-destructive font-medium"}>{md.change24h != null ? `${md.change24h >= 0 ? "+" : ""}${md.change24h.toFixed(1)}%` : "—"}</span></span>
+                            <span>7d <span className={md.change7d != null && md.change7d >= 0 ? "text-green-600 dark:text-green-400 font-medium" : "text-destructive font-medium"}>{md.change7d != null ? `${md.change7d >= 0 ? "+" : ""}${md.change7d.toFixed(1)}%` : "—"}</span></span>
+                            <span className="ml-auto -mr-0.5">
+                              {md.sparkline?.length ? <Sparkline data={md.sparkline} positive={(md.change7d ?? 0) >= 0} width={46} height={15} /> : null}
+                            </span>
+                          </div>
+                        )}
                         <div className="mt-1.5 flex items-center gap-2">
                           <Badge variant="secondary" className="capitalize text-xs">{ASSET_TYPE_LABELS[a.assetType] ?? a.assetType}</Badge>
                           {a.category && <span className="text-xs text-muted-foreground">{a.category}</span>}
@@ -415,5 +482,46 @@ function DeleteButton({ asset, onDelete }: { asset: Asset; onDelete: () => void 
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+  );
+}
+
+/** Lightweight SVG sparkline for last-7d price trend (index-based, oldest→newest). */
+function Sparkline({
+  data,
+  positive = true,
+  width = 72,
+  height = 26,
+}: {
+  data: number[];
+  positive?: boolean;
+  width?: number;
+  height?: number;
+}) {
+  if (!data || data.length < 2) {
+    return <div className="text-muted-foreground/50 text-[10px]">—</div>;
+  }
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const pts = data
+    .map((v, i) => {
+      const x = (i / (data.length - 1)) * width;
+      const y = height - ((v - min) / range) * (height - 2) - 1;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+  // Visible in both light/dark
+  const color = positive ? "#16a34a" : "#dc2626";
+  return (
+    <svg width={width} height={height} className="overflow-visible">
+      <polyline
+        points={pts}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

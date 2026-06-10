@@ -171,3 +171,175 @@ export async function fetchPrices(
 
   return results;
 }
+
+// ─── Rich market data (price + % changes + sparkline) for quoted assets ───────
+
+export type MarketData = {
+  price: number | null;
+  change1h: number | null;
+  change24h: number | null;
+  change7d: number | null;
+  sparkline: number[]; // oldest → newest (for last ~7d)
+};
+
+// Internal: fetch Yahoo chart data for a ticker (used by both simple price and rich data)
+async function fetchYahooChart(ticker: string, interval: string, range: string) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=${interval}&range=${range}`;
+  const res = await fetch(url, {
+    headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" },
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!res.ok) return null;
+  return res.json() as any;
+}
+
+export async function fetchStockMarketData(ticker: string): Promise<MarketData | null> {
+  try {
+    // 1h resolution over 7d gives good resolution for 1h/24h/7d calcs + a nice sparkline
+    const data = await fetchYahooChart(ticker, "1h", "7d");
+    const result = data?.chart?.result?.[0];
+    if (!result) return null;
+
+    const meta = result.meta || {};
+    const timestamps: number[] = result.timestamp || [];
+    const closesRaw: (number | null | undefined)[] = result.indicators?.quote?.[0]?.close || [];
+
+    // Build clean points (skip nulls from non-trading periods)
+    const points: Array<{ ts: number; close: number }> = [];
+    for (let i = 0; i < timestamps.length; i++) {
+      const c = closesRaw[i];
+      if (typeof c === "number" && isFinite(c)) {
+        points.push({ ts: timestamps[i], close: c });
+      }
+    }
+    if (points.length === 0) {
+      // last resort: use meta prices we already know how to read
+      const price = meta?.regularMarketPrice ?? meta?.previousClose ?? null;
+      return typeof price === "number" ? { price, change1h: null, change24h: null, change7d: null, sparkline: [] } : null;
+    }
+
+    const latest = points[points.length - 1];
+    const livePrice = typeof meta?.regularMarketPrice === "number" ? meta.regularMarketPrice : latest.close;
+
+    // Find price at (or just before) a target timestamp by walking back
+    const findPriceNear = (targetTs: number): number | null => {
+      for (let i = points.length - 1; i >= 0; i--) {
+        if (points[i].ts <= targetTs) return points[i].close;
+      }
+      return points[0].close;
+    };
+
+    const nowTs = latest.ts;
+    const p1h = findPriceNear(nowTs - 3600);
+    const p24h = findPriceNear(nowTs - 86400);
+    const p7d = findPriceNear(nowTs - 86400 * 7);
+
+    const ch1h = p1h != null ? ((livePrice - p1h) / p1h) * 100 : null;
+    const ch24h = p24h != null ? ((livePrice - p24h) / p24h) * 100 : null;
+    const ch7d = p7d != null ? ((livePrice - p7d) / p7d) * 100 : null;
+
+    // Sparkline uses the available points (index based, not time-proportional — standard for sparklines)
+    // Trim to a reasonable number of points for payload / render perf
+    let spark = points.map((p) => p.close);
+    if (spark.length > 48) {
+      // simple decimation for very dense series
+      const step = Math.ceil(spark.length / 36);
+      spark = spark.filter((_, i) => i % step === 0 || i === spark.length - 1);
+    }
+
+    return {
+      price: typeof livePrice === "number" ? livePrice : null,
+      change1h: ch1h,
+      change24h: ch24h,
+      change7d: ch7d,
+      sparkline: spark,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchCryptoMarketData(ticker: string, currency = "HKD"): Promise<MarketData | null> {
+  try {
+    const id = await coinGeckoIdFromSymbol(ticker);
+    if (!id) return null;
+
+    if (id === "__stable__") {
+      const p = currency === "HKD" ? 7.8 : 1.0;
+      return { price: p, change1h: 0, change24h: 0, change7d: 0, sparkline: [p, p, p, p, p, p, p] };
+    }
+
+    const vs = currency.toLowerCase() === "hkd" ? "hkd" : "usd";
+
+    // % changes via markets endpoint (supports the _in_currency fields when requested)
+    let price: number | null = null;
+    let ch1h: number | null = null;
+    let ch24h: number | null = null;
+    let ch7d: number | null = null;
+
+    try {
+      const mUrl = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${vs}&ids=${id}&price_change_percentage=1h%2C24h%2C7d`;
+      const mRes = await fetch(mUrl, { signal: AbortSignal.timeout(8000) });
+      if (mRes.ok) {
+        const arr = (await mRes.json()) as any[];
+        const it = arr?.[0];
+        if (it) {
+          price = typeof it.current_price === "number" ? it.current_price : null;
+          ch1h = typeof it.price_change_percentage_1h_in_currency === "number" ? it.price_change_percentage_1h_in_currency : null;
+          ch24h = typeof it.price_change_percentage_24h_in_currency === "number" ? it.price_change_percentage_24h_in_currency : null;
+          ch7d = typeof it.price_change_percentage_7d_in_currency === "number" ? it.price_change_percentage_7d_in_currency : null;
+        }
+      }
+    } catch {}
+
+    // Sparkline via market_chart (more points for a pretty graph)
+    let sparkline: number[] = [];
+    try {
+      const cUrl = `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=${vs}&days=7`;
+      const cRes = await fetch(cUrl, { signal: AbortSignal.timeout(9000) });
+      if (cRes.ok) {
+        const chart = (await cRes.json()) as any;
+        const pairs: [number, number][] = chart?.prices || [];
+        sparkline = pairs.map(([, p]) => p).filter((p) => typeof p === "number");
+        if (sparkline.length > 60) {
+          // decimate a bit
+          const step = Math.ceil(sparkline.length / 42);
+          sparkline = sparkline.filter((_, i) => i % step === 0 || i === sparkline.length - 1);
+        }
+      }
+    } catch {}
+
+    if (price == null && sparkline.length) {
+      price = sparkline[sparkline.length - 1];
+    }
+    if (price == null) return null;
+
+    return { price, change1h: ch1h, change24h: ch24h, change7d: ch7d, sparkline };
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchMarketData(
+  assets: Array<{ id: number; ticker: string | null; assetType: string; currency: string }>
+): Promise<Array<{ assetId: number; data: MarketData | null }>> {
+  const results = await Promise.all(
+    assets.map(async (asset) => {
+      const ticker = asset.ticker?.trim() ?? "";
+      if (!ticker) return { assetId: asset.id, data: null as MarketData | null };
+
+      let data: MarketData | null = null;
+      try {
+        if (asset.assetType === "stock" || asset.assetType === "commodity") {
+          data = await fetchStockMarketData(ticker);
+        } else if (asset.assetType === "crypto") {
+          data = await fetchCryptoMarketData(ticker, asset.currency);
+        }
+      } catch {
+        // swallow per-asset; caller sees null
+      }
+      return { assetId: asset.id, data };
+    })
+  );
+  return results;
+}

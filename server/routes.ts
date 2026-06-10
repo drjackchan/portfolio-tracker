@@ -4,7 +4,7 @@ import cookieParser from "cookie-parser";
 import { storage } from "./storage";
 import { insertAssetSchema, insertTransactionSchema, insertLiabilitySchema, insertSubscriptionSchema, updateAssetSchema } from "@shared/schema";
 import { z } from "zod";
-import { fetchPrices, fetchStockPrice, fetchCryptoPrice } from "./prices";
+import { fetchPrices, fetchStockPrice, fetchCryptoPrice, fetchMarketData } from "./prices";
 import { takeSnapshot } from "./snapshot";
 import { runMigrations } from "../db/migrate";
 import { requireAuth, handleLogin, handleLogout, handleAuthCheck } from "./auth";
@@ -196,6 +196,24 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (price === null) return res.status(502).json({ message: `Could not fetch price for ${asset.ticker}` });
       const updated = await storage.updateAsset(id, { currentPrice: price });
       res.json({ assetId: id, ticker: asset.ticker, price, asset: updated });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // --- Market data (1h/24h/7d % + 7d sparkline) for assets with tickers (stocks/crypto/commodities) ---
+  app.get("/api/prices/market-data", async (_req, res) => {
+    try {
+      const assets = await storage.getAssets();
+      const refreshable = assets.filter((a) =>
+        (a.assetType === "stock" || a.assetType === "crypto" || a.assetType === "commodity") && a.ticker
+      );
+      const results = await fetchMarketData(refreshable);
+      const byId: Record<number, any> = {};
+      for (const r of results) {
+        if (r.data) byId[r.assetId] = r.data;
+      }
+      res.json(byId);
     } catch (e: any) {
       res.status(500).json({ message: e.message });
     }
