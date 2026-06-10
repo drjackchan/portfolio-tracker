@@ -18,7 +18,15 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 
-type SortKey = 'value' | 'name' | 'type' | 'quantity' | 'cost' | 'current' | 'gain';
+type SortKey = 'value' | 'name' | 'type' | 'quantity' | 'cost' | 'current' | 'gain' | '1h' | '24h' | '7d' | 'spark';
+
+type MarketData = {
+  price: number | null;
+  change1h: number | null;
+  change24h: number | null;
+  change7d: number | null;
+  sparkline: number[];
+};
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Snapshot {
@@ -128,6 +136,46 @@ const renderActiveShape = (props: any) => {
   );
 };
 
+/** Lightweight SVG sparkline for last-7d price trend (index-based, oldest→newest). */
+function Sparkline({
+  data,
+  positive = true,
+  width = 72,
+  height = 26,
+}: {
+  data: number[];
+  positive?: boolean;
+  width?: number;
+  height?: number;
+}) {
+  if (!data || data.length < 2) {
+    return <div className="text-muted-foreground/50 text-[10px]">—</div>;
+  }
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const pts = data
+    .map((v, i) => {
+      const x = (i / (data.length - 1)) * width;
+      const y = height - ((v - min) / range) * (height - 2) - 1;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+  const color = positive ? "#16a34a" : "#dc2626";
+  return (
+    <svg width={width} height={height} className="overflow-visible">
+      <polyline
+        points={pts}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { toast } = useToast();
@@ -141,6 +189,12 @@ export default function Dashboard() {
   const { data: snapshots = [], isLoading: snapsLoading } = useQuery<Snapshot[]>({
     queryKey: ["/api/snapshots"],
   });
+  const { data: marketData = {} as Record<number, MarketData> } = useQuery<Record<number, MarketData>>({
+    queryKey: ["/api/prices/market-data"],
+    enabled: assets.length > 0,
+    staleTime: 1000 * 60 * 3,
+    refetchOnWindowFocus: false,
+  });
 
   const isLoading = assetsLoading || liabLoading;
 
@@ -150,6 +204,7 @@ export default function Dashboard() {
     onSuccess: async (res: any) => {
       const data = await res.json().catch(() => null);
       queryClient.invalidateQueries({ queryKey: ["/api/assets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/prices/market-data"] });
       toast({ title: "Prices updated", description: data?.message });
     },
     onError: () => toast({ title: "Failed to refresh prices", variant: "destructive" }),
@@ -236,6 +291,8 @@ export default function Dashboard() {
   // Sorted assets for the table
   const sortedAssets = [...assets].sort((a, b) => {
     let aVal: string | number, bVal: string | number;
+    const mda = marketData[a.id];
+    const mdb = marketData[b.id];
     switch (sortKey) {
       case 'value':
         aVal = toHkd(a.quantity * a.currentPrice, a.currency);
@@ -257,10 +314,11 @@ export default function Dashboard() {
         aVal = toHkd(a.purchasePrice, a.currency);
         bVal = toHkd(b.purchasePrice, b.currency);
         break;
-      case 'current':
-        aVal = toHkd(a.currentPrice, a.currency);
-        bVal = toHkd(b.currentPrice, b.currency);
+      case 'current': {
+        aVal = toHkd(mda?.price ?? a.currentPrice, a.currency);
+        bVal = toHkd(mdb?.price ?? b.currentPrice, b.currency);
         break;
+      }
       case 'gain': {
         const aMv = toHkd(a.quantity * a.currentPrice, a.currency);
         const aCost = toHkd(a.quantity * a.purchasePrice, a.currency);
@@ -268,6 +326,22 @@ export default function Dashboard() {
         const bMv = toHkd(b.quantity * b.currentPrice, b.currency);
         const bCost = toHkd(b.quantity * b.purchasePrice, b.currency);
         bVal = bMv - bCost;
+        break;
+      }
+      case '1h': {
+        aVal = mda?.change1h ?? -Infinity;
+        bVal = mdb?.change1h ?? -Infinity;
+        break;
+      }
+      case '24h': {
+        aVal = mda?.change24h ?? -Infinity;
+        bVal = mdb?.change24h ?? -Infinity;
+        break;
+      }
+      case '7d':
+      case 'spark': {
+        aVal = mda?.change7d ?? -Infinity;
+        bVal = mdb?.change7d ?? -Infinity;
         break;
       }
       default:
@@ -561,6 +635,10 @@ export default function Dashboard() {
                   { label: "Qty", key: "quantity" as SortKey, sortable: true, align: "right" as const },
                   { label: "Cost Price", key: "cost" as SortKey, sortable: true, align: "right" as const },
                   { label: "Current", key: "current" as SortKey, sortable: true, align: "right" as const },
+                  { label: "1h %", key: "1h" as SortKey, sortable: true, align: "right" as const },
+                  { label: "24h %", key: "24h" as SortKey, sortable: true, align: "right" as const },
+                  { label: "7d %", key: "7d" as SortKey, sortable: true, align: "right" as const },
+                  { label: "Last 7 Days", key: "spark" as SortKey, sortable: true, align: "center" as const },
                   { label: "Value (HKD)", key: "value" as SortKey, sortable: true, align: "right" as const },
                   { label: "Gain/Loss", key: "gain" as SortKey, sortable: true, align: "right" as const },
                 ];
@@ -574,8 +652,8 @@ export default function Dashboard() {
                             {headers.map((h, i) => (
                               <th
                                 key={h.label}
-                                className={`text-xs text-muted-foreground font-medium px-${i === 0 || i === 6 ? 5 : 3} py-2.5 ${
-                                  h.align === "right" ? "text-right" : "text-left"
+                                className={`text-xs text-muted-foreground font-medium px-${i === 0 || i === headers.length - 1 ? 5 : 3} py-2.5 ${
+                                  h.align === "right" ? "text-right" : h.align === "center" ? "text-center" : "text-left"
                                 } ${h.sortable ? "cursor-pointer hover:text-foreground" : ""}`}
                                 onClick={h.sortable ? () => handleSort(h.key) : undefined}
                               >
@@ -591,6 +669,7 @@ export default function Dashboard() {
                             const totalCost = toHkd(a.quantity * a.purchasePrice, a.currency);
                             const gain = mv - totalCost;
                             const gainPct = totalCost > 0 ? (gain / totalCost) * 100 : 0;
+                            const md = marketData[a.id];
                             return (
                               <tr
                                 key={a.id}
@@ -613,7 +692,37 @@ export default function Dashboard() {
                                   {a.currency !== "HKD" ? `${a.currency} ` : ""}{a.purchasePrice.toLocaleString()}
                                 </td>
                                 <td className="px-3 py-3 text-right font-mono tabular-nums">
-                                  {a.currency !== "HKD" ? `${a.currency} ` : ""}{a.currentPrice.toLocaleString()}
+                                  {a.currency !== "HKD" ? `${a.currency} ` : ""}{(md?.price ?? a.currentPrice).toLocaleString()}
+                                </td>
+                                {/* 1h % */}
+                                <td className="px-2 py-3 text-right font-mono tabular-nums text-xs">
+                                  {md?.change1h != null ? (
+                                    <span className={md.change1h >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}>
+                                      {md.change1h >= 0 ? "▲" : "▼"}{md.change1h.toFixed(2)}%
+                                    </span>
+                                  ) : "—"}
+                                </td>
+                                {/* 24h % */}
+                                <td className="px-2 py-3 text-right font-mono tabular-nums text-xs">
+                                  {md?.change24h != null ? (
+                                    <span className={md.change24h >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}>
+                                      {md.change24h >= 0 ? "▲" : "▼"}{md.change24h.toFixed(2)}%
+                                    </span>
+                                  ) : "—"}
+                                </td>
+                                {/* 7d % */}
+                                <td className="px-2 py-3 text-right font-mono tabular-nums text-xs font-medium">
+                                  {md?.change7d != null ? (
+                                    <span className={md.change7d >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}>
+                                      {md.change7d >= 0 ? "▲" : "▼"}{md.change7d.toFixed(2)}%
+                                    </span>
+                                  ) : "—"}
+                                </td>
+                                {/* Last 7 Days sparkline */}
+                                <td className="px-1 py-3">
+                                  {md?.sparkline?.length ? (
+                                    <Sparkline data={md.sparkline} positive={(md.change7d ?? 0) >= 0} />
+                                  ) : null}
                                 </td>
                                 <td className="px-3 py-3 text-right font-mono tabular-nums font-medium">
                                   {fmtCcy(mv)}
@@ -648,6 +757,7 @@ export default function Dashboard() {
                         const totalCost = toHkd(a.quantity * a.purchasePrice, a.currency);
                         const gain = mv - totalCost;
                         const gainPct = totalCost > 0 ? (gain / totalCost) * 100 : 0;
+                        const md = marketData[a.id];
                         return (
                           <div key={a.id} className="px-4 py-3">
                             <div className="flex items-center justify-between mb-1">
@@ -680,9 +790,20 @@ export default function Dashboard() {
                               </Badge>
                               <span className="text-xs text-muted-foreground">Qty: {a.quantity.toLocaleString()}</span>
                               <span className="ml-auto text-xs text-muted-foreground font-mono">
-                                {a.currency !== "HKD" ? a.currency : "HK$"}{a.currentPrice.toLocaleString()} / unit
+                                {a.currency !== "HKD" ? a.currency : "HK$"}{(md?.price ?? a.currentPrice).toLocaleString()} / unit
                               </span>
                             </div>
+                            {/* Compact market % + sparkline for auto-fetchable assets */}
+                            {md && (
+                              <div className="mt-1.5 flex items-center gap-2 text-[10px] text-muted-foreground">
+                                <span>1h % <span className={md.change1h != null && md.change1h >= 0 ? "text-green-600 dark:text-green-400 font-medium" : "text-destructive font-medium"}>{md.change1h != null ? `${md.change1h >= 0 ? "+" : ""}${md.change1h.toFixed(1)}` : "—"}</span></span>
+                                <span>24h % <span className={md.change24h != null && md.change24h >= 0 ? "text-green-600 dark:text-green-400 font-medium" : "text-destructive font-medium"}>{md.change24h != null ? `${md.change24h >= 0 ? "+" : ""}${md.change24h.toFixed(1)}` : "—"}</span></span>
+                                <span>7d % <span className={md.change7d != null && md.change7d >= 0 ? "text-green-600 dark:text-green-400 font-medium" : "text-destructive font-medium"}>{md.change7d != null ? `${md.change7d >= 0 ? "+" : ""}${md.change7d.toFixed(1)}` : "—"}</span></span>
+                                <span className="ml-auto -mr-0.5">
+                                  {md.sparkline?.length ? <Sparkline data={md.sparkline} positive={(md.change7d ?? 0) >= 0} width={46} height={15} /> : null}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
