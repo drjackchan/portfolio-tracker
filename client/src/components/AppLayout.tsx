@@ -1,5 +1,4 @@
-import { Link } from "wouter";
-import { useHashLocation } from "wouter/use-hash-location";
+import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard,
   Briefcase,
@@ -26,7 +25,7 @@ const navItems = [
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const [location] = useHashLocation();
+  const [location] = useLocation();
   const [dark, setDark] = useState(() =>
     document.documentElement.classList.contains("dark")
   );

@@ -1,4 +1,5 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Router } from "wouter";
+import { useHashLocation } from "wouter/use-hash-location";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -23,7 +24,7 @@ export const useAuth = () => useContext(AuthContext);
 
 type AuthState = "loading" | "authenticated" | "unauthenticated";
 
-function Router() {
+function AppRouter() {
   return (
     <AppLayout>
       <Switch>
@@ -44,6 +45,7 @@ function Router() {
     </AppLayout>
   );
 }
+
 
 export default function App() {
   const [dark, setDark] = useState(() =>
@@ -107,8 +109,10 @@ export default function App() {
   return (
     <AuthContext.Provider value={{ logout }}>
       <QueryClientProvider client={queryClient}>
-        <Router />
-        <Toaster />
+        <Router hook={useHashLocation}>
+          <AppRouter />
+          <Toaster />
+        </Router>
       </QueryClientProvider>
     </AuthContext.Provider>
   );
