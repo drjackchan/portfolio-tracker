@@ -298,7 +298,7 @@ export default function Dashboard() {
   }
 
   const refreshableCount = assets.filter(
-    (a) => (a.assetType === "stock" || a.assetType === "crypto") && a.ticker
+    (a) => (a.assetType === "stock" || a.assetType === "crypto" || a.assetType === "commodity") && a.ticker
   ).length;
 
   // Chart Y-axis domain with 5% padding

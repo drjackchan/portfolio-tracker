@@ -33,9 +33,9 @@ export async function takeSnapshot(dateOverride?: string): Promise<{
   
   if (assets.length === 0 && liabilities.length === 0) throw new Error("No assets or liabilities to snapshot");
 
-  // Refresh prices for stocks + crypto first
+  // Refresh prices for stocks + crypto + commodities first
   const refreshable = assets.filter(
-    (a) => (a.assetType === "stock" || a.assetType === "crypto") && a.ticker
+    (a) => (a.assetType === "stock" || a.assetType === "crypto" || a.assetType === "commodity") && a.ticker
   );
   if (refreshable.length > 0) {
     const priceResults = await fetchPrices(refreshable);

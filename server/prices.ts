@@ -1,9 +1,9 @@
 /**
  * Price fetching for different asset classes.
  *
- * Stocks/ETFs  → Yahoo Finance public chart API (no key required)
- * Crypto       → CoinGecko public /simple/price (no key required, 30 req/min demo limit)
- * Property/Other → manual only, not handled here
+ * Stocks/ETFs/Commodities → Yahoo Finance public chart API (no key required)
+ * Crypto                  → CoinGecko public /simple/price (no key required, 30 req/min demo limit)
+ * Property/Other          → manual only, not handled here
  */
 
 // ─── Yahoo Finance ────────────────────────────────────────────────────────────
@@ -152,7 +152,7 @@ export async function fetchPrices(
       let error: string | undefined;
 
       try {
-        if (asset.assetType === "stock") {
+        if (asset.assetType === "stock" || asset.assetType === "commodity") {
           price = await fetchStockPrice(ticker);
           if (price === null) error = "Could not fetch price from Yahoo Finance";
         } else if (asset.assetType === "crypto") {

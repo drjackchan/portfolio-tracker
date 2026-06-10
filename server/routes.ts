@@ -160,7 +160,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     try {
       const assets = await storage.getAssets();
       const refreshable = assets.filter((a) =>
-        (a.assetType === "stock" || a.assetType === "crypto") && a.ticker
+        (a.assetType === "stock" || a.assetType === "crypto" || a.assetType === "commodity") && a.ticker
       );
       const priceResults = await fetchPrices(refreshable);
       const updated: number[] = [];
@@ -187,11 +187,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const asset = await storage.getAsset(id);
       if (!asset) return res.status(404).json({ message: "Asset not found" });
       if (!asset.ticker) return res.status(400).json({ message: "No ticker set" });
-      if (asset.assetType !== "stock" && asset.assetType !== "crypto") {
-        return res.status(400).json({ message: "Auto price fetch only for stocks and crypto" });
+      if (asset.assetType !== "stock" && asset.assetType !== "crypto" && asset.assetType !== "commodity") {
+        return res.status(400).json({ message: "Auto price fetch only for stocks, crypto and commodities" });
       }
       let price: number | null = null;
-      if (asset.assetType === "stock") price = await fetchStockPrice(asset.ticker);
+      if (asset.assetType === "stock" || asset.assetType === "commodity") price = await fetchStockPrice(asset.ticker);
       else if (asset.assetType === "crypto") price = await fetchCryptoPrice(asset.ticker, asset.currency);
       if (price === null) return res.status(502).json({ message: `Could not fetch price for ${asset.ticker}` });
       const updated = await storage.updateAsset(id, { currentPrice: price });

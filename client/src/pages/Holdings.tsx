@@ -108,11 +108,11 @@ export default function Holdings() {
   });
 
   const refreshableCount = assets.filter(
-    (a) => (a.assetType === "stock" || a.assetType === "crypto") && a.ticker
+    (a) => (a.assetType === "stock" || a.assetType === "crypto" || a.assetType === "commodity") && a.ticker
   ).length;
 
   const canAutoRefresh = (a: Asset) =>
-    (a.assetType === "stock" || a.assetType === "crypto") && !!a.ticker;
+    (a.assetType === "stock" || a.assetType === "crypto" || a.assetType === "commodity") && !!a.ticker;
 
   // Calculate totals for each category
   const totalsByCategory = assets.reduce((acc, a) => {
@@ -152,7 +152,7 @@ export default function Holdings() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Auto-fetch latest prices for {refreshableCount} stock{refreshableCount !== 1 ? "s" : ""}/crypto</p>
+                  <p>Auto-fetch latest prices for {refreshableCount} stock{refreshableCount !== 1 ? "s" : ""}/crypto/commodity</p>
                   <p className="text-xs text-muted-foreground">Yahoo Finance · CoinGecko</p>
                 </TooltipContent>
               </Tooltip>
@@ -386,9 +386,9 @@ export default function Holdings() {
         </Card>
 
         {/* Info banner for property/other */}
-        {assets.some((a) => ["property", "commodity", "other"].includes(a.assetType)) && (
+        {assets.some((a) => ["property", "other"].includes(a.assetType)) && (
           <p className="text-xs text-muted-foreground px-1">
-            Property, Commodity, and Other assets require manual price updates — edit each asset to set the current price.
+            Property and Other assets require manual price updates — edit each asset to set the current price.
           </p>
         )}
       </div>
