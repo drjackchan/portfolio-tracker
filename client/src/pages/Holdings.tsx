@@ -321,14 +321,18 @@ export default function Holdings() {
     const isMulti = group.assets.length > 1;
     const isExpanded = isMulti && expandedGroups.has(group.ticker);
 
-    if (isMulti && !isExpanded) {
-      // collapsed summary row for the group
+    if (isMulti) {
+      // Always render a group header row (collapsed or expanded state)
       displayItems.push({ kind: "summary", group });
-    } else {
-      // show all members (for singles, or expanded groups)
-      for (const asset of group.assets) {
-        displayItems.push({ kind: "detail", asset, groupTicker: group.ticker });
+      if (isExpanded) {
+        // Then the individual members
+        for (const asset of group.assets) {
+          displayItems.push({ kind: "detail", asset, groupTicker: group.ticker });
+        }
       }
+    } else {
+      // Single (ungrouped)
+      displayItems.push({ kind: "detail", asset: group.assets[0], groupTicker: group.ticker });
     }
   }
 
@@ -550,17 +554,23 @@ export default function Holdings() {
                             <tr key={`group-${g.ticker}`} className="border-b border-border/50 bg-muted/10 hover:bg-muted/30 transition-colors" data-testid={`group-${g.ticker}`}>
                               <td className="px-5 py-3">
                                 <div className="flex items-center gap-2.5">
-                                  <button
-                                    onClick={() => toggleGroup(g.ticker)}
-                                    className="p-0.5 text-base leading-none rounded hover:bg-muted text-muted-foreground hover:text-foreground"
-                                    aria-label={isExpanded ? "Collapse group" : "Expand group"}
+                                  <div
+                                    className="w-7 h-7 rounded-md flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
+                                    style={{ background: ASSET_TYPE_COLORS[g.representative.assetType] ?? "#888" }}
                                   >
-                                    {isExpanded ? "−" : "+"}
-                                  </button>
+                                    {g.ticker.slice(0, 3).toUpperCase()}
+                                  </div>
                                   <div>
                                     <div className="font-medium text-foreground leading-tight">{g.ticker}</div>
                                     <div className="text-xs text-muted-foreground">{g.assets.length} accounts</div>
                                   </div>
+                                  <button
+                                    onClick={() => toggleGroup(g.ticker)}
+                                    className="ml-1 p-0.5 text-base leading-none rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                                    aria-label={isExpanded ? "Collapse group" : "Expand group"}
+                                  >
+                                    {isExpanded ? "−" : "+"}
+                                  </button>
                                 </div>
                               </td>
                               <td className="px-3 py-3"><Badge variant="secondary" className="text-xs capitalize">{ASSET_TYPE_LABELS[g.representative.assetType] ?? g.representative.assetType}</Badge></td>
@@ -634,7 +644,7 @@ export default function Holdings() {
                         return (
                           <tr key={a.id} className={`border-b border-border/50 hover:bg-muted/20 transition-colors ${isInGroup ? "bg-muted/5" : ""}`} data-testid={`holding-row-${a.id}`}>
                             <td className="px-5 py-3">
-                              <div className="flex items-center gap-2.5">
+                              <div className={`flex items-center gap-2.5 ${isInGroup ? "pl-3" : ""}`}>
                                 <div className="w-7 h-7 rounded-md flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
                                   style={{ background: ASSET_TYPE_COLORS[a.assetType] ?? "#888" }}>
                                   {(a.ticker ?? a.name).slice(0, 3).toUpperCase()}
@@ -737,6 +747,16 @@ export default function Holdings() {
                         <div key={`group-${g.ticker}`} className="px-4 py-3 bg-muted/10" data-testid={`group-${g.ticker}`}>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2 min-w-0">
+                              <div
+                                className="w-8 h-8 rounded-md flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
+                                style={{ background: ASSET_TYPE_COLORS[g.representative.assetType] ?? "#888" }}
+                              >
+                                {g.ticker.slice(0, 3).toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-medium text-sm truncate">{g.ticker}</div>
+                                <div className="text-xs text-muted-foreground">{g.assets.length} accounts</div>
+                              </div>
                               <button
                                 onClick={() => toggleGroup(g.ticker)}
                                 className="p-1 text-base leading-none rounded hover:bg-muted text-muted-foreground hover:text-foreground"
@@ -744,10 +764,6 @@ export default function Holdings() {
                               >
                                 {isExpanded ? "−" : "+"}
                               </button>
-                              <div className="min-w-0">
-                                <div className="font-medium text-sm truncate">{g.ticker}</div>
-                                <div className="text-xs text-muted-foreground">{g.assets.length} accounts</div>
-                              </div>
                             </div>
                             <div className="text-right ml-2">
                               <div className="text-sm font-mono font-semibold">{formatCurrency(mv, true)}</div>
