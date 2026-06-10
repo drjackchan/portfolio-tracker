@@ -294,13 +294,14 @@ export async function fetchCryptoMarketData(ticker: string, currency = "HKD"): P
 
     // Sparkline via market_chart (more points for a pretty graph)
     let sparkline: number[] = [];
+    let rawPairs: [number, number][] = [];
     try {
       const cUrl = `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=${vs}&days=7`;
       const cRes = await fetch(cUrl, { signal: AbortSignal.timeout(9000) });
       if (cRes.ok) {
         const chart = (await cRes.json()) as any;
-        const pairs: [number, number][] = chart?.prices || [];
-        sparkline = pairs.map(([, p]) => p).filter((p) => typeof p === "number");
+        rawPairs = chart?.prices || [];
+        sparkline = rawPairs.map(([, p]) => p).filter((p) => typeof p === "number");
         if (sparkline.length > 60) {
           // decimate a bit
           const step = Math.ceil(sparkline.length / 42);
@@ -312,6 +313,16 @@ export async function fetchCryptoMarketData(ticker: string, currency = "HKD"): P
     if (price == null && sparkline.length) {
       price = sparkline[sparkline.length - 1];
     }
+
+    // Fallback: derive 1h/24h/7d % from the chart time series when the /markets % call didn't give them
+    // (common when rate-limited or when requesting non-USD vs_currency)
+    if ((ch1h == null || ch24h == null || ch7d == null) && rawPairs.length && price != null) {
+      const computed = computeChangesFromChartSeries(rawPairs, price);
+      ch1h ??= computed.change1h;
+      ch24h ??= computed.change24h;
+      ch7d ??= computed.change7d;
+    }
+
     if (price == null) return null;
 
     return { price, change1h: ch1h, change24h: ch24h, change7d: ch7d, sparkline };
@@ -320,26 +331,132 @@ export async function fetchCryptoMarketData(ticker: string, currency = "HKD"): P
   }
 }
 
+function computeChangesFromChartSeries(pairs: [number, number][], latestPrice: number): { change1h: number | null; change24h: number | null; change7d: number | null } {
+  if (!pairs.length || latestPrice == null) return { change1h: null, change24h: null, change7d: null };
+  const latestTs = pairs[pairs.length - 1][0];
+  const findP = (msAgo: number): number | null => {
+    const target = latestTs - msAgo;
+    for (let i = pairs.length - 1; i >= 0; i--) {
+      if (pairs[i][0] <= target) return pairs[i][1];
+    }
+    return null;
+  };
+  const p1h = findP(3600 * 1000);
+  const p24h = findP(86400 * 1000);
+  const p7d = findP(86400 * 1000 * 7);
+  return {
+    change1h: p1h != null ? ((latestPrice - p1h) / p1h) * 100 : null,
+    change24h: p24h != null ? ((latestPrice - p24h) / p24h) * 100 : null,
+    change7d: p7d != null ? ((latestPrice - p7d) / p7d) * 100 : null,
+  };
+}
+
 export async function fetchMarketData(
   assets: Array<{ id: number; ticker: string | null; assetType: string; currency: string }>
 ): Promise<Array<{ assetId: number; data: MarketData | null }>> {
-  const results = await Promise.all(
-    assets.map(async (asset) => {
-      const ticker = asset.ticker?.trim() ?? "";
-      if (!ticker) return { assetId: asset.id, data: null as MarketData | null };
+  const results: Array<{ assetId: number; data: MarketData | null }> = [];
 
-      let data: MarketData | null = null;
+  // Stocks + commodities still need per-ticker Yahoo calls (they are working fine for the user)
+  const stockLike = assets.filter((a) => (a.assetType === "stock" || a.assetType === "commodity") && a.ticker);
+  for (const a of stockLike) {
+    const ticker = a.ticker!.trim();
+    try {
+      const data = await fetchStockMarketData(ticker);
+      results.push({ assetId: a.id, data });
+    } catch {
+      results.push({ assetId: a.id, data: null });
+    }
+  }
+
+  // Crypto: batch the CoinGecko /markets call by vs_currency to avoid rate limits,
+  // then still fetch charts individually for sparklines (but % data is resilient).
+  const cryptos = assets.filter((a) => a.assetType === "crypto" && a.ticker);
+
+  // Group by target vs (hkd or usd) because each group needs its own markets call
+  const byVs: Record<string, typeof cryptos> = {};
+  for (const a of cryptos) {
+    const vs = (a.currency || "HKD").toLowerCase() === "hkd" ? "hkd" : "usd";
+    (byVs[vs] ||= []).push(a);
+  }
+
+  for (const [vs, group] of Object.entries(byVs)) {
+    // Resolve ids (most are in the static map; search fallback is rare)
+    const resolved = await Promise.all(
+      group.map(async (a) => ({ a, id: await coinGeckoIdFromSymbol(a.ticker!.trim()) }))
+    );
+
+    // Batch markets for all non-stable ids in this vs group (one call instead of N)
+    const marketItems: Record<string, any> = {};
+    const nonStables = resolved.filter((r) => r.id && r.id !== "__stable__");
+    if (nonStables.length > 0) {
       try {
-        if (asset.assetType === "stock" || asset.assetType === "commodity") {
-          data = await fetchStockMarketData(ticker);
-        } else if (asset.assetType === "crypto") {
-          data = await fetchCryptoMarketData(ticker, asset.currency);
+        const idList = nonStables.map((r) => r.id).join(",");
+        const mUrl = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${vs}&ids=${idList}&price_change_percentage=1h%2C24h%2C7d`;
+        const mRes = await fetch(mUrl, { signal: AbortSignal.timeout(10000) });
+        if (mRes.ok) {
+          const arr = (await mRes.json()) as any[];
+          for (const it of arr) if (it?.id) marketItems[it.id] = it;
         }
       } catch {
-        // swallow per-asset; caller sees null
+        // will fall back to per-coin or chart series below
       }
-      return { assetId: asset.id, data };
-    })
-  );
+    }
+
+    // Per-coin work: stables are trivial; others get chart + merge with batched markets data + series fallback
+    const perCoinWork = await Promise.all(
+      resolved.map(async ({ a, id }) => {
+        if (!id) return { assetId: a.id, data: null as MarketData | null };
+
+        if (id === "__stable__") {
+          const p = vs === "hkd" ? 7.8 : 1.0;
+          return {
+            assetId: a.id,
+            data: { price: p, change1h: 0, change24h: 0, change7d: 0, sparkline: [p, p, p, p, p, p, p] } as MarketData,
+          };
+        }
+
+        const it = marketItems[id] || {};
+        let price: number | null = typeof it.current_price === "number" ? it.current_price : null;
+        let ch1h: number | null = typeof it.price_change_percentage_1h_in_currency === "number" ? it.price_change_percentage_1h_in_currency : null;
+        let ch24h: number | null = typeof it.price_change_percentage_24h_in_currency === "number" ? it.price_change_percentage_24h_in_currency : null;
+        let ch7d: number | null = typeof it.price_change_percentage_7d_in_currency === "number" ? it.price_change_percentage_7d_in_currency : null;
+
+        // Sparkline (and raw pairs for fallback %)
+        let sparkline: number[] = [];
+        let rawPairs: [number, number][] = [];
+        try {
+          const cUrl = `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=${vs}&days=7`;
+          const cRes = await fetch(cUrl, { signal: AbortSignal.timeout(9000) });
+          if (cRes.ok) {
+            const chart = (await cRes.json()) as any;
+            rawPairs = chart?.prices || [];
+            sparkline = rawPairs.map(([, p]) => p).filter((p) => typeof p === "number");
+            if (sparkline.length > 60) {
+              const step = Math.ceil(sparkline.length / 42);
+              sparkline = sparkline.filter((_, i) => i % step === 0 || i === sparkline.length - 1);
+            }
+          }
+        } catch {}
+
+        if (price == null && sparkline.length) {
+          price = sparkline[sparkline.length - 1];
+        }
+
+        // Series fallback so we still get % even if the batched markets call missed this coin or rate-limited the % fields
+        if ((ch1h == null || ch24h == null || ch7d == null) && rawPairs.length && price != null) {
+          const computed = computeChangesFromChartSeries(rawPairs, price);
+          ch1h ??= computed.change1h;
+          ch24h ??= computed.change24h;
+          ch7d ??= computed.change7d;
+        }
+
+        if (price == null) return { assetId: a.id, data: null as MarketData | null };
+        return { assetId: a.id, data: { price, change1h: ch1h, change24h: ch24h, change7d: ch7d, sparkline } as MarketData };
+      })
+    );
+
+    results.push(...perCoinWork);
+  }
+
   return results;
 }
