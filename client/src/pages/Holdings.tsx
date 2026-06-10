@@ -269,10 +269,10 @@ export default function Holdings() {
                         <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Qty</th>
                         <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Buy Price</th>
                         <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Current</th>
-                        <th className="text-right text-xs text-muted-foreground font-medium px-2 py-3">1h</th>
-                        <th className="text-right text-xs text-muted-foreground font-medium px-2 py-3">24h</th>
-                        <th className="text-right text-xs text-muted-foreground font-medium px-2 py-3">7d</th>
-                        <th className="w-[78px] text-center text-xs text-muted-foreground font-medium px-1 py-3" title="Last 7 days price trend">7d</th>
+                        <th className="text-right text-xs text-muted-foreground font-medium px-2 py-3">1h %</th>
+                        <th className="text-right text-xs text-muted-foreground font-medium px-2 py-3">24h %</th>
+                        <th className="text-right text-xs text-muted-foreground font-medium px-2 py-3">7d %</th>
+                        <th className="w-24 text-center text-xs text-muted-foreground font-medium px-1 py-3" title="Last 7 days price trend">Last 7 Days</th>
                         <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Value (HKD)</th>
                         <th className="text-right text-xs text-muted-foreground font-medium px-3 py-3">Return</th>
                         <th className="text-right text-xs text-muted-foreground font-medium px-5 py-3">Actions</th>
@@ -433,9 +433,9 @@ export default function Holdings() {
                         {/* Compact market % + sparkline for auto-fetchable assets (mobile) */}
                         {isAuto && md && (
                           <div className="mt-1.5 flex items-center gap-2 text-[10px] text-muted-foreground">
-                            <span>1h <span className={md.change1h != null && md.change1h >= 0 ? "text-green-600 dark:text-green-400 font-medium" : "text-destructive font-medium"}>{md.change1h != null ? `${md.change1h >= 0 ? "+" : ""}${md.change1h.toFixed(1)}%` : "—"}</span></span>
-                            <span>24h <span className={md.change24h != null && md.change24h >= 0 ? "text-green-600 dark:text-green-400 font-medium" : "text-destructive font-medium"}>{md.change24h != null ? `${md.change24h >= 0 ? "+" : ""}${md.change24h.toFixed(1)}%` : "—"}</span></span>
-                            <span>7d <span className={md.change7d != null && md.change7d >= 0 ? "text-green-600 dark:text-green-400 font-medium" : "text-destructive font-medium"}>{md.change7d != null ? `${md.change7d >= 0 ? "+" : ""}${md.change7d.toFixed(1)}%` : "—"}</span></span>
+                            <span>1h % <span className={md.change1h != null && md.change1h >= 0 ? "text-green-600 dark:text-green-400 font-medium" : "text-destructive font-medium"}>{md.change1h != null ? `${md.change1h >= 0 ? "+" : ""}${md.change1h.toFixed(1)}` : "—"}</span></span>
+                            <span>24h % <span className={md.change24h != null && md.change24h >= 0 ? "text-green-600 dark:text-green-400 font-medium" : "text-destructive font-medium"}>{md.change24h != null ? `${md.change24h >= 0 ? "+" : ""}${md.change24h.toFixed(1)}` : "—"}</span></span>
+                            <span>7d % <span className={md.change7d != null && md.change7d >= 0 ? "text-green-600 dark:text-green-400 font-medium" : "text-destructive font-medium"}>{md.change7d != null ? `${md.change7d >= 0 ? "+" : ""}${md.change7d.toFixed(1)}` : "—"}</span></span>
                             <span className="ml-auto -mr-0.5">
                               {md.sparkline?.length ? <Sparkline data={md.sparkline} positive={(md.change7d ?? 0) >= 0} width={46} height={15} /> : null}
                             </span>
