@@ -153,6 +153,46 @@ const renderActiveShape = (props: any) => {
   );
 };
 
+const renderPieIconLabel = (entry: any) => {
+  const { cx, cy, midAngle, innerRadius, outerRadius, payload, percent } = entry;
+  if (!payload?.type || (percent || 0) < 0.04) return null; // hide on tiny slices to avoid clutter
+
+  const Icon = ASSET_TYPE_ICONS[payload.type] || Folder;
+  const RADIAN = Math.PI / 180;
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.55;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+  return (
+    <g>
+      <foreignObject
+        x={x - 8}
+        y={y - 8}
+        width={16}
+        height={16}
+        style={{ overflow: 'visible', pointerEvents: 'none' }}
+      >
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          width: '16px', 
+          height: '16px' 
+        }}>
+          <Icon 
+            style={{ 
+              width: '13px', 
+              height: '13px', 
+              color: '#fff',
+              filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.7))' 
+            }} 
+          />
+        </div>
+      </foreignObject>
+    </g>
+  );
+};
+
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { toast } = useToast();
@@ -392,6 +432,8 @@ export default function Dashboard() {
                         activeShape={renderActiveShape}
                         onMouseEnter={(_, index) => setActivePieIndex(index)}
                         stroke="none"
+                        label={renderPieIconLabel}
+                        labelLine={false}
                       >
                         {allocationData.map((e, i) => <Cell key={i} fill={e.color} className="transition-all duration-300 ease-in-out cursor-pointer" />)}
                       </Pie>
