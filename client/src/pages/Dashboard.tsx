@@ -364,16 +364,16 @@ export default function Dashboard() {
              allocationData.length === 0 ? (
               <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">No assets yet</div>
             ) : (
-              <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8 justify-center py-2">
+              <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2">
                 <div className="flex-shrink-0">
-                  <ResponsiveContainer width={220} height={220}>
+                  <ResponsiveContainer width={260} height={260}>
                     <PieChart>
                       <Pie 
                         data={allocationData} 
                         cx="50%" 
                         cy="50%" 
-                        innerRadius={65} 
-                        outerRadius={95} 
+                        innerRadius={75} 
+                        outerRadius={110} 
                         paddingAngle={3} 
                         dataKey="value"
                         activeIndex={activePieIndex}
@@ -387,22 +387,22 @@ export default function Dashboard() {
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-                <ul className="space-y-2 flex-1 min-w-0 w-full max-w-[280px]">
+                <ul className="space-y-1 flex-1 min-w-0 w-full max-w-[240px]">
                   {allocationData.map((d, i) => (
                     <li 
                       key={d.name} 
-                      className={`flex items-center justify-between p-2.5 rounded-lg transition-all cursor-pointer ${
+                      className={`flex items-center justify-between p-1.5 rounded-lg transition-all cursor-pointer ${
                         activePieIndex === i ? "bg-sidebar-accent shadow-sm scale-[1.02]" : "hover:bg-muted/50"
                       }`}
                       onMouseEnter={() => setActivePieIndex(i)}
                     >
-                      <div className="flex items-center gap-3 overflow-hidden">
-                        <span className="w-3.5 h-3.5 rounded-full flex-shrink-0 shadow-sm" style={{ background: d.color }} />
-                        <span className="text-sm font-medium text-foreground truncate">{d.name}</span>
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <span className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm" style={{ background: d.color }} />
+                        <span className="text-xs font-medium text-foreground truncate">{d.name}</span>
                       </div>
-                      <div className="text-right flex-shrink-0 ml-3">
-                        <div className="text-sm font-semibold font-mono tabular-nums leading-tight">{fmtCcy(d.value, true)}</div>
-                        <div className="text-xs font-mono text-muted-foreground">{d.pct.toFixed(1)}%</div>
+                      <div className="text-right flex-shrink-0 ml-2">
+                        <div className="text-xs font-semibold font-mono tabular-nums leading-tight">{fmtCcy(d.value, true)}</div>
+                        <div className="text-[10px] font-mono text-muted-foreground">{d.pct.toFixed(1)}%</div>
                       </div>
                     </li>
                   ))}
