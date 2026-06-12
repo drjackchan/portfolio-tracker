@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TickerLogo } from "@/components/TickerLogo";
 import { Sparkline } from "@/components/Sparkline";
 import { AssetTable } from "@/components/AssetTable";
+import { useAssetGrouping } from "@/hooks/useAssetGrouping";
 import {
   PieChart, Pie, Cell, Tooltip as ReTooltip, ResponsiveContainer,
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Sector,
@@ -253,74 +254,13 @@ export default function Dashboard() {
     }
   };
 
-  // Sorted assets for the table
-  const sortedAssets = [...assets].sort((a, b) => {
-    let aVal: string | number, bVal: string | number;
-    const mda = marketData[a.id];
-    const mdb = marketData[b.id];
-    switch (sortKey) {
-      case 'value':
-        aVal = toHkd(a.quantity * a.currentPrice, a.currency);
-        bVal = toHkd(b.quantity * b.currentPrice, b.currency);
-        break;
-      case 'name':
-        aVal = a.name.toLowerCase();
-        bVal = b.name.toLowerCase();
-        break;
-      case 'type':
-        aVal = a.assetType;
-        bVal = b.assetType;
-        break;
-      case 'quantity':
-      case 'qty':
-        aVal = a.quantity;
-        bVal = b.quantity;
-        break;
-      case 'cost':
-      case 'buy':
-        aVal = toHkd(a.purchasePrice, a.currency);
-        bVal = toHkd(b.purchasePrice, b.currency);
-        break;
-      case 'current': {
-        aVal = toHkd(mda?.price ?? a.currentPrice, a.currency);
-        bVal = toHkd(mdb?.price ?? b.currentPrice, b.currency);
-        break;
-      }
-      case 'gain':
-      case 'return': {
-        const aMv = toHkd(a.quantity * a.currentPrice, a.currency);
-        const aCost = toHkd(a.quantity * a.purchasePrice, a.currency);
-        aVal = aMv - aCost;
-        const bMv = toHkd(b.quantity * b.currentPrice, b.currency);
-        const bCost = toHkd(b.quantity * b.purchasePrice, b.currency);
-        bVal = bMv - bCost;
-        break;
-      }
-      case '1h': {
-        aVal = mda?.change1h ?? -Infinity;
-        bVal = mdb?.change1h ?? -Infinity;
-        break;
-      }
-      case '24h': {
-        aVal = mda?.change24h ?? -Infinity;
-        bVal = mdb?.change24h ?? -Infinity;
-        break;
-      }
-      case '7d':
-      case 'spark': {
-        aVal = mda?.change7d ?? -Infinity;
-        bVal = mdb?.change7d ?? -Infinity;
-        break;
-      }
-      default:
-        return 0;
-    }
-    if (typeof aVal === 'string') {
-      return sortDir === 'asc' ? aVal.localeCompare(bVal as string) : (bVal as string).localeCompare(aVal);
-    } else {
-      return sortDir === 'asc' ? aVal - (bVal as number) : (bVal as number) - aVal;
-    }
-  });
+  // Grouped display items (reuses the same grouping + group-level sorting logic as the full Assets page)
+  const { displayItems, expandedGroups, toggleGroup } = useAssetGrouping(
+    assets,
+    marketData,
+    sortKey,
+    sortDir
+  );
 
   // Chart data — filter by selected range, oldest→newest for display
   const cutoff = new Date();
@@ -607,11 +547,13 @@ export default function Dashboard() {
               {(() => {
                 return (
                   <AssetTable
-                    items={sortedAssets}
+                    items={displayItems}
                     marketData={marketData}
                     sortKey={sortKey}
                     sortDir={sortDir}
                     onSort={handleSort}
+                    expandedGroups={expandedGroups}
+                    onToggleGroup={toggleGroup}
                     showActions={false}
                     showCategory={false}
                     showBuyPrice={true}
