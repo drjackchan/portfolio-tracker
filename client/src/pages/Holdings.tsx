@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Plus, Pencil, Trash2, Search, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, RefreshCw, BarChart3, Coins, Home, Wallet, Gem, Folder } from "lucide-react";
 import { TickerLogo } from "@/components/TickerLogo";
 import { Sparkline } from "@/components/Sparkline";
 import { AssetTable } from "@/components/AssetTable";
@@ -24,6 +24,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState, useMemo } from "react";
+import type { ComponentType } from "react";
 import type { Asset } from "@shared/schema";
 import { toHkd } from "@/lib/utils";
 
@@ -36,6 +37,14 @@ const ASSET_TYPE_COLORS: Record<string, string> = {
   commodity: "hsl(var(--chart-6))",
 };
 
+const ASSET_TYPE_ICONS: Record<string, ComponentType<{ className?: string }>> = {
+  stock: BarChart3,
+  crypto: Coins,
+  property: Home,
+  cash: Wallet,
+  commodity: Gem,
+  other: Folder,
+};
 
 function formatCurrency(val: number, compact = false) {
   if (compact && Math.abs(val) >= 1_000_000) return `HK$${(val / 1_000_000).toFixed(2)}M`;
@@ -176,7 +185,7 @@ export default function Holdings() {
         {/* Header */}
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl font-semibold text-foreground">Holdings</h1>
+            <h1 className="text-xl font-semibold text-foreground">Assets</h1>
             <p className="text-sm text-muted-foreground mt-0.5">Manage your assets</p>
           </div>
           <div className="flex items-center gap-2">
@@ -233,7 +242,10 @@ export default function Holdings() {
               <Card key={type} data-testid={`total-${type}-card`}>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-1.5 mb-1">
-                    <div className="w-2 h-2 rounded-full" style={{ background: ASSET_TYPE_COLORS[type] }} />
+                    {(() => {
+                      const Icon = ASSET_TYPE_ICONS[type] || Folder;
+                      return <Icon className="w-3 h-3 flex-shrink-0" style={{ color: ASSET_TYPE_COLORS[type] }} />;
+                    })()}
                     <div className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">{ASSET_TYPE_LABELS[type]}</div>
                   </div>
                   {isLoading ? <Skeleton className="h-6 w-20" /> : (
