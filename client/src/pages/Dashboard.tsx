@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TickerLogo } from "@/components/TickerLogo";
 import { Sparkline } from "@/components/Sparkline";
 import { AssetTable } from "@/components/AssetTable";
 import { useAssetGrouping } from "@/hooks/useAssetGrouping";
@@ -234,16 +233,6 @@ export default function Dashboard() {
     color: ASSET_TYPE_COLORS[type] ?? "#888",
   })).sort((a, b) => b.value - a.value); // Sort largest to smallest
 
-  // Top holdings
-  const topHoldings = [...assets]
-    .map((a) => ({
-      ...a,
-      value: toHkd(a.quantity * a.currentPrice, a.currency),
-      gain: a.purchasePrice > 0 ? (a.currentPrice - a.purchasePrice) / a.purchasePrice * 100 : 0,
-    }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 5);
-
   const handleSort = (key: string) => {
     const k = key as SortKey;
     if (sortKey === k) {
@@ -430,104 +419,63 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-      {/* Allocation + Top Holdings */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        <Card className="flex flex-col">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">Asset Allocation</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 flex flex-col justify-center">
-            {isLoading ? <Skeleton className="h-64 w-full" /> :
-             allocationData.length === 0 ? (
-              <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">No assets yet</div>
-            ) : (
-              <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8 justify-center py-2">
-                <div className="flex-shrink-0">
-                  <ResponsiveContainer width={220} height={220}>
-                    <PieChart>
-                      <Pie 
-                        data={allocationData} 
-                        cx="50%" 
-                        cy="50%" 
-                        innerRadius={65} 
-                        outerRadius={95} 
-                        paddingAngle={3} 
-                        dataKey="value"
-                        activeIndex={activePieIndex}
-                        activeShape={renderActiveShape}
-                        onMouseEnter={(_, index) => setActivePieIndex(index)}
-                        stroke="none"
-                      >
-                        {allocationData.map((e, i) => <Cell key={i} fill={e.color} className="transition-all duration-300 ease-in-out cursor-pointer" />)}
-                      </Pie>
-                      <ReTooltip content={<PieTooltip />} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <ul className="space-y-2 flex-1 min-w-0 w-full max-w-[280px]">
-                  {allocationData.map((d, i) => (
-                    <li 
-                      key={d.name} 
-                      className={`flex items-center justify-between p-2.5 rounded-lg transition-all cursor-pointer ${
-                        activePieIndex === i ? "bg-sidebar-accent shadow-sm scale-[1.02]" : "hover:bg-muted/50"
-                      }`}
-                      onMouseEnter={() => setActivePieIndex(i)}
+      {/* Asset Allocation */}
+      <Card className="flex flex-col">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-semibold">Asset Allocation</CardTitle>
+        </CardHeader>
+        <CardContent className="flex-1 flex flex-col justify-center">
+          {isLoading ? <Skeleton className="h-64 w-full" /> :
+           allocationData.length === 0 ? (
+            <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">No assets yet</div>
+          ) : (
+            <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8 justify-center py-2">
+              <div className="flex-shrink-0">
+                <ResponsiveContainer width={220} height={220}>
+                  <PieChart>
+                    <Pie 
+                      data={allocationData} 
+                      cx="50%" 
+                      cy="50%" 
+                      innerRadius={65} 
+                      outerRadius={95} 
+                      paddingAngle={3} 
+                      dataKey="value"
+                      activeIndex={activePieIndex}
+                      activeShape={renderActiveShape}
+                      onMouseEnter={(_, index) => setActivePieIndex(index)}
+                      stroke="none"
                     >
-                      <div className="flex items-center gap-3 overflow-hidden">
-                        <span className="w-3.5 h-3.5 rounded-full flex-shrink-0 shadow-sm" style={{ background: d.color }} />
-                        <span className="text-sm font-medium text-foreground truncate">{d.name}</span>
-                      </div>
-                      <div className="text-right flex-shrink-0 ml-3">
-                        <div className="text-sm font-semibold font-mono tabular-nums leading-tight">{fmtCcy(d.value, true)}</div>
-                        <div className="text-xs font-mono text-muted-foreground">{d.pct.toFixed(1)}%</div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                      {allocationData.map((e, i) => <Cell key={i} fill={e.color} className="transition-all duration-300 ease-in-out cursor-pointer" />)}
+                    </Pie>
+                    <ReTooltip content={<PieTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">Top Holdings (HKD equiv.)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="space-y-3">{[1,2,3,4,5].map((i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
-            ) : topHoldings.length === 0 ? (
-              <div className="h-40 flex flex-col items-center justify-center text-muted-foreground text-sm gap-3">
-                <TrendingUp className="w-8 h-8 opacity-30" />
-                <p>No holdings yet.</p>
-                <Link href="/holdings/new"><Button size="sm" variant="outline">Add Asset</Button></Link>
-              </div>
-            ) : (
-              <ul className="divide-y divide-border">
-                {topHoldings.map((a) => (
-                  <li key={a.id} className="py-2.5 flex items-center gap-3">
-                    <TickerLogo
-                      ticker={a.ticker}
-                      name={a.name}
-                      assetType={a.assetType}
-                      logoUrl={marketData[a.id]?.logo}
-                      size={32}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate">{a.name}</div>
-                      <div className="text-xs text-muted-foreground">{a.ticker ?? ASSET_TYPE_LABELS[a.assetType]}</div>
+              <ul className="space-y-2 flex-1 min-w-0 w-full max-w-[280px]">
+                {allocationData.map((d, i) => (
+                  <li 
+                    key={d.name} 
+                    className={`flex items-center justify-between p-2.5 rounded-lg transition-all cursor-pointer ${
+                      activePieIndex === i ? "bg-sidebar-accent shadow-sm scale-[1.02]" : "hover:bg-muted/50"
+                    }`}
+                    onMouseEnter={() => setActivePieIndex(i)}
+                  >
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <span className="w-3.5 h-3.5 rounded-full flex-shrink-0 shadow-sm" style={{ background: d.color }} />
+                      <span className="text-sm font-medium text-foreground truncate">{d.name}</span>
                     </div>
-                    <div className="text-right">
-                      <div className="text-sm font-mono font-medium tabular-nums">{fmtCcy(a.value, true)}</div>
-                      <div className={`text-xs font-mono ${a.gain >= 0 ? "text-[hsl(var(--positive))]" : "text-destructive"}`}>{fmtPct(a.gain)}</div>
+                    <div className="text-right flex-shrink-0 ml-3">
+                      <div className="text-sm font-semibold font-mono tabular-nums leading-tight">{fmtCcy(d.value, true)}</div>
+                      <div className="text-xs font-mono text-muted-foreground">{d.pct.toFixed(1)}%</div>
                     </div>
                   </li>
                 ))}
               </ul>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* All Holdings table — desktop only */}
       <Card>
