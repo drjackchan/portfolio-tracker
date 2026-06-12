@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const ASSET_TYPE_LABELS: Record<string, string> = {
-  stock: "Stocks", crypto: "Crypto", property: "Property", other: "Other", commodity: "Commodities",
+  stock: "Stocks", crypto: "Crypto", property: "Property", cash: "Cash", other: "Other", commodity: "Commodities",
 };
 
 export type DisplayItem =

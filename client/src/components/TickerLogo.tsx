@@ -4,6 +4,7 @@ const ASSET_TYPE_COLORS: Record<string, string> = {
   stock: "hsl(var(--chart-2))",
   crypto: "hsl(var(--chart-3))",
   property: "hsl(var(--chart-4))",
+  cash: "hsl(var(--chart-1))",
   other: "hsl(var(--chart-5))",
   commodity: "hsl(var(--chart-6))",
 };

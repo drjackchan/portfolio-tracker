@@ -49,11 +49,12 @@ const ASSET_TYPE_COLORS: Record<string, string> = {
   stock: "hsl(var(--chart-2))",
   crypto: "hsl(var(--chart-3))",
   property: "hsl(var(--chart-4))",
+  cash: "hsl(var(--chart-1))",
   other: "hsl(var(--chart-5))",
   commodity: "hsl(var(--chart-6))",
 };
 const ASSET_TYPE_LABELS: Record<string, string> = {
-  stock: "Stocks", crypto: "Crypto", property: "Property", other: "Other", commodity: "Commodities",
+  stock: "Stocks", crypto: "Crypto", property: "Property", cash: "Cash", other: "Other", commodity: "Commodities",
 };
 
 type Range = "30d" | "90d" | "1y" | "all";

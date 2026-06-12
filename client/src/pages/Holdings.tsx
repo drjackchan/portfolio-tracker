@@ -28,11 +28,11 @@ import type { Asset } from "@shared/schema";
 import { toHkd } from "@/lib/utils";
 
 const ASSET_TYPE_LABELS: Record<string, string> = {
-  stock: "Stocks", crypto: "Crypto", property: "Property", other: "Other", commodity: "Commodities",
+  stock: "Stocks", crypto: "Crypto", property: "Property", cash: "Cash", other: "Other", commodity: "Commodities",
 };
 const ASSET_TYPE_COLORS: Record<string, string> = {
   stock: "hsl(var(--chart-2))", crypto: "hsl(var(--chart-3))",
-  property: "hsl(var(--chart-4))", other: "hsl(var(--chart-5))",
+  property: "hsl(var(--chart-4))", cash: "hsl(var(--chart-1))", other: "hsl(var(--chart-5))",
   commodity: "hsl(var(--chart-6))",
 };
 
@@ -51,7 +51,7 @@ function formatPct(val: number) {
   return `${val >= 0 ? "+" : ""}${val.toFixed(2)}%`;
 }
 
-const FILTER_TYPES = ["All", "stock", "crypto", "property", "commodity", "other"] as const;
+const FILTER_TYPES = ["All", "stock", "crypto", "property", "cash", "commodity", "other"] as const;
 
 export default function Holdings() {
   const { toast } = useToast();
@@ -300,10 +300,10 @@ export default function Holdings() {
           </CardContent>
         </Card>
 
-        {/* Info banner for property/other */}
-        {assets.some((a) => ["property", "other"].includes(a.assetType)) && (
+        {/* Info banner for cash/property/other */}
+        {assets.some((a) => ["property", "cash", "other"].includes(a.assetType)) && (
           <p className="text-xs text-muted-foreground px-1">
-            Property and Other assets require manual price updates — edit each asset to set the current price.
+            Cash, Property and Other assets require manual price updates — edit each asset to set the current price.
           </p>
         )}
       </div>

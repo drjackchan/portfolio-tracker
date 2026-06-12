@@ -42,7 +42,8 @@ const ASSET_TYPES = [
   { value: "crypto", label: "Cryptocurrency" },
   { value: "property", label: "Property / Real Estate" },
   { value: "commodity", label: "Commodity (Gold, Silver, Oil, etc.)" },
-  { value: "other", label: "Other (Bonds, Retirement, Cash, etc.)" },
+  { value: "cash", label: "Cash / Bank Account / Deposits" },
+  { value: "other", label: "Other (Bonds, Retirement, etc.)" },
 ];
 
 export default function AddEditAsset() {

@@ -6,7 +6,7 @@
  *   - Preferred (if COINMARKETCAP_API_KEY set): CoinMarketCap Pro (free tier, reliable %)
  *   - Fallback: CoinGecko (public, rate-limited) + series computation fallback
  *   - Extra fallback: Yahoo (e.g. BTC-USD) via the stock path
- * Property/Other → manual only, not handled here
+ * Cash/Property/Other → manual only, not handled here
  *
  * Caching is used aggressively for crypto market data to stay under rate limits.
  */

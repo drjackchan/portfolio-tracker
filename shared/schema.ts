@@ -2,12 +2,12 @@ import { pgTable, text, serial, real, timestamp, integer } from "drizzle-orm/pg-
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Asset types: stock, crypto, commodity, property, other
+// Asset types: stock, crypto, commodity, property, cash, other
 export const assets = pgTable("assets", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),           // e.g. "Apple Inc", "Bitcoin", "123 Main St", "Physical Gold"
   ticker: text("ticker"),                  // e.g. "AAPL", "BTC", "GC=F" (optional; enables auto price for stock/crypto/commodity)
-  assetType: text("asset_type").notNull(), // "stock" | "crypto" | "commodity" | "property" | "other"
+  assetType: text("asset_type").notNull(), // "stock" | "crypto" | "commodity" | "property" | "cash" | "other"
   quantity: real("quantity").notNull(),
   purchasePrice: real("purchase_price").notNull(),  // cost per unit
   currentPrice: real("current_price").notNull(),    // current price per unit
