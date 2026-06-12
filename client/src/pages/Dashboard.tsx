@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TickerLogo } from "@/components/TickerLogo";
+import { Sparkline } from "@/components/Sparkline";
+import { AssetTable } from "@/components/AssetTable";
 import {
   PieChart, Pie, Cell, Tooltip as ReTooltip, ResponsiveContainer,
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Sector,
@@ -138,57 +140,6 @@ const renderActiveShape = (props: any) => {
   );
 };
 
-/** Lightweight SVG sparkline for last-7d price trend (index-based, oldest→newest). */
-function Sparkline({
-  data,
-  positive = true,
-  width = 72,
-  height = 26,
-}: {
-  data: number[];
-  positive?: boolean;
-  width?: number;
-  height?: number;
-}) {
-  if (!data || data.length < 2) {
-    return <div className="text-muted-foreground/50 text-[10px]">—</div>;
-  }
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min || 1;
-  const pts = data
-    .map((v, i) => {
-      const x = (i / (data.length - 1)) * width;
-      const y = height - ((v - min) / range) * (height - 2) - 1;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
-  const color = positive ? "#00f0ff" : "#ff2e63";
-  return (
-    <svg width={width} height={height} className="overflow-visible">
-      {positive && (
-        <polyline
-          points={pts}
-          fill="none"
-          stroke={color}
-          strokeWidth="4.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          opacity="0.18"
-        />
-      )}
-      <polyline
-        points={pts}
-        fill="none"
-        stroke={color}
-        strokeWidth="1.85"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { toast } = useToast();
@@ -292,11 +243,12 @@ export default function Dashboard() {
     .sort((a, b) => b.value - a.value)
     .slice(0, 5);
 
-  const handleSort = (key: SortKey) => {
-    if (sortKey === key) {
+  const handleSort = (key: string) => {
+    const k = key as SortKey;
+    if (sortKey === k) {
       setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
     } else {
-      setSortKey(key);
+      setSortKey(k);
       setSortDir('desc'); // default desc
     }
   };
@@ -320,10 +272,12 @@ export default function Dashboard() {
         bVal = b.assetType;
         break;
       case 'quantity':
+      case 'qty':
         aVal = a.quantity;
         bVal = b.quantity;
         break;
       case 'cost':
+      case 'buy':
         aVal = toHkd(a.purchasePrice, a.currency);
         bVal = toHkd(b.purchasePrice, b.currency);
         break;
@@ -332,7 +286,8 @@ export default function Dashboard() {
         bVal = toHkd(mdb?.price ?? b.currentPrice, b.currency);
         break;
       }
-      case 'gain': {
+      case 'gain':
+      case 'return': {
         const aMv = toHkd(a.quantity * a.currentPrice, a.currency);
         const aCost = toHkd(a.quantity * a.purchasePrice, a.currency);
         aVal = aMv - aCost;
@@ -645,187 +600,18 @@ export default function Dashboard() {
           ) : (
             <>
               {(() => {
-                const headers = [
-                  { label: "Asset", key: "name" as SortKey, sortable: true, align: "left" as const },
-                  { label: "Type", key: "type" as SortKey, sortable: true, align: "left" as const },
-                  { label: "Qty", key: "quantity" as SortKey, sortable: true, align: "right" as const },
-                  { label: "Cost Price", key: "cost" as SortKey, sortable: true, align: "right" as const },
-                  { label: "Current", key: "current" as SortKey, sortable: true, align: "right" as const },
-                  { label: "1h %", key: "1h" as SortKey, sortable: true, align: "right" as const },
-                  { label: "24h %", key: "24h" as SortKey, sortable: true, align: "right" as const },
-                  { label: "7d %", key: "7d" as SortKey, sortable: true, align: "right" as const },
-                  { label: "Last 7 Days", key: "spark" as SortKey, sortable: true, align: "center" as const },
-                  { label: "Value (HKD)", key: "value" as SortKey, sortable: true, align: "right" as const },
-                  { label: "Gain/Loss", key: "gain" as SortKey, sortable: true, align: "right" as const },
-                ];
                 return (
-                  <>
-                    {/* Desktop sortable table */}
-                    <div className="hidden sm:block overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-border">
-                            {headers.map((h, i) => (
-                              <th
-                                key={h.label}
-                                className={`text-xs text-muted-foreground font-medium px-${i === 0 || i === headers.length - 1 ? 5 : 3} py-2.5 ${
-                                  h.align === "right" ? "text-right" : h.align === "center" ? "text-center" : "text-left"
-                                } ${h.sortable ? "cursor-pointer hover:text-foreground" : ""}`}
-                                onClick={h.sortable ? () => handleSort(h.key) : undefined}
-                              >
-                                {h.label}
-                                {sortKey === h.key && (sortDir === "asc" ? " ↑" : " ↓")}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {sortedAssets.map((a) => {
-                            const mv = toHkd(a.quantity * a.currentPrice, a.currency);
-                            const totalCost = toHkd(a.quantity * a.purchasePrice, a.currency);
-                            const gain = mv - totalCost;
-                            const gainPct = totalCost > 0 ? (gain / totalCost) * 100 : 0;
-                            const md = marketData[a.id];
-                            return (
-                              <tr
-                                key={a.id}
-                                className="border-b border-border/50 hover:bg-muted/30 transition-colors"
-                                data-testid={`row-asset-${a.id}`}
-                              >
-                                <td className="px-5 py-3">
-                                  <div className="font-medium">{a.name}</div>
-                                  {a.ticker && <div className="text-xs text-muted-foreground">{a.ticker}</div>}
-                                </td>
-                                <td className="px-3 py-3">
-                                  <Badge variant="secondary" className="capitalize text-xs">
-                                    {ASSET_TYPE_LABELS[a.assetType] ?? a.assetType}
-                                  </Badge>
-                                </td>
-                                <td className="px-3 py-3 text-right font-mono tabular-nums">
-                                  {a.quantity.toLocaleString()}
-                                </td>
-                                <td className="px-3 py-3 text-right font-mono tabular-nums text-muted-foreground">
-                                  {a.currency !== "HKD" ? `${a.currency} ` : ""}{a.purchasePrice.toLocaleString()}
-                                </td>
-                                <td className="px-3 py-3 text-right font-mono tabular-nums">
-                                  {a.currency !== "HKD" ? `${a.currency} ` : ""}{(md?.price ?? a.currentPrice).toLocaleString()}
-                                </td>
-                                {/* 1h % */}
-                                <td className="px-2 py-3 text-right font-mono tabular-nums text-xs">
-                                  {md?.change1h != null ? (
-                                    <span className={md.change1h >= 0 ? "text-[hsl(var(--positive))]" : "text-destructive"}>
-                                      {md.change1h >= 0 ? "▲" : "▼"}{md.change1h.toFixed(2)}%
-                                    </span>
-                                  ) : "—"}
-                                </td>
-                                {/* 24h % */}
-                                <td className="px-2 py-3 text-right font-mono tabular-nums text-xs">
-                                  {md?.change24h != null ? (
-                                    <span className={md.change24h >= 0 ? "text-[hsl(var(--positive))]" : "text-destructive"}>
-                                      {md.change24h >= 0 ? "▲" : "▼"}{md.change24h.toFixed(2)}%
-                                    </span>
-                                  ) : "—"}
-                                </td>
-                                {/* 7d % */}
-                                <td className="px-2 py-3 text-right font-mono tabular-nums text-xs font-medium">
-                                  {md?.change7d != null ? (
-                                    <span className={md.change7d >= 0 ? "text-[hsl(var(--positive))]" : "text-destructive"}>
-                                      {md.change7d >= 0 ? "▲" : "▼"}{md.change7d.toFixed(2)}%
-                                    </span>
-                                  ) : "—"}
-                                </td>
-                                {/* Last 7 Days sparkline */}
-                                <td className="px-1 py-3">
-                                  {md?.sparkline?.length ? (
-                                    <Sparkline data={md.sparkline} positive={(md.change7d ?? 0) >= 0} />
-                                  ) : null}
-                                </td>
-                                <td className="px-3 py-3 text-right font-mono tabular-nums font-medium">
-                                  {fmtCcy(mv)}
-                                </td>
-                                <td className="px-5 py-3 text-right">
-                                  <div
-                                    className={`font-mono tabular-nums font-medium ${
-                                      gain >= 0 ? "text-[hsl(var(--positive))]" : "text-destructive"
-                                    }`}
-                                  >
-                                    {fmtCcy(gain)}
-                                  </div>
-                                  <div
-                                    className={`text-xs font-mono ${
-                                      gain >= 0 ? "text-[hsl(var(--positive))]" : "text-destructive"
-                                    }`}
-                                  >
-                                    {fmtPct(gainPct)}
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Mobile cards — now sorted */}
-                    <div className="sm:hidden divide-y divide-border">
-                      {sortedAssets.map((a) => {
-                        const mv = toHkd(a.quantity * a.currentPrice, a.currency);
-                        const totalCost = toHkd(a.quantity * a.purchasePrice, a.currency);
-                        const gain = mv - totalCost;
-                        const gainPct = totalCost > 0 ? (gain / totalCost) * 100 : 0;
-                        const md = marketData[a.id];
-                        return (
-                          <div key={a.id} className="px-4 py-3">
-                            <div className="flex items-center justify-between mb-1">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <TickerLogo
-                                  ticker={a.ticker}
-                                  name={a.name}
-                                  assetType={a.assetType}
-                                  logoUrl={md?.logo}
-                                  size={28}
-                                />
-                                <div className="min-w-0">
-                                  <div className="font-medium text-sm truncate">{a.name}</div>
-                                  {a.ticker && <div className="text-xs text-muted-foreground">{a.ticker}</div>}
-                                </div>
-                              </div>
-                              <div className="text-right ml-2">
-                                <div className="text-sm font-mono font-semibold">{fmtCcy(mv, true)}</div>
-                                <div
-                                  className={`text-xs font-mono ${
-                                    gain >= 0 ? "text-[hsl(var(--positive))]" : "text-destructive"
-                                  }`}
-                                >
-                                  {fmtPct(gainPct)}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Badge variant="secondary" className="capitalize text-xs">
-                                {ASSET_TYPE_LABELS[a.assetType] ?? a.assetType}
-                              </Badge>
-                              <span className="text-xs text-muted-foreground">Qty: {a.quantity.toLocaleString()}</span>
-                              <span className="ml-auto text-xs text-muted-foreground font-mono">
-                                {a.currency !== "HKD" ? a.currency : "HK$"}{(md?.price ?? a.currentPrice).toLocaleString()} / unit
-                              </span>
-                            </div>
-                            {/* Compact market % + sparkline for auto-fetchable assets */}
-                            {md && (
-                              <div className="mt-1.5 flex items-center gap-2 text-[10px] text-muted-foreground">
-                                <span>1h % <span className={md.change1h != null && md.change1h >= 0 ? "text-[hsl(var(--positive))] font-medium" : "text-destructive font-medium"}>{md.change1h != null ? `${md.change1h >= 0 ? "+" : ""}${md.change1h.toFixed(1)}` : "—"}</span></span>
-                                <span>24h % <span className={md.change24h != null && md.change24h >= 0 ? "text-[hsl(var(--positive))] font-medium" : "text-destructive font-medium"}>{md.change24h != null ? `${md.change24h >= 0 ? "+" : ""}${md.change24h.toFixed(1)}` : "—"}</span></span>
-                                <span>7d % <span className={md.change7d != null && md.change7d >= 0 ? "text-[hsl(var(--positive))] font-medium" : "text-destructive font-medium"}>{md.change7d != null ? `${md.change7d >= 0 ? "+" : ""}${md.change7d.toFixed(1)}` : "—"}</span></span>
-                                <span className="ml-auto -mr-0.5">
-                                  {md.sparkline?.length ? <Sparkline data={md.sparkline} positive={(md.change7d ?? 0) >= 0} width={46} height={15} /> : null}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
+                  <AssetTable
+                    items={sortedAssets}
+                    marketData={marketData}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={handleSort}
+                    showActions={false}
+                    showCategory={false}
+                    showBuyPrice={true}
+                    compact={true}
+                  />
                 );
               })()}
             </>
