@@ -280,7 +280,7 @@ export default function Subscriptions() {
                             <button 
                               onClick={() => toggleStatusMutation.mutate({ id: s.id, status: s.status })}
                               className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-colors ${
-                                s.status === "active" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-muted text-muted-foreground"
+                                s.status === "active" ? "bg-[hsl(var(--positive)/0.12)] text-[hsl(var(--positive))] border border-[hsl(var(--positive)/0.3)]" : "bg-muted text-muted-foreground"
                               }`}
                             >
                               {s.status}

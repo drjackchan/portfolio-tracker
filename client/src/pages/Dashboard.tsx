@@ -87,7 +87,7 @@ function KpiCard({
         {sub && !loading && (
           <div className={`text-xs mt-0.5 font-mono flex items-center gap-1 ${
             positive === undefined ? "text-muted-foreground"
-              : positive ? "text-green-600 dark:text-green-400" : "text-destructive"
+              : positive ? "text-[hsl(var(--positive))]" : "text-destructive"
           }`}>
             {sub}
             {subLabel && <span className="text-muted-foreground ml-1 font-sans">{subLabel}</span>}
@@ -161,14 +161,25 @@ function Sparkline({
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     })
     .join(" ");
-  const color = positive ? "#16a34a" : "#dc2626";
+  const color = positive ? "#00f0ff" : "#ff2e63";
   return (
     <svg width={width} height={height} className="overflow-visible">
+      {positive && (
+        <polyline
+          points={pts}
+          fill="none"
+          stroke={color}
+          strokeWidth="4.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity="0.18"
+        />
+      )}
       <polyline
         points={pts}
         fill="none"
         stroke={color}
-        strokeWidth="1.6"
+        strokeWidth="1.85"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -603,7 +614,7 @@ export default function Dashboard() {
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-mono font-medium tabular-nums">{fmtCcy(a.value, true)}</div>
-                      <div className={`text-xs font-mono ${a.gain >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>{fmtPct(a.gain)}</div>
+                      <div className={`text-xs font-mono ${a.gain >= 0 ? "text-[hsl(var(--positive))]" : "text-destructive"}`}>{fmtPct(a.gain)}</div>
                     </div>
                   </li>
                 ))}
@@ -697,7 +708,7 @@ export default function Dashboard() {
                                 {/* 1h % */}
                                 <td className="px-2 py-3 text-right font-mono tabular-nums text-xs">
                                   {md?.change1h != null ? (
-                                    <span className={md.change1h >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}>
+                                    <span className={md.change1h >= 0 ? "text-[hsl(var(--positive))]" : "text-destructive"}>
                                       {md.change1h >= 0 ? "▲" : "▼"}{md.change1h.toFixed(2)}%
                                     </span>
                                   ) : "—"}
@@ -705,7 +716,7 @@ export default function Dashboard() {
                                 {/* 24h % */}
                                 <td className="px-2 py-3 text-right font-mono tabular-nums text-xs">
                                   {md?.change24h != null ? (
-                                    <span className={md.change24h >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}>
+                                    <span className={md.change24h >= 0 ? "text-[hsl(var(--positive))]" : "text-destructive"}>
                                       {md.change24h >= 0 ? "▲" : "▼"}{md.change24h.toFixed(2)}%
                                     </span>
                                   ) : "—"}
@@ -713,7 +724,7 @@ export default function Dashboard() {
                                 {/* 7d % */}
                                 <td className="px-2 py-3 text-right font-mono tabular-nums text-xs font-medium">
                                   {md?.change7d != null ? (
-                                    <span className={md.change7d >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}>
+                                    <span className={md.change7d >= 0 ? "text-[hsl(var(--positive))]" : "text-destructive"}>
                                       {md.change7d >= 0 ? "▲" : "▼"}{md.change7d.toFixed(2)}%
                                     </span>
                                   ) : "—"}
@@ -730,14 +741,14 @@ export default function Dashboard() {
                                 <td className="px-5 py-3 text-right">
                                   <div
                                     className={`font-mono tabular-nums font-medium ${
-                                      gain >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"
+                                      gain >= 0 ? "text-[hsl(var(--positive))]" : "text-destructive"
                                     }`}
                                   >
                                     {fmtCcy(gain)}
                                   </div>
                                   <div
                                     className={`text-xs font-mono ${
-                                      gain >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"
+                                      gain >= 0 ? "text-[hsl(var(--positive))]" : "text-destructive"
                                     }`}
                                   >
                                     {fmtPct(gainPct)}
@@ -777,7 +788,7 @@ export default function Dashboard() {
                                 <div className="text-sm font-mono font-semibold">{fmtCcy(mv, true)}</div>
                                 <div
                                   className={`text-xs font-mono ${
-                                    gain >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"
+                                    gain >= 0 ? "text-[hsl(var(--positive))]" : "text-destructive"
                                   }`}
                                 >
                                   {fmtPct(gainPct)}
@@ -796,9 +807,9 @@ export default function Dashboard() {
                             {/* Compact market % + sparkline for auto-fetchable assets */}
                             {md && (
                               <div className="mt-1.5 flex items-center gap-2 text-[10px] text-muted-foreground">
-                                <span>1h % <span className={md.change1h != null && md.change1h >= 0 ? "text-green-600 dark:text-green-400 font-medium" : "text-destructive font-medium"}>{md.change1h != null ? `${md.change1h >= 0 ? "+" : ""}${md.change1h.toFixed(1)}` : "—"}</span></span>
-                                <span>24h % <span className={md.change24h != null && md.change24h >= 0 ? "text-green-600 dark:text-green-400 font-medium" : "text-destructive font-medium"}>{md.change24h != null ? `${md.change24h >= 0 ? "+" : ""}${md.change24h.toFixed(1)}` : "—"}</span></span>
-                                <span>7d % <span className={md.change7d != null && md.change7d >= 0 ? "text-green-600 dark:text-green-400 font-medium" : "text-destructive font-medium"}>{md.change7d != null ? `${md.change7d >= 0 ? "+" : ""}${md.change7d.toFixed(1)}` : "—"}</span></span>
+                                <span>1h % <span className={md.change1h != null && md.change1h >= 0 ? "text-[hsl(var(--positive))] font-medium" : "text-destructive font-medium"}>{md.change1h != null ? `${md.change1h >= 0 ? "+" : ""}${md.change1h.toFixed(1)}` : "—"}</span></span>
+                                <span>24h % <span className={md.change24h != null && md.change24h >= 0 ? "text-[hsl(var(--positive))] font-medium" : "text-destructive font-medium"}>{md.change24h != null ? `${md.change24h >= 0 ? "+" : ""}${md.change24h.toFixed(1)}` : "—"}</span></span>
+                                <span>7d % <span className={md.change7d != null && md.change7d >= 0 ? "text-[hsl(var(--positive))] font-medium" : "text-destructive font-medium"}>{md.change7d != null ? `${md.change7d >= 0 ? "+" : ""}${md.change7d.toFixed(1)}` : "—"}</span></span>
                                 <span className="ml-auto -mr-0.5">
                                   {md.sparkline?.length ? <Sparkline data={md.sparkline} positive={(md.change7d ?? 0) >= 0} width={46} height={15} /> : null}
                                 </span>

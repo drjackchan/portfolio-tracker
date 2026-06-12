@@ -205,13 +205,13 @@ export default function AdSense() {
           <CardContent className="text-sm space-y-3 font-mono">
             <div>
               <div className="font-medium text-foreground">AdSense</div>
-              <div className={testResult.adsense?.ok ? "text-green-600" : "text-destructive"}>
+              <div className={testResult.adsense?.ok ? "text-[hsl(var(--positive))]" : "text-destructive"}>
                 {testResult.adsense?.message || "Not tested"}
               </div>
             </div>
             <div>
               <div className="font-medium text-foreground">YouTube</div>
-              <div className={testResult.youtube?.ok ? "text-green-600" : "text-destructive"}>
+              <div className={testResult.youtube?.ok ? "text-[hsl(var(--positive))]" : "text-destructive"}>
                 {testResult.youtube?.message || "Not tested"}
               </div>
             </div>

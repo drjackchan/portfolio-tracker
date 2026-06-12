@@ -2,48 +2,49 @@
 @tailwind components;
 @tailwind utilities;
 
-/* LIGHT MODE — Finance / Precision: cool slate surfaces, emerald green accent */
+/* CYBER IT / NEON TECH — deep dark surfaces, electric cyan primary, vibrant cyber palette. Flashy modern finance UI. */
 :root {
   --button-outline: rgba(0,0,0, .10);
   --badge-outline: rgba(0,0,0, .05);
   --opaque-button-border-intensity: -8;
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
-  --background: 210 20% 97%;
-  --foreground: 215 28% 12%;
-  --border: 214 15% 88%;
-  --card: 210 20% 99%;
-  --card-foreground: 215 28% 12%;
-  --card-border: 214 15% 92%;
-  --sidebar: 215 22% 94%;
-  --sidebar-foreground: 215 28% 12%;
-  --sidebar-border: 214 15% 88%;
-  --sidebar-primary: 152 66% 34%;
+  --background: 210 22% 96%;
+  --foreground: 215 25% 14%;
+  --border: 214 14% 86%;
+  --card: 210 20% 98%;
+  --card-foreground: 215 25% 14%;
+  --card-border: 214 14% 90%;
+  --sidebar: 215 18% 94%;
+  --sidebar-foreground: 215 25% 14%;
+  --sidebar-border: 214 14% 86%;
+  --sidebar-primary: 188 85% 40%;
   --sidebar-primary-foreground: 0 0% 98%;
-  --sidebar-accent: 214 15% 88%;
-  --sidebar-accent-foreground: 215 28% 12%;
-  --sidebar-ring: 152 66% 34%;
+  --sidebar-accent: 214 14% 87%;
+  --sidebar-accent-foreground: 215 25% 14%;
+  --sidebar-ring: 188 85% 40%;
   --popover: 210 20% 97%;
-  --popover-foreground: 215 28% 12%;
-  --popover-border: 214 15% 88%;
-  --primary: 152 66% 34%;
+  --popover-foreground: 215 25% 14%;
+  --popover-border: 214 14% 86%;
+  --primary: 188 85% 40%;
   --primary-foreground: 0 0% 98%;
-  --secondary: 214 15% 90%;
-  --secondary-foreground: 215 28% 12%;
-  --muted: 214 15% 91%;
-  --muted-foreground: 215 16% 42%;
-  --accent: 214 20% 88%;
-  --accent-foreground: 215 28% 12%;
-  --destructive: 0 72% 45%;
+  --secondary: 214 14% 89%;
+  --secondary-foreground: 215 25% 14%;
+  --muted: 214 14% 90%;
+  --muted-foreground: 215 14% 44%;
+  --accent: 214 16% 87%;
+  --accent-foreground: 215 25% 14%;
+  --destructive: 355 78% 52%;
   --destructive-foreground: 0 0% 98%;
-  --input: 214 15% 78%;
-  --ring: 152 66% 34%;
-  --chart-1: 152 66% 34%;
-  --chart-2: 210 70% 50%;
-  --chart-3: 45 90% 50%;
-  --chart-4: 262 60% 55%;
-  --chart-5: 20 80% 52%;
-  --chart-6: 43 96% 44%;
+  --input: 214 14% 78%;
+  --ring: 188 85% 40%;
+  --positive: 186 92% 42%;
+  --chart-1: 186 92% 42%;   /* electric cyan */
+  --chart-2: 265 88% 62%;  /* violet */
+  --chart-3: 332 85% 58%;  /* hot magenta */
+  --chart-4: 200 88% 52%;  /* sky */
+  --chart-5: 42 95% 52%;   /* amber */
+  --chart-6: 278 78% 62%;  /* purple */
   --font-sans: 'General Sans', 'Inter', sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: 'JetBrains Mono', Menlo, monospace;
@@ -94,41 +95,42 @@
   --opaque-button-border-intensity: 9;
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
-  --background: 216 28% 8%;
-  --foreground: 210 20% 92%;
-  --border: 215 20% 17%;
-  --card: 216 28% 10%;
-  --card-foreground: 210 20% 92%;
-  --card-border: 215 20% 14%;
-  --sidebar: 216 28% 9%;
-  --sidebar-foreground: 210 20% 92%;
-  --sidebar-border: 215 20% 15%;
-  --sidebar-primary: 152 60% 42%;
-  --sidebar-primary-foreground: 0 0% 98%;
-  --sidebar-accent: 215 20% 16%;
-  --sidebar-accent-foreground: 210 20% 92%;
-  --sidebar-ring: 152 60% 42%;
-  --popover: 216 28% 11%;
-  --popover-foreground: 210 20% 92%;
-  --popover-border: 215 20% 18%;
-  --primary: 152 60% 42%;
-  --primary-foreground: 0 0% 98%;
-  --secondary: 215 20% 18%;
-  --secondary-foreground: 210 20% 92%;
-  --muted: 215 20% 16%;
-  --muted-foreground: 214 12% 55%;
-  --accent: 215 20% 18%;
-  --accent-foreground: 210 20% 92%;
-  --destructive: 0 72% 52%;
+  --background: 222 60% 3.5%;
+  --foreground: 200 18% 94%;
+  --border: 215 22% 13%;
+  --card: 222 52% 6%;
+  --card-foreground: 200 18% 94%;
+  --card-border: 215 20% 11%;
+  --sidebar: 222 55% 4.5%;
+  --sidebar-foreground: 200 18% 94%;
+  --sidebar-border: 215 22% 12%;
+  --sidebar-primary: 186 100% 52%;
+  --sidebar-primary-foreground: 222 60% 3%;
+  --sidebar-accent: 215 18% 13%;
+  --sidebar-accent-foreground: 200 18% 94%;
+  --sidebar-ring: 186 100% 52%;
+  --popover: 222 50% 7%;
+  --popover-foreground: 200 18% 94%;
+  --popover-border: 215 18% 14%;
+  --primary: 186 100% 52%;
+  --primary-foreground: 222 60% 3%;
+  --secondary: 215 18% 13%;
+  --secondary-foreground: 200 18% 94%;
+  --muted: 215 18% 12%;
+  --muted-foreground: 210 12% 58%;
+  --accent: 215 18% 13%;
+  --accent-foreground: 200 18% 94%;
+  --destructive: 355 82% 58%;
   --destructive-foreground: 0 0% 98%;
-  --input: 215 20% 25%;
-  --ring: 152 60% 42%;
-  --chart-1: 152 60% 48%;
-  --chart-2: 210 70% 60%;
-  --chart-3: 45 90% 60%;
-  --chart-4: 262 60% 68%;
-  --chart-5: 20 80% 62%;
-  --chart-6: 43 96% 56%;
+  --input: 215 18% 18%;
+  --ring: 186 100% 52%;
+  --positive: 186 100% 56%;
+  --chart-1: 186 100% 56%;   /* electric cyan */
+  --chart-2: 265 92% 70%;   /* neon violet */
+  --chart-3: 332 88% 68%;   /* hot magenta */
+  --chart-4: 200 95% 64%;   /* cyber blue */
+  --chart-5: 42 100% 64%;   /* sharp amber */
+  --chart-6: 278 82% 72%;   /* electric purple */
   --shadow-2xs: 0px 2px 0px 0px hsl(0 0% 0% / 0.00);
   --shadow-xs: 0px 2px 0px 0px hsl(0 0% 0% / 0.00);
   --shadow-sm: 0px 2px 0px 0px hsl(0 0% 0% / 0.00), 0px 1px 2px -1px hsl(0 0% 0% / 0.00);
@@ -286,5 +288,30 @@
   .border.active-elevate-2:not(.no-active-interaction-elevate)::after,
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
+  }
+}
+
+/* === CYBER IT FLASHY ACCENTS === */
+@layer components {
+  /* Neon-ish primary interactive elements in dark (cyber terminal feel) */
+  .dark button[data-variant="default"],
+  .dark .bg-primary,
+  .dark [data-slot="sidebar-primary"] {
+    transition: box-shadow 0.15s ease, filter 0.15s ease;
+  }
+  .dark button[data-variant="default"]:hover,
+  .dark .bg-primary:hover {
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.4), 0 0 12px hsl(var(--primary) / 0.25);
+  }
+
+  /* The small asset type / category color squares get subtle neon ring in dark for modern pop */
+  .dark .w-7.h-7.rounded-md,
+  .dark .w-8.h-8.rounded-md {
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.25);
+  }
+
+  /* Positive / gain numbers get a touch of glow for that cyber P&L terminal aesthetic */
+  .dark .text-\[hsl\(var\(--positive\)\)\] {
+    text-shadow: 0 0 6px hsl(var(--positive) / 0.35);
   }
 }
