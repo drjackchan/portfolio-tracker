@@ -355,127 +355,129 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Portfolio Value Chart */}
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <CardTitle className="text-sm font-semibold">Net Worth History</CardTitle>
-            <div className="flex items-center gap-1">
-              {(["30d","90d","1y","all"] as Range[]).map((r) => (
-                <button key={r} onClick={() => setRange(r)}
-                  className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
-                    range === r ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
-                  }`}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="px-2 sm:px-4 pb-4">
-          {snapsLoading ? (
-            <Skeleton className="h-52 w-full" />
-          ) : chartData.length < 2 ? (
-            <div className="h-52 flex flex-col items-center justify-center text-muted-foreground text-sm gap-2">
-              <BarChart3 className="w-8 h-8 opacity-30" />
-              <p>No history yet.</p>
-              <p className="text-xs">Click <strong>Take Snapshot</strong> to record today's net worth — the daily cron will do it automatically every night.</p>
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="valueGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                  tickLine={false} axisLine={false}
-                  interval={Math.max(0, Math.floor(chartData.length / 6) - 1)} />
-                <YAxis
-                  domain={[chartMin, chartMax]}
-                  tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                  tickLine={false} axisLine={false}
-                  tickFormatter={(v) => {
-                    const abs = Math.abs(v);
-                    if (abs >= 1_000_000) return `HK$${(v / 1_000_000).toFixed(1)}M`;
-                    if (abs >= 1_000) return `HK$${(v / 1_000).toFixed(0)}K`;
-                    return `HK$${v.toFixed(0)}`;
-                  }}
-                  width={64}
-                />
-                <Tooltip content={<ChartTooltip />} />
-                <Area
-                  type="monotone" dataKey="value"
-                  stroke="hsl(var(--primary))" strokeWidth={2}
-                  fill="url(#valueGrad)" dot={false} activeDot={{ r: 4 }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Asset Allocation */}
-      <Card className="flex flex-col">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold">Asset Allocation</CardTitle>
-        </CardHeader>
-        <CardContent className="flex-1 flex flex-col justify-center">
-          {isLoading ? <Skeleton className="h-64 w-full" /> :
-           allocationData.length === 0 ? (
-            <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">No assets yet</div>
-          ) : (
-            <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8 justify-center py-2">
-              <div className="flex-shrink-0">
-                <ResponsiveContainer width={220} height={220}>
-                  <PieChart>
-                    <Pie 
-                      data={allocationData} 
-                      cx="50%" 
-                      cy="50%" 
-                      innerRadius={65} 
-                      outerRadius={95} 
-                      paddingAngle={3} 
-                      dataKey="value"
-                      activeIndex={activePieIndex}
-                      activeShape={renderActiveShape}
-                      onMouseEnter={(_, index) => setActivePieIndex(index)}
-                      stroke="none"
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        {/* Asset Allocation (left) */}
+        <Card className="flex flex-col">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold">Asset Allocation</CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1 flex flex-col justify-center">
+            {isLoading ? <Skeleton className="h-64 w-full" /> :
+             allocationData.length === 0 ? (
+              <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">No assets yet</div>
+            ) : (
+              <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8 justify-center py-2">
+                <div className="flex-shrink-0">
+                  <ResponsiveContainer width={220} height={220}>
+                    <PieChart>
+                      <Pie 
+                        data={allocationData} 
+                        cx="50%" 
+                        cy="50%" 
+                        innerRadius={65} 
+                        outerRadius={95} 
+                        paddingAngle={3} 
+                        dataKey="value"
+                        activeIndex={activePieIndex}
+                        activeShape={renderActiveShape}
+                        onMouseEnter={(_, index) => setActivePieIndex(index)}
+                        stroke="none"
+                      >
+                        {allocationData.map((e, i) => <Cell key={i} fill={e.color} className="transition-all duration-300 ease-in-out cursor-pointer" />)}
+                      </Pie>
+                      <ReTooltip content={<PieTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <ul className="space-y-2 flex-1 min-w-0 w-full max-w-[280px]">
+                  {allocationData.map((d, i) => (
+                    <li 
+                      key={d.name} 
+                      className={`flex items-center justify-between p-2.5 rounded-lg transition-all cursor-pointer ${
+                        activePieIndex === i ? "bg-sidebar-accent shadow-sm scale-[1.02]" : "hover:bg-muted/50"
+                      }`}
+                      onMouseEnter={() => setActivePieIndex(i)}
                     >
-                      {allocationData.map((e, i) => <Cell key={i} fill={e.color} className="transition-all duration-300 ease-in-out cursor-pointer" />)}
-                    </Pie>
-                    <ReTooltip content={<PieTooltip />} />
-                  </PieChart>
-                </ResponsiveContainer>
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <span className="w-3.5 h-3.5 rounded-full flex-shrink-0 shadow-sm" style={{ background: d.color }} />
+                        <span className="text-sm font-medium text-foreground truncate">{d.name}</span>
+                      </div>
+                      <div className="text-right flex-shrink-0 ml-3">
+                        <div className="text-sm font-semibold font-mono tabular-nums leading-tight">{fmtCcy(d.value, true)}</div>
+                        <div className="text-xs font-mono text-muted-foreground">{d.pct.toFixed(1)}%</div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <ul className="space-y-2 flex-1 min-w-0 w-full max-w-[280px]">
-                {allocationData.map((d, i) => (
-                  <li 
-                    key={d.name} 
-                    className={`flex items-center justify-between p-2.5 rounded-lg transition-all cursor-pointer ${
-                      activePieIndex === i ? "bg-sidebar-accent shadow-sm scale-[1.02]" : "hover:bg-muted/50"
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Net Worth History (right) */}
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <CardTitle className="text-sm font-semibold">Net Worth History</CardTitle>
+              <div className="flex items-center gap-1">
+                {(["30d","90d","1y","all"] as Range[]).map((r) => (
+                  <button key={r} onClick={() => setRange(r)}
+                    className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                      range === r ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
                     }`}
-                    onMouseEnter={() => setActivePieIndex(i)}
                   >
-                    <div className="flex items-center gap-3 overflow-hidden">
-                      <span className="w-3.5 h-3.5 rounded-full flex-shrink-0 shadow-sm" style={{ background: d.color }} />
-                      <span className="text-sm font-medium text-foreground truncate">{d.name}</span>
-                    </div>
-                    <div className="text-right flex-shrink-0 ml-3">
-                      <div className="text-sm font-semibold font-mono tabular-nums leading-tight">{fmtCcy(d.value, true)}</div>
-                      <div className="text-xs font-mono text-muted-foreground">{d.pct.toFixed(1)}%</div>
-                    </div>
-                  </li>
+                    {r}
+                  </button>
                 ))}
-              </ul>
+              </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent className="px-2 sm:px-4 pb-4">
+            {snapsLoading ? (
+              <Skeleton className="h-52 w-full" />
+            ) : chartData.length < 2 ? (
+              <div className="h-52 flex flex-col items-center justify-center text-muted-foreground text-sm gap-2">
+                <BarChart3 className="w-8 h-8 opacity-30" />
+                <p>No history yet.</p>
+                <p className="text-xs">Click <strong>Take Snapshot</strong> to record today's net worth — the daily cron will do it automatically every night.</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="valueGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                    tickLine={false} axisLine={false}
+                    interval={Math.max(0, Math.floor(chartData.length / 6) - 1)} />
+                  <YAxis
+                    domain={[chartMin, chartMax]}
+                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                    tickLine={false} axisLine={false}
+                    tickFormatter={(v) => {
+                      const abs = Math.abs(v);
+                      if (abs >= 1_000_000) return `HK$${(v / 1_000_000).toFixed(1)}M`;
+                      if (abs >= 1_000) return `HK$${(v / 1_000).toFixed(0)}K`;
+                      return `HK$${v.toFixed(0)}`;
+                    }}
+                    width={64}
+                  />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Area
+                    type="monotone" dataKey="value"
+                    stroke="hsl(var(--primary))" strokeWidth={2}
+                    fill="url(#valueGrad)" dot={false} activeDot={{ r: 4 }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* All Holdings table — desktop only */}
       <Card>
