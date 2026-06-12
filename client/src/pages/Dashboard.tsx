@@ -470,7 +470,12 @@ export default function Dashboard() {
                   domain={[chartMin, chartMax]}
                   tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
                   tickLine={false} axisLine={false}
-                  tickFormatter={(v) => `HK$${(v / 1000).toFixed(0)}K`}
+                  tickFormatter={(v) => {
+                    const abs = Math.abs(v);
+                    if (abs >= 1_000_000) return `HK$${(v / 1_000_000).toFixed(1)}M`;
+                    if (abs >= 1_000) return `HK$${(v / 1_000).toFixed(0)}K`;
+                    return `HK$${v.toFixed(0)}`;
+                  }}
                   width={64}
                 />
                 <Tooltip content={<ChartTooltip />} />
