@@ -198,8 +198,9 @@ export default function Dashboard() {
   const totalLiabilities = liabilities.reduce((s, l) => s + toHkd(l.balance, l.currency), 0);
   
   const totalNetWorth = totalAssetsValue - totalLiabilities;
-  const totalGain  = totalAssetsValue - totalCost;
-  const totalGainPct = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
+  const totalCash = assets
+    .filter((a) => a.assetType === "cash")
+    .reduce((s, a) => s + toHkd(a.quantity * a.currentPrice, a.currency), 0);
 
   // Daily / monthly change from snapshots
   const sortedSnaps = [...snapshots].sort((a, b) => a.date.localeCompare(b.date)); // oldest→newest
@@ -319,12 +320,9 @@ export default function Dashboard() {
         <KpiCard title="Total Assets" value={isLoading ? "—" : fmtCcy(totalAssetsValue, true)} icon={Briefcase} loading={isLoading} />
         <KpiCard title="Total Debt" value={isLoading ? "—" : fmtCcy(totalLiabilities, true)} icon={CreditCard} loading={isLoading} />
         <KpiCard
-          title="Assets Gain"
-          value={isLoading ? "—" : fmtCcy(totalGain, true)}
-          sub={isLoading ? undefined : fmtPct(totalGainPct)}
-          subLabel="vs cost"
-          positive={totalGain >= 0}
-          icon={totalGain >= 0 ? TrendingUp : TrendingDown}
+          title="Cash"
+          value={isLoading ? "—" : fmtCcy(totalCash, true)}
+          icon={Wallet}
           loading={isLoading}
         />
         <KpiCard
