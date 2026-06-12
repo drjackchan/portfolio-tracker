@@ -216,7 +216,7 @@ export default function Holdings() {
         </div>
 
         {/* Totals Section */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
           <Card className="bg-sidebar-accent/50 border-sidebar-border" data-testid="total-assets-card">
             <CardContent className="p-4">
               <div className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1 truncate">Total Assets</div>
