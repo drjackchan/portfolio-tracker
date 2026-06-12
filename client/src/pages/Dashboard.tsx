@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TickerLogo } from "@/components/TickerLogo";
 import {
   PieChart, Pie, Cell, Tooltip as ReTooltip, ResponsiveContainer,
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Sector,
@@ -26,6 +27,7 @@ type MarketData = {
   change24h: number | null;
   change7d: number | null;
   sparkline: number[];
+  logo?: string | null;
 };
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -604,10 +606,13 @@ export default function Dashboard() {
               <ul className="divide-y divide-border">
                 {topHoldings.map((a) => (
                   <li key={a.id} className="py-2.5 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-md flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
-                      style={{ background: ASSET_TYPE_COLORS[a.assetType] ?? "#888" }}>
-                      {(a.ticker ?? a.name).slice(0, 3).toUpperCase()}
-                    </div>
+                    <TickerLogo
+                      ticker={a.ticker}
+                      name={a.name}
+                      assetType={a.assetType}
+                      logoUrl={marketData[a.id]?.logo}
+                      size={32}
+                    />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate">{a.name}</div>
                       <div className="text-xs text-muted-foreground">{a.ticker ?? ASSET_TYPE_LABELS[a.assetType]}</div>
@@ -773,12 +778,13 @@ export default function Dashboard() {
                           <div key={a.id} className="px-4 py-3">
                             <div className="flex items-center justify-between mb-1">
                               <div className="flex items-center gap-2 min-w-0">
-                                <div
-                                  className="w-7 h-7 rounded-md flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
-                                  style={{ background: ASSET_TYPE_COLORS[a.assetType] ?? "#888" }}
-                                >
-                                  {(a.ticker ?? a.name).slice(0, 3).toUpperCase()}
-                                </div>
+                                <TickerLogo
+                                  ticker={a.ticker}
+                                  name={a.name}
+                                  assetType={a.assetType}
+                                  logoUrl={md?.logo}
+                                  size={28}
+                                />
                                 <div className="min-w-0">
                                   <div className="font-medium text-sm truncate">{a.name}</div>
                                   {a.ticker && <div className="text-xs text-muted-foreground">{a.ticker}</div>}

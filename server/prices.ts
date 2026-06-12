@@ -241,6 +241,7 @@ export type MarketData = {
   change24h: number | null;
   change7d: number | null;
   sparkline: number[]; // oldest → newest (for last ~7d)
+  logo?: string | null; // logo image URL (CoinGecko for crypto, public cdn for stocks)
 };
 
 // Internal: fetch Yahoo chart data for a ticker (used by both simple price and rich data)
@@ -314,6 +315,7 @@ export async function fetchStockMarketData(ticker: string): Promise<MarketData |
       change24h: ch24h,
       change7d: ch7d,
       sparkline: spark,
+      logo: `https://assets.parqet.com/logos/symbol/${ticker.toUpperCase()}`,
     };
   } catch {
     return null;
@@ -327,7 +329,9 @@ export async function fetchCryptoMarketData(ticker: string, currency = "HKD"): P
 
     if (id === "__stable__") {
       const p = currency === "HKD" ? 7.8 : 1.0;
-      return { price: p, change1h: 0, change24h: 0, change7d: 0, sparkline: [p, p, p, p, p, p, p] };
+      // Use a generic stablecoin logo (Tether as representative)
+      const stableLogo = "https://coin-images.coingecko.com/coins/images/325/small/Tether.png";
+      return { price: p, change1h: 0, change24h: 0, change7d: 0, sparkline: [p, p, p, p, p, p, p], logo: stableLogo };
     }
 
     const vs = currency.toLowerCase() === "hkd" ? "hkd" : "usd";
@@ -371,6 +375,7 @@ export async function fetchCryptoMarketData(ticker: string, currency = "HKD"): P
           change24h: cmc.change24h,
           change7d: cmc.change7d,
           sparkline,
+          logo: null, // CMC quotes path doesn't include image; client falls back or CG will provide in other paths
         };
         setCached(cmcCacheKey, result, 90_000);
         return result;
@@ -387,6 +392,7 @@ export async function fetchCryptoMarketData(ticker: string, currency = "HKD"): P
     let ch1h: number | null = null;
     let ch24h: number | null = null;
     let ch7d: number | null = null;
+    let logo: string | null = null;
 
     try {
       const mUrl = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${vs}&ids=${id}&price_change_percentage=1h%2C24h%2C7d`;
@@ -399,6 +405,7 @@ export async function fetchCryptoMarketData(ticker: string, currency = "HKD"): P
           ch1h = typeof it.price_change_percentage_1h_in_currency === "number" ? it.price_change_percentage_1h_in_currency : null;
           ch24h = typeof it.price_change_percentage_24h_in_currency === "number" ? it.price_change_percentage_24h_in_currency : null;
           ch7d = typeof it.price_change_percentage_7d_in_currency === "number" ? it.price_change_percentage_7d_in_currency : null;
+          logo = typeof it.image === "string" ? it.image : null;
         }
       }
     } catch {}
@@ -441,7 +448,7 @@ export async function fetchCryptoMarketData(ticker: string, currency = "HKD"): P
 
     if (price == null) return null;
 
-    const result: MarketData = { price, change1h: ch1h, change24h: ch24h, change7d: ch7d, sparkline };
+    const result: MarketData = { price, change1h: ch1h, change24h: ch24h, change7d: ch7d, sparkline, logo };
     setCached(cacheKey, result, 60_000);
     return result;
   } catch {
@@ -558,9 +565,10 @@ export async function fetchMarketData(
         // Stablecoins
         if (id === "__stable__") {
           const p = vs === "hkd" ? 7.8 : 1.0;
+          const stableLogo = "https://coin-images.coingecko.com/coins/images/325/small/Tether.png";
           return {
             assetId: a.id,
-            data: { price: p, change1h: 0, change24h: 0, change7d: 0, sparkline: [p, p, p, p, p, p, p] } as MarketData,
+            data: { price: p, change1h: 0, change24h: 0, change7d: 0, sparkline: [p, p, p, p, p, p, p], logo: stableLogo } as MarketData,
           };
         }
 
@@ -572,12 +580,19 @@ export async function fetchMarketData(
         let ch7d: number | null = fromCmc?.change7d ?? null;
 
         // Fill gaps from CG markets batch if needed
+        let logo: string | null = null;
         if ((ch1h == null || price == null) && id) {
           const it = cgMarketItems[id] || {};
           if (price == null) price = typeof it.current_price === "number" ? it.current_price : null;
           if (ch1h == null) ch1h = typeof it.price_change_percentage_1h_in_currency === "number" ? it.price_change_percentage_1h_in_currency : null;
           if (ch24h == null) ch24h = typeof it.price_change_percentage_24h_in_currency === "number" ? it.price_change_percentage_24h_in_currency : null;
           if (ch7d == null) ch7d = typeof it.price_change_percentage_7d_in_currency === "number" ? it.price_change_percentage_7d_in_currency : null;
+          if (typeof it.image === "string") logo = it.image;
+        }
+
+        // If we got data from CMC but no logo yet, try to backfill from the CG batch if it was fetched for other reasons (or always attempt a lightweight logo attach via known CG id)
+        if (!logo && id && cgMarketItems[id]?.image) {
+          logo = cgMarketItems[id].image;
         }
 
         // Sparkline (heavily cached; try CG chart)
@@ -617,6 +632,7 @@ export async function fetchMarketData(
               if (ch24h == null) ch24h = yahooData.change24h;
               if (ch7d == null) ch7d = yahooData.change7d;
               if (sparkline.length === 0 && yahooData.sparkline?.length) sparkline = yahooData.sparkline;
+              if (!logo && yahooData.logo) logo = yahooData.logo;
             }
           } catch {}
         }
@@ -634,7 +650,7 @@ export async function fetchMarketData(
         }
 
         if (price == null) return { assetId: a.id, data: null as MarketData | null };
-        return { assetId: a.id, data: { price, change1h: ch1h, change24h: ch24h, change7d: ch7d, sparkline } as MarketData };
+        return { assetId: a.id, data: { price, change1h: ch1h, change24h: ch24h, change7d: ch7d, sparkline, logo } as MarketData };
       })
     );
 

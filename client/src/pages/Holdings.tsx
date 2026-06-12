@@ -1,6 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Plus, Pencil, Trash2, Search, RefreshCw } from "lucide-react";
+import { TickerLogo } from "@/components/TickerLogo";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -72,6 +73,7 @@ export default function Holdings() {
     change24h: number | null;
     change7d: number | null;
     sparkline: number[];
+    logo?: string | null;
   };
 
   // Live market stats (1h/24h/7d % + sparkline) for assets that support auto price (stock/crypto/commodity with ticker)
@@ -557,12 +559,12 @@ export default function Holdings() {
                             <tr key={`group-${g.ticker}`} className="border-b border-border/50 bg-muted/10 hover:bg-muted/30 transition-colors border-l-2 border-l-[hsl(var(--positive)/0.65)]" data-testid={`group-${g.ticker}`}>
                               <td className="px-5 py-3">
                                 <div className="flex items-center gap-2.5">
-                                  <div
-                                    className="w-7 h-7 rounded-md flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
-                                    style={{ background: ASSET_TYPE_COLORS[g.representative.assetType] ?? "#888" }}
-                                  >
-                                    {g.ticker.slice(0, 3).toUpperCase()}
-                                  </div>
+                                  <TickerLogo
+                                  ticker={g.ticker}
+                                  assetType={g.representative.assetType}
+                                  logoUrl={md?.logo}
+                                  size={28}
+                                />
                                   <div>
                                     <div className="font-medium text-foreground leading-tight">{g.ticker}</div>
                                     <div className="text-xs text-muted-foreground">{g.assets.length} accounts</div>
@@ -648,10 +650,13 @@ export default function Holdings() {
                           <tr key={a.id} className={`border-b border-border/50 hover:bg-muted/20 transition-colors ${isInGroup ? "bg-muted/5" : ""}`} data-testid={`holding-row-${a.id}`}>
                             <td className="px-5 py-3">
                               <div className={`flex items-center gap-2.5 ${isInGroup ? "pl-3" : ""}`}>
-                                <div className="w-7 h-7 rounded-md flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
-                                  style={{ background: ASSET_TYPE_COLORS[a.assetType] ?? "#888" }}>
-                                  {(a.ticker ?? a.name).slice(0, 3).toUpperCase()}
-                                </div>
+                                <TickerLogo
+                                  ticker={a.ticker}
+                                  name={a.name}
+                                  assetType={a.assetType}
+                                  logoUrl={md?.logo}
+                                  size={28}
+                                />
                                 <div>
                                   <div className="font-medium text-foreground leading-tight">{a.name}</div>
                                   {a.ticker && <div className="text-xs text-muted-foreground">{a.ticker}</div>}
@@ -750,12 +755,12 @@ export default function Holdings() {
                         <div key={`group-${g.ticker}`} className="px-4 py-3 bg-muted/10" data-testid={`group-${g.ticker}`}>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2 min-w-0">
-                              <div
-                                className="w-8 h-8 rounded-md flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
-                                style={{ background: ASSET_TYPE_COLORS[g.representative.assetType] ?? "#888" }}
-                              >
-                                {g.ticker.slice(0, 3).toUpperCase()}
-                              </div>
+                              <TickerLogo
+                                ticker={g.ticker}
+                                assetType={g.representative.assetType}
+                                logoUrl={md?.logo}
+                                size={32}
+                              />
                               <div className="min-w-0">
                                 <div className="font-medium text-sm truncate">{g.ticker}</div>
                                 <div className="text-xs text-muted-foreground">{g.assets.length} accounts</div>
@@ -816,10 +821,13 @@ export default function Holdings() {
                       <div key={a.id} className="px-4 py-3" data-testid={`holding-row-${a.id}`}>
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-8 h-8 rounded-md flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
-                              style={{ background: ASSET_TYPE_COLORS[a.assetType] ?? "#888" }}>
-                              {(a.ticker ?? a.name).slice(0, 3).toUpperCase()}
-                            </div>
+                            <TickerLogo
+                              ticker={a.ticker}
+                              name={a.name}
+                              assetType={a.assetType}
+                              logoUrl={md?.logo}
+                              size={32}
+                            />
                             <div className="min-w-0">
                               <div className="font-medium text-foreground text-sm truncate">{a.name}</div>
                               <div className="text-xs text-muted-foreground">{a.ticker ?? a.category ?? ASSET_TYPE_LABELS[a.assetType]}</div>
