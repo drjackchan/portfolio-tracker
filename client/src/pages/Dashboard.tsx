@@ -5,6 +5,7 @@ import {
   BarChart3, Percent, RefreshCw, Camera,
   CalendarDays, CalendarRange, CreditCard, Briefcase, Wallet
 } from "lucide-react";
+import { toHkd } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -190,8 +191,6 @@ export default function Dashboard() {
 
   // ── Derived metrics ─────────────────────────────────────────────────────────
   // HKD conversion (approx)
-  const USD_RATE = 7.8;
-  const toHkd = (v: number, ccy: string) => ccy === "USD" ? v * USD_RATE : v;
 
   const totalAssetsValue = assets.reduce((s, a) => s + toHkd(a.quantity * a.currentPrice, a.currency), 0);
   const totalCost  = assets.reduce((s, a) => s + toHkd(a.quantity * a.purchasePrice, a.currency), 0);

@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState } from "react";
 import type { Liability } from "@shared/schema";
+import { toHkd } from "@/lib/utils";
 
 const LIABILITY_TYPE_LABELS: Record<string, string> = {
   mortgage: "Mortgage", loan: "Personal Loan", credit_card: "Credit Card", other: "Other",
@@ -24,9 +25,6 @@ const LIABILITY_TYPE_COLORS: Record<string, string> = {
   credit_card: "hsl(var(--chart-3))", other: "hsl(var(--chart-5))",
 };
 
-// HKD conversion (approx)
-const USD_RATE = 7.8;
-const toHkd = (v: number, ccy: string) => ccy === "USD" ? v * USD_RATE : v;
 
 function formatCurrency(val: number, compact = false) {
   if (compact && Math.abs(val) >= 1_000_000) return `HK$${(val / 1_000_000).toFixed(2)}M`;

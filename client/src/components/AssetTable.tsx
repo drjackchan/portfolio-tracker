@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { TickerLogo } from "@/components/TickerLogo";
 import { Sparkline } from "@/components/Sparkline";
 import type { Asset } from "@shared/schema";
+import { toHkd as toHkdLocal } from "@/lib/utils";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
@@ -570,7 +571,3 @@ export function AssetTable({
 }
 
 // Local helpers (duplicated from Holdings for self-contained component)
-function toHkdLocal(val: number, ccy: string) {
-  const USD_RATE = 7.8;
-  return ccy === "USD" ? val * USD_RATE : val;
-}

@@ -11,13 +11,15 @@
 import { storage } from "./storage";
 import { fetchPrices } from "./prices";
 
-// Approximate fixed rate — can be replaced with a live FX fetch later
+// Approximate fixed FX rates (for consistent historical snapshots over time)
 const USD_TO_HKD = 7.8;
+const CNY_TO_HKD = 1.08; // 1 CNY ≈ 1.08 HKD
 
 function toHkd(value: number, currency: string): number {
-  if (currency === "HKD") return value;
-  if (currency === "USD") return value * USD_TO_HKD;
-  return value; // unknown currency — pass through
+  const ccy = (currency || "HKD").toUpperCase();
+  if (ccy === "USD") return value * USD_TO_HKD;
+  if (ccy === "CNY") return value * CNY_TO_HKD;
+  return value; // HKD and unknown currencies treated as HKD
 }
 
 /** Compute today's snapshot from live asset data and persist it */

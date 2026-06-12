@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { insertTransactionSchema } from "@shared/schema";
 import type { Asset, Transaction } from "@shared/schema";
+import { toHkd } from "@/lib/utils";
 
 const formSchema = insertTransactionSchema.extend({
   quantity: z.coerce.number().positive("Must be > 0"),
@@ -34,9 +35,6 @@ const TX_TYPE_COLORS: Record<string, string> = {
   buy: "default", sell: "destructive", dividend: "secondary", rebalance: "outline",
 };
 
-// HKD conversion (approx)
-const USD_RATE = 7.8;
-const toHkd = (v: number, ccy: string) => ccy === "USD" ? v * USD_RATE : v;
 
 function formatCurrency(val: number) {
   return new Intl.NumberFormat("en-HK", { style: "currency", currency: "HKD", minimumFractionDigits: 2 }).format(val);

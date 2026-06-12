@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState, useMemo } from "react";
 import type { Asset } from "@shared/schema";
+import { toHkd } from "@/lib/utils";
 
 const ASSET_TYPE_LABELS: Record<string, string> = {
   stock: "Stocks", crypto: "Crypto", property: "Property", other: "Other", commodity: "Commodities",
@@ -35,9 +36,6 @@ const ASSET_TYPE_COLORS: Record<string, string> = {
   commodity: "hsl(var(--chart-6))",
 };
 
-// HKD conversion (approx)
-const USD_RATE = 7.8;
-const toHkd = (v: number, ccy: string) => ccy === "USD" ? v * USD_RATE : v;
 
 function formatCurrency(val: number, compact = false) {
   if (compact && Math.abs(val) >= 1_000_000) return `HK$${(val / 1_000_000).toFixed(2)}M`;

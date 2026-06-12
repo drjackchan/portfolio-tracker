@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import type { Asset } from "@shared/schema";
 import type { DisplayItem } from "@/components/AssetTable";
+import { toHkd } from "@/lib/utils";
 
 type AssetGroup = {
   ticker: string;
@@ -14,8 +15,6 @@ type AssetGroup = {
   representative: Asset;
 };
 
-const USD_RATE = 7.8;
-const toHkd = (v: number, ccy: string) => (ccy === "USD" ? v * USD_RATE : v);
 
 export function useAssetGrouping(
   assets: Asset[],

@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState } from "react";
 import type { Subscription } from "@shared/schema";
+import { toHkd } from "@/lib/utils";
 
 type SortKey = 'name' | 'category' | 'frequency' | 'amountNative' | 'monthlyHkd' | 'nextBillingDate' | 'status' | null;
 
@@ -28,9 +29,6 @@ const SUB_CATEGORY_COLORS: Record<string, string> = {
   Other: "hsl(var(--chart-6))",
 };
 
-// HKD conversion (approx)
-const USD_RATE = 7.8;
-const toHkd = (v: number, ccy: string) => ccy === "USD" ? v * USD_RATE : v;
 
 function formatCurrency(val: number, compact = false) {
   if (compact && Math.abs(val) >= 1_000_000) return `HK$${(val / 1_000_000).toFixed(2)}M`;
