@@ -59,6 +59,8 @@ const ASSET_TYPE_LABELS: Record<string, string> = {
   stock: "Stocks", crypto: "Crypto", property: "Property", cash: "Cash", other: "Other", commodity: "Commodities",
 };
 
+const FILTER_TYPES = ["All", "stock", "crypto", "property", "cash", "commodity", "other"] as const;
+
 const ASSET_TYPE_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   stock: BarChart3,
   crypto: Coins,
@@ -200,6 +202,7 @@ export default function Dashboard() {
   const [activePieIndex, setActivePieIndex] = useState(0);
   const [sortKey, setSortKey] = useState<SortKey>('value');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [filterType, setFilterType] = useState<string>("All");
 
   const { data: assets = [], isLoading: assetsLoading } = useQuery<Asset[]>({ queryKey: ["/api/assets"] });
   const { data: liabilities = [], isLoading: liabLoading } = useQuery<Liability[]>({ queryKey: ["/api/liabilities"] });
@@ -297,8 +300,9 @@ export default function Dashboard() {
   };
 
   // Grouped display items (reuses the same grouping + group-level sorting logic as the full Assets page)
+  const filteredAssets = filterType === "All" ? assets : assets.filter((a) => a.assetType === filterType);
   const { displayItems, expandedGroups, toggleGroup } = useAssetGrouping(
-    assets,
+    filteredAssets,
     marketData,
     sortKey,
     sortDir
@@ -545,27 +549,44 @@ export default function Dashboard() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-5 space-y-3">{[1,2,3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
-          ) : assets.length === 0 ? (
-            <div className="p-10 text-center text-muted-foreground text-sm">No assets found.</div>
           ) : (
             <>
-              {(() => {
-                return (
-                  <AssetTable
-                    items={displayItems}
-                    marketData={marketData}
-                    sortKey={sortKey}
-                    sortDir={sortDir}
-                    onSort={handleSort}
-                    expandedGroups={expandedGroups}
-                    onToggleGroup={toggleGroup}
-                    showActions={false}
-                    showCategory={false}
-                    showBuyPrice={true}
-                    compact={true}
-                  />
-                );
-              })()}
+              <div className="flex items-center gap-1.5 flex-wrap px-4 py-2 border-b border-border/50 bg-muted/10">
+                {FILTER_TYPES.map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setFilterType(t)}
+                    className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                      filterType === t ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {t === "All" ? "All" : ASSET_TYPE_LABELS[t]}
+                  </button>
+                ))}
+              </div>
+              {filteredAssets.length === 0 ? (
+                <div className="p-10 text-center text-muted-foreground text-sm">
+                  {filterType === "All" ? "No assets found." : `No assets found in ${ASSET_TYPE_LABELS[filterType]}.`}
+                </div>
+              ) : (
+                (() => {
+                  return (
+                    <AssetTable
+                      items={displayItems}
+                      marketData={marketData}
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={handleSort}
+                      expandedGroups={expandedGroups}
+                      onToggleGroup={toggleGroup}
+                      showActions={false}
+                      showCategory={false}
+                      showBuyPrice={true}
+                      compact={true}
+                    />
+                  );
+                })()
+              )}
             </>
           )}
         </CardContent>
