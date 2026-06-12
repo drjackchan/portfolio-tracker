@@ -1,9 +1,11 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
+import type { ComponentType } from "react";
 import { Link } from "wouter";
 import {
   TrendingUp, TrendingDown, Plus, DollarSign,
   BarChart3, Percent, RefreshCw, Camera,
-  CalendarDays, CalendarRange, CreditCard, Briefcase, Wallet
+  CalendarDays, CalendarRange, CreditCard, Briefcase, Wallet,
+  Home, Coins, Gem, Folder
 } from "lucide-react";
 import { toHkd } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,6 +57,15 @@ const ASSET_TYPE_COLORS: Record<string, string> = {
 };
 const ASSET_TYPE_LABELS: Record<string, string> = {
   stock: "Stocks", crypto: "Crypto", property: "Property", cash: "Cash", other: "Other", commodity: "Commodities",
+};
+
+const ASSET_TYPE_ICONS: Record<string, ComponentType<{ className?: string }>> = {
+  stock: BarChart3,
+  crypto: Coins,
+  property: Home,
+  cash: Wallet,
+  commodity: Gem,
+  other: Folder,
 };
 
 type Range = "30d" | "90d" | "1y" | "all";
@@ -229,6 +240,7 @@ export default function Dashboard() {
     allocationMap[a.assetType] = (allocationMap[a.assetType] ?? 0) + v;
   }
   const allocationData = Object.entries(allocationMap).map(([type, value]) => ({
+    type,
     name: ASSET_TYPE_LABELS[type] ?? type,
     value, pct: totalAssetsValue > 0 ? (value / totalAssetsValue) * 100 : 0,
     color: ASSET_TYPE_COLORS[type] ?? "#888",
@@ -397,7 +409,10 @@ export default function Dashboard() {
                       onMouseEnter={() => setActivePieIndex(i)}
                     >
                       <div className="flex items-center gap-2 overflow-hidden">
-                        <span className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm" style={{ background: d.color }} />
+                        {(() => {
+                          const Icon = ASSET_TYPE_ICONS[d.type] || Folder;
+                          return <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: d.color }} />;
+                        })()}
                         <span className="text-xs font-medium text-foreground truncate">{d.name}</span>
                       </div>
                       <div className="text-right flex-shrink-0 ml-2">
