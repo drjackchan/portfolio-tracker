@@ -331,8 +331,11 @@ export default function Holdings() {
         }
       }
     } else {
-      // Single (ungrouped)
-      displayItems.push({ kind: "detail", asset: group.assets[0], groupTicker: group.ticker });
+      // Lone asset: either no ticker, or a ticker that appears in only one asset.
+      // Always render as top-level (no indent, full columns). Use synthetic single-* key so isInGroup stays false.
+      const lone = group.assets[0];
+      const gTicker = group.ticker.startsWith("single-") ? group.ticker : `single-${lone.id}`;
+      displayItems.push({ kind: "detail", asset: lone, groupTicker: gTicker });
     }
   }
 
