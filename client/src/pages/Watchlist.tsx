@@ -116,8 +116,26 @@ export default function Watchlist() {
     }
   };
 
-  const formatPrice = (price: number | null | undefined, symbol: string) => {
+  const formatPrice = (price: number | null | undefined, symbol: string, name?: string | null) => {
     if (price == null) return "—";
+
+    const s = symbol.toUpperCase().trim();
+    const n = (name || '').toLowerCase();
+    // Indexes (e.g. ^HSI, ^GSPC, Shanghai Composite) are point levels, not currency amounts
+    const isIndex = s.startsWith('^') ||
+                    n.includes('index') ||
+                    n.includes('composite') ||
+                    n.includes('average') ||
+                    s === '000001.SS';
+
+    if (isIndex) {
+      return new Intl.NumberFormat("en-HK", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }).format(price);
+    }
+
+    // Regular symbols (stocks, ETFs, crypto in watchlist) — show as HKD to match the rest of the app
     return new Intl.NumberFormat("en-HK", {
       style: "currency",
       currency: "HKD",
@@ -303,7 +321,7 @@ export default function Watchlist() {
                     {/* Price & Change */}
                     <div className="text-right min-w-[100px]">
                       <div className="font-mono font-semibold tabular-nums text-lg">
-                        {formatPrice(price, item.symbol)}
+                        {formatPrice(price, item.symbol, item.name)}
                       </div>
                       {change !== null ? (
                         <div className={`text-sm font-mono flex items-center justify-end gap-0.5 mt-0.5 ${isUp ? "text-[hsl(var(--positive))]" : "text-destructive"}`}>
@@ -336,15 +354,4 @@ export default function Watchlist() {
       </p>
     </div>
   );
-}
-
-function formatPrice(price: number | null | undefined, symbol: string) {
-  if (price == null) return "—";
-  const isIndex = symbol.toUpperCase().includes("HSI") || symbol.toUpperCase().includes("INDEX");
-  return new Intl.NumberFormat("en-HK", {
-    style: "currency",
-    currency: "HKD",
-    minimumFractionDigits: price < 1 ? 4 : (isIndex ? 0 : 2),
-    maximumFractionDigits: price < 1 ? 4 : (isIndex ? 0 : 2),
-  }).format(price);
 }

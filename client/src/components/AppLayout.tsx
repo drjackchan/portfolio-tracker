@@ -56,8 +56,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return location.startsWith(href);
   };
 
-  // Compact HKD formatter for sidebar (matches the Google Finance style in screenshots)
-  const formatCompact = (val: number) => {
+  // Compact formatter for sidebar watchlist preview.
+  // Regular items use HK$ (to match overall app HKD bias). Indexes use plain numbers (no currency unit).
+  const formatCompact = (val: number, symbol?: string, name?: string | null) => {
+    const s = (symbol || '').toUpperCase().trim();
+    const n = (name || '').toLowerCase();
+    const isIndex = s.startsWith('^') ||
+                    n.includes('index') ||
+                    n.includes('composite') ||
+                    n.includes('average') ||
+                    s === '000001.SS';
+
+    if (isIndex) {
+      if (Math.abs(val) >= 1_000_000) return `${(val / 1_000_000).toFixed(1)}M`;
+      if (Math.abs(val) >= 1_000) return `${(val / 1_000).toFixed(0)}K`;
+      return new Intl.NumberFormat("en-HK", { minimumFractionDigits: 0 }).format(val);
+    }
+
+    // Regular prices (stocks etc.)
     if (Math.abs(val) >= 1_000_000) return `HK$${(val / 1_000_000).toFixed(1)}M`;
     if (Math.abs(val) >= 1_000) return `HK$${(val / 1_000).toFixed(0)}K`;
     return new Intl.NumberFormat("en-HK", { style: "currency", currency: "HKD", minimumFractionDigits: 0 }).format(val);
@@ -192,7 +208,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     ) : null}
                   </div>
                   <div className="font-mono tabular-nums text-right min-w-[52px] leading-tight">
-                    <div className="text-xs font-semibold">{price != null ? formatCompact(price) : "—"}</div>
+                    <div className="text-xs font-semibold">{price != null ? formatCompact(price, item.symbol, item.name) : "—"}</div>
                     {ch != null && (
                       <div className={`text-[10px] ${isPos ? "text-[hsl(var(--positive))]" : "text-destructive"}`}>
                         {isPos ? "▲" : "▼"}{ch.toFixed(1)}%
