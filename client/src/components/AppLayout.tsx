@@ -166,7 +166,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         ) : (
           <div 
-            className="flex-1 min-h-0 overflow-y-auto space-y-0.5 text-xs -mx-3 px-3 
+            className="flex-1 min-h-0 overflow-y-auto space-y-0.5 text-xs pl-3 pr-2
                        [scrollbar-width:thin] 
                        [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full 
                        [&::-webkit-scrollbar-thumb]:bg-sidebar-border/40 
@@ -180,7 +180,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               const isPos = ch != null && ch >= 0;
               const spark = md.sparkline || [];
               return (
-                <div key={item.id} className="flex items-center gap-2 px-3 py-1 rounded hover:bg-sidebar-accent">
+                <div key={item.id} className="flex items-center gap-2 -ml-3 pl-3 pr-3 py-1 rounded hover:bg-sidebar-accent">
                   <div className="flex-1 min-w-0 leading-tight">
                     <div className="font-mono font-semibold text-sm truncate">{item.symbol.replace(/^\^/, '')}</div>
                     {item.name && <div className="text-muted-foreground truncate text-[10px] leading-none -mt-0.5">{item.name}</div>}
