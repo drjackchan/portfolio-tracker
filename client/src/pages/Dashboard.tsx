@@ -370,9 +370,17 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* KPI Cards — 2 cols mobile, 4 on sm, 7 on lg */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-        <KpiCard title="Net Worth" value={isLoading ? "—" : fmtCcy(totalNetWorth, true)} icon={DollarSign} loading={isLoading} />
+      {/* KPI Cards — 2 cols mobile, 4 on sm, 6 on lg */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+        <KpiCard
+          title="Net Worth"
+          value={isLoading ? "—" : fmtCcy(totalNetWorth, true)}
+          sub={dailyChange === null ? undefined : `${fmtCcy(dailyChange, true)}${dailyPct !== null ? ` ${fmtPct(dailyPct)}` : ''}`}
+          subLabel={snap1d ? `vs ${snap1d.date}` : undefined}
+          positive={dailyChange !== null ? dailyChange >= 0 : undefined}
+          icon={DollarSign}
+          loading={isLoading}
+        />
         <KpiCard title="Total Assets" value={isLoading ? "—" : fmtCcy(totalAssetsValue, true)} icon={Briefcase} loading={isLoading} />
         <KpiCard title="Total Debt" value={isLoading ? "—" : fmtCcy(totalLiabilities, true)} icon={CreditCard} loading={isLoading} />
         <KpiCard
@@ -380,15 +388,6 @@ export default function Dashboard() {
           value={isLoading ? "—" : fmtCcy(totalCash, true)}
           icon={Wallet}
           loading={isLoading}
-        />
-        <KpiCard
-          title="Daily"
-          value={dailyChange === null ? (snapsLoading ? "—" : "No data") : fmtCcy(dailyChange, true)}
-          sub={dailyPct !== null ? fmtPct(dailyPct) : undefined}
-          subLabel={snap1d ? `vs ${snap1d.date}` : undefined}
-          positive={dailyChange !== null ? dailyChange >= 0 : undefined}
-          icon={CalendarDays}
-          loading={isLoading || snapsLoading}
         />
         <KpiCard
           title="30-Day"
