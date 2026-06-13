@@ -75,7 +75,7 @@ export class DatabaseStorage implements IStorage {
 
   private async seedDefaultWatchlist() {
     const existing = await this.getWatchlist();
-    if (existing.length > 0) return;
+    const existingSymbols = new Set(existing.map((w) => w.symbol.toUpperCase()));
 
     const defaults: InsertWatchlist[] = [
       { symbol: "^HSI", name: "Hang Seng Index", assetType: "stock" },
@@ -91,12 +91,37 @@ export class DatabaseStorage implements IStorage {
       { symbol: "^AXJO", name: "S&P/ASX 200", assetType: "stock" },
       { symbol: "^BSESN", name: "BSE Sensex", assetType: "stock" },
       { symbol: "^NSEI", name: "Nifty 50", assetType: "stock" },
+      // Additional major global indexes
+      { symbol: "^STOXX50E", name: "EURO STOXX 50", assetType: "stock" },
+      { symbol: "^IBEX", name: "IBEX 35", assetType: "stock" },
+      { symbol: "^AEX", name: "AEX Index", assetType: "stock" },
+      { symbol: "^OMX", name: "OMX Stockholm 30", assetType: "stock" },
+      { symbol: "^SSMI", name: "Swiss Market Index", assetType: "stock" },
+      { symbol: "^KS11", name: "KOSPI Composite Index", assetType: "stock" },
+      { symbol: "^STI", name: "Straits Times Index", assetType: "stock" },
+      { symbol: "^JKSE", name: "Jakarta Composite Index", assetType: "stock" },
+      { symbol: "^KLSE", name: "FTSE Bursa Malaysia KLCI", assetType: "stock" },
+      { symbol: "^SET.BK", name: "SET Index", assetType: "stock" },
+      { symbol: "^TASI.SR", name: "Tadawul All Share Index", assetType: "stock" },
+      { symbol: "^MXX", name: "IPC Mexico", assetType: "stock" },
+      { symbol: "^BVSP", name: "Bovespa Index", assetType: "stock" },
+      { symbol: "^MERV", name: "MERVAL Index", assetType: "stock" },
+      { symbol: "^IPSA", name: "IPSA Index", assetType: "stock" },
     ];
 
+    let added = 0;
     for (const d of defaults) {
-      await this.createWatchlistItem(d);
+      const sym = d.symbol.toUpperCase();
+      if (!existingSymbols.has(sym)) {
+        await this.createWatchlistItem(d);
+        added++;
+        existingSymbols.add(sym);
+      }
     }
-    console.log("[db] Default watchlist seeded with major world indexes");
+
+    if (added > 0) {
+      console.log(`[db] Added ${added} default world indexes to watchlist`);
+    }
   }
 
   // Assets
@@ -294,6 +319,21 @@ export class MemStorage implements IStorage {
       { symbol: "^AXJO", name: "S&P/ASX 200", assetType: "stock" },
       { symbol: "^BSESN", name: "BSE Sensex", assetType: "stock" },
       { symbol: "^NSEI", name: "Nifty 50", assetType: "stock" },
+      { symbol: "^STOXX50E", name: "EURO STOXX 50", assetType: "stock" },
+      { symbol: "^IBEX", name: "IBEX 35", assetType: "stock" },
+      { symbol: "^AEX", name: "AEX Index", assetType: "stock" },
+      { symbol: "^OMX", name: "OMX Stockholm 30", assetType: "stock" },
+      { symbol: "^SSMI", name: "Swiss Market Index", assetType: "stock" },
+      { symbol: "^KS11", name: "KOSPI Composite Index", assetType: "stock" },
+      { symbol: "^STI", name: "Straits Times Index", assetType: "stock" },
+      { symbol: "^JKSE", name: "Jakarta Composite Index", assetType: "stock" },
+      { symbol: "^KLSE", name: "FTSE Bursa Malaysia KLCI", assetType: "stock" },
+      { symbol: "^SET.BK", name: "SET Index", assetType: "stock" },
+      { symbol: "^TASI.SR", name: "Tadawul All Share Index", assetType: "stock" },
+      { symbol: "^MXX", name: "IPC Mexico", assetType: "stock" },
+      { symbol: "^BVSP", name: "Bovespa Index", assetType: "stock" },
+      { symbol: "^MERV", name: "MERVAL Index", assetType: "stock" },
+      { symbol: "^IPSA", name: "IPSA Index", assetType: "stock" },
     ];
     initialWatchlist.forEach(w => this.createWatchlistItem(w));
   }
