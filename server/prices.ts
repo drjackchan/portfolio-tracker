@@ -369,13 +369,33 @@ export async function fetchCryptoMarketData(ticker: string, currency = "HKD"): P
           }
         } catch {}
 
+        // Always try to attach a logo from CG (CMC doesn't provide images)
+        let logo: string | null = null;
+        if (id) {
+          try {
+            const logoCacheKey = `cg:logo:${id}`;
+            const cachedLogo = getCached<string | null>(logoCacheKey);
+            if (cachedLogo !== undefined) {
+              logo = cachedLogo;
+            } else {
+              const mUrl = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${vs}&ids=${id}`;
+              const mRes = await fetch(mUrl, { signal: AbortSignal.timeout(6000) });
+              if (mRes.ok) {
+                const arr = (await mRes.json()) as any[];
+                logo = arr?.[0]?.image ?? null;
+              }
+              setCached(logoCacheKey, logo, 3600_000); // logo urls rarely change, cache 1h
+            }
+          } catch {}
+        }
+
         const result: MarketData = {
           price: cmc.price,
           change1h: cmc.change1h,
           change24h: cmc.change24h,
           change7d: cmc.change7d,
           sparkline,
-          logo: null, // CMC quotes path doesn't include image; client falls back or CG will provide in other paths
+          logo,
         };
         setCached(cmcCacheKey, result, 90_000);
         return result;
@@ -527,12 +547,9 @@ export async function fetchMarketData(
       group.map(async (a) => ({ a, id: await coinGeckoIdFromSymbol(a.ticker!.trim()) }))
     );
 
-    // Batched CG markets only for coins that still need it (and for ids)
-    const needCgMarkets = resolved.filter((r) => {
-      const t = r.a.ticker!.trim().toUpperCase();
-      const fromCmc = cmcData[t];
-      return !fromCmc || fromCmc.change1h == null; // need CG if CMC didn't give changes
-    });
+    // Always batch CG markets for logos (CoinGecko provides good crypto thumbnails).
+    // Also use for price/changes fallback if CMC is missing or incomplete.
+    const needCgMarkets = resolved.filter((r) => r.id && r.id !== "__stable__");
 
     const cgMarketItems: Record<string, any> = {};
     if (needCgMarkets.length > 0) {
@@ -541,19 +558,16 @@ export async function fetchMarketData(
       if (cachedCg) {
         Object.assign(cgMarketItems, cachedCg);
       } else {
-        const nonStables = needCgMarkets.filter((r) => r.id && r.id !== "__stable__");
-        if (nonStables.length > 0) {
-          try {
-            const idList = nonStables.map((r) => r.id).join(",");
-            const mUrl = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${vs}&ids=${idList}&price_change_percentage=1h%2C24h%2C7d`;
-            const mRes = await fetch(mUrl, { signal: AbortSignal.timeout(10000) });
-            if (mRes.ok) {
-              const arr = (await mRes.json()) as any[];
-              for (const it of arr) if (it?.id) cgMarketItems[it.id] = it;
-              setCached(cgCacheKey, cgMarketItems, 60_000);
-            }
-          } catch {}
-        }
+        try {
+          const idList = needCgMarkets.map((r) => r.id).join(",");
+          const mUrl = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${vs}&ids=${idList}&price_change_percentage=1h%2C24h%2C7d`;
+          const mRes = await fetch(mUrl, { signal: AbortSignal.timeout(10000) });
+          if (mRes.ok) {
+            const arr = (await mRes.json()) as any[];
+            for (const it of arr) if (it?.id) cgMarketItems[it.id] = it;
+            setCached(cgCacheKey, cgMarketItems, 60_000);
+          }
+        } catch {}
       }
     }
 
