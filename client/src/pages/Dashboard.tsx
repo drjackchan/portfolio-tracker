@@ -589,7 +589,6 @@ export default function Dashboard() {
                       expandedGroups={expandedGroups}
                       onToggleGroup={toggleGroup}
                       showActions={false}
-                      showCategory={false}
                       showBuyPrice={true}
                       compact={true}
                     />

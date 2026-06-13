@@ -32,7 +32,6 @@ interface AssetTableProps {
   onSort?: (key: string) => void;
 
   // Visibility
-  showCategory?: boolean;
   showActions?: boolean;
   showBuyPrice?: boolean; // "Buy Price" / "Cost Price"
 
@@ -84,7 +83,6 @@ export function AssetTable({
   sortKey,
   sortDir,
   onSort,
-  showCategory = true,
   showActions = true,
   showBuyPrice = true,
   expandedGroups = new Set(),
@@ -135,14 +133,6 @@ export function AssetTable({
               >
                 Type {getSortIndicator("type")}
               </th>
-              {showCategory && (
-                <th
-                  className={`text-left text-xs text-muted-foreground font-medium px-3 py-3 ${onSort ? "cursor-pointer hover:text-foreground" : ""}`}
-                  onClick={() => handleHeaderClick("category")}
-                >
-                  Category {getSortIndicator("category")}
-                </th>
-              )}
               <th
                 className={`text-right text-xs text-muted-foreground font-medium px-3 py-3 ${onSort ? "cursor-pointer hover:text-foreground" : ""}`}
                 onClick={() => handleHeaderClick("qty")}
@@ -245,7 +235,6 @@ export function AssetTable({
                         {ASSET_TYPE_LABELS[g.representative.assetType] ?? g.representative.assetType}
                       </Badge>
                     </td>
-                    {showCategory && <td className="px-3 py-3 text-muted-foreground text-xs">—</td>}
                     <td className="px-3 py-3 text-right font-mono tabular-nums">{g.totalQty.toLocaleString()}</td>
                     {showBuyPrice && (
                       <td className="px-3 py-3 text-right font-mono tabular-nums text-muted-foreground">—</td>
@@ -347,9 +336,6 @@ export function AssetTable({
                       {ASSET_TYPE_LABELS[(a as Asset).assetType] ?? (a as Asset).assetType}
                     </Badge>
                   </td>
-                  {showCategory && (
-                    <td className="px-3 py-3 text-muted-foreground text-xs">{(a as Asset).category ?? "—"}</td>
-                  )}
                   <td className="px-3 py-3 text-right font-mono tabular-nums">{(a as Asset).quantity.toLocaleString()}</td>
                   {showBuyPrice && (
                     <td className="px-3 py-3 text-right font-mono tabular-nums text-muted-foreground">
@@ -559,7 +545,6 @@ export function AssetTable({
 
               <div className="mt-1.5 flex items-center gap-2">
                 <Badge variant="secondary" className="capitalize text-xs">{ASSET_TYPE_LABELS[a.assetType] ?? a.assetType}</Badge>
-                {a.category && <span className="text-xs text-muted-foreground">{a.category}</span>}
                 <span className="ml-auto text-xs text-muted-foreground font-mono">Qty: {a.quantity.toLocaleString()}</span>
               </div>
             </div>

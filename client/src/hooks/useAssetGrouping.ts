@@ -107,10 +107,6 @@ export function useAssetGrouping(
           va = ga.representative.assetType;
           vb = gb.representative.assetType;
           break;
-        case "category":
-          va = (ga.representative.category || "").toLowerCase();
-          vb = (gb.representative.category || "").toLowerCase();
-          break;
         case "qty":
           va = ga.totalQty;
           vb = gb.totalQty;

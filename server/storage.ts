@@ -235,7 +235,6 @@ export class MemStorage implements IStorage {
         purchasePrice: 150,
         currentPrice: 185,
         currency: "HKD",
-        category: "Tech",
         notes: "Long term hold",
         purchaseDate: "2023-01-15"
       },
@@ -247,7 +246,6 @@ export class MemStorage implements IStorage {
         purchasePrice: 25000,
         currentPrice: 42000,
         currency: "HKD",
-        category: "Crypto",
         notes: "Store of value",
         purchaseDate: "2023-03-10"
       },
@@ -259,7 +257,6 @@ export class MemStorage implements IStorage {
         purchasePrice: 450000,
         currentPrice: 475000,
         currency: "HKD",
-        category: "Real Estate",
         notes: "Rental property",
         purchaseDate: "2022-05-20"
       }

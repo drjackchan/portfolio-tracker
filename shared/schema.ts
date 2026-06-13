@@ -14,7 +14,6 @@ export const assets = pgTable("assets", {
   currency: text("currency").notNull().default("HKD"),
   notes: text("notes"),
   purchaseDate: text("purchase_date"),              // ISO string YYYY-MM-DD
-  category: text("category"),                        // sub-category e.g. "Tech", "DeFi", "Residential"
 });
 
 export const insertAssetSchema = createInsertSchema(assets).omit({ id: true });

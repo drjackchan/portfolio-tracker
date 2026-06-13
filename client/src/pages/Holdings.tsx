@@ -158,7 +158,7 @@ export default function Holdings() {
   const filtered = assets.filter((a) => {
     const q = search.toLowerCase();
     return (
-      (a.name.toLowerCase().includes(q) || (a.ticker ?? "").toLowerCase().includes(q) || (a.category ?? "").toLowerCase().includes(q)) &&
+      (a.name.toLowerCase().includes(q) || (a.ticker ?? "").toLowerCase().includes(q)) &&
       (filterType === "All" || a.assetType === filterType)
     );
   });
@@ -306,7 +306,6 @@ export default function Holdings() {
                 onToggleGroup={toggleGroup}
                 onDelete={(asset) => deleteMutation.mutate(asset.id)}
                 showActions={true}
-                showCategory={true}
               />
             )}
           </CardContent>

@@ -69,7 +69,6 @@ export default function AddEditAsset() {
       currency: "HKD",
       notes: "",
       purchaseDate: "",
-      category: "",
     },
   });
 
@@ -85,7 +84,6 @@ export default function AddEditAsset() {
         currency: existing.currency,
         notes: existing.notes ?? "",
         purchaseDate: existing.purchaseDate ?? "",
-        category: existing.category ?? "",
       });
     }
   }, [existing, form]);
@@ -131,7 +129,6 @@ export default function AddEditAsset() {
       ticker: data.ticker || null,
       notes: data.notes || null,
       purchaseDate: data.purchaseDate || null,
-      category: data.category || null,
     };
     if (isEdit) updateMutation.mutate(clean as any);
     else createMutation.mutate(clean as any);
@@ -216,21 +213,6 @@ export default function AddEditAsset() {
                   )}
                 />
               </div>
-
-              {/* Category */}
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <FormControl>
-                      <Input data-testid="input-category" placeholder="e.g. Technology, Layer 1, Residential" {...field} value={field.value ?? ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               {/* Quantity + Currency */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
