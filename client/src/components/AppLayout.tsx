@@ -148,8 +148,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </nav>
 
       {/* Watchlist preview placed right below the menu items, spanning full sidebar width (no inset) */}
-      <div className="border-t border-sidebar-border py-2 text-sm">
-        <div className="flex items-center justify-between px-3 mb-1">
+      <div className="border-t border-sidebar-border py-2 text-sm flex flex-col flex-1 min-h-0">
+        <div className="flex items-center justify-between px-3 mb-1 flex-shrink-0">
           <span className="font-semibold text-muted-foreground">Watchlist</span>
           <Link href="/watchlist">
             <button className="p-0.5 text-muted-foreground hover:text-foreground" title="Manage Watchlist">
@@ -163,7 +163,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             No items. <Link href="/watchlist" className="underline">Add</Link>
           </div>
         ) : (
-          <div className="max-h-[220px] overflow-y-auto space-y-0.5 text-xs -mx-3">
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-0.5 text-xs -mx-3 px-3">
             {watchlistItems.map((item) => {
               const key = item.symbol.toUpperCase();
               const md = watchlistPrices[key] || {};
