@@ -412,8 +412,8 @@ export default function Dashboard() {
              allocationData.length === 0 ? (
               <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">No assets yet</div>
             ) : (
-              <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2">
-                <div className="flex-shrink-0 mx-auto sm:mx-0 w-[240px] h-[240px] sm:w-[260px] sm:h-[260px]">
+              <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2 w-full">
+                <div className="flex-shrink-0 mx-auto w-full max-w-[300px] aspect-square sm:mx-0 sm:w-[260px] sm:max-w-none sm:aspect-auto sm:h-[260px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie 
@@ -439,7 +439,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Legend: full-width on mobile, beside pie on desktop */}
-                <div className="w-full sm:w-auto sm:flex-1 sm:min-w-0 max-w-[260px] sm:max-w-none space-y-0.5 text-sm">
+                <div className="w-full sm:w-auto sm:flex-1 sm:min-w-0 sm:max-w-none space-y-0.5 text-sm">
                   {allocationData.map((d, i) => {
                     const Icon = ASSET_TYPE_ICONS[d.type] || Folder;
                     const isFeatured = i === 0;
