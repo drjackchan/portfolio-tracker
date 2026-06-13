@@ -125,7 +125,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 py-3 px-2 overflow-y-auto">
+      <nav className="py-3 px-2 overflow-y-auto">
         <ul className="space-y-0.5">
           {navItems.map(({ href, label, icon: Icon }) => (
             <li key={href}>
@@ -145,57 +145,60 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </li>
           ))}
         </ul>
+
+        {/* Watchlist preview right below the menu items */}
+        <div className="border-t border-sidebar-border px-2 py-2 text-xs mt-1">
+          <div className="flex items-center justify-between px-2 mb-1">
+            <span className="font-semibold text-muted-foreground">Watchlist</span>
+            <Link href="/watchlist">
+              <button className="p-0.5 text-muted-foreground hover:text-foreground" title="Manage Watchlist">
+                <Plus className="w-3 h-3" />
+              </button>
+            </Link>
+          </div>
+
+          {watchlistItems.length === 0 ? (
+            <div className="px-2 py-1 text-[10px] text-muted-foreground">
+              No items. <Link href="/watchlist" className="underline">Add</Link>
+            </div>
+          ) : (
+            <div className="max-h-[180px] overflow-y-auto space-y-px text-[10px] pr-1">
+              {watchlistItems.map((item) => {
+                const key = item.symbol.toUpperCase();
+                const md = watchlistPrices[key] || {};
+                const price = md.price;
+                const ch = md.change24h ?? md.change7d;
+                const isPos = ch != null && ch >= 0;
+                const spark = md.sparkline || [];
+                return (
+                  <div key={item.id} className="flex items-center gap-1.5 px-2 py-0.5 rounded hover:bg-sidebar-accent">
+                    <div className="flex-1 min-w-0 leading-tight">
+                      <div className="font-mono font-medium truncate">{item.symbol}</div>
+                      {item.name && <div className="text-muted-foreground truncate text-[9px] leading-none -mt-0.5">{item.name}</div>}
+                    </div>
+                    <div className="w-[42px] h-3 flex-shrink-0">
+                      {spark.length >= 2 ? (
+                        <Sparkline data={spark} positive={isPos} width={42} height={12} />
+                      ) : null}
+                    </div>
+                    <div className="font-mono tabular-nums text-right min-w-[44px] leading-tight">
+                      <div>{price != null ? formatCompact(price) : "—"}</div>
+                      {ch != null && (
+                        <div className={isPos ? "text-[hsl(var(--positive))]" : "text-destructive"}>
+                          {isPos ? "▲" : "▼"}{ch.toFixed(1)}%
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </nav>
 
-      {/* Watchlist (below menu items, like Google Finance sidebar) */}
-      <div className="border-t border-sidebar-border px-2 py-2 text-xs">
-        <div className="flex items-center justify-between px-2 mb-1">
-          <span className="font-semibold text-muted-foreground">Watchlist</span>
-          <Link href="/watchlist">
-            <button className="p-0.5 text-muted-foreground hover:text-foreground" title="Manage Watchlist">
-              <Plus className="w-3 h-3" />
-            </button>
-          </Link>
-        </div>
-
-        {watchlistItems.length === 0 ? (
-          <div className="px-2 py-1 text-[10px] text-muted-foreground">
-            No items. <Link href="/watchlist" className="underline">Add</Link>
-          </div>
-        ) : (
-          <div className="max-h-[180px] overflow-y-auto space-y-px text-[10px] pr-1">
-            {watchlistItems.map((item) => {
-              const key = item.symbol.toUpperCase();
-              const md = watchlistPrices[key] || {};
-              const price = md.price;
-              const ch = md.change24h ?? md.change7d;
-              const isPos = ch != null && ch >= 0;
-              const spark = md.sparkline || [];
-              return (
-                <div key={item.id} className="flex items-center gap-1.5 px-2 py-0.5 rounded hover:bg-sidebar-accent">
-                  <div className="flex-1 min-w-0 leading-tight">
-                    <div className="font-mono font-medium truncate">{item.symbol}</div>
-                    {item.name && <div className="text-muted-foreground truncate text-[9px] leading-none -mt-0.5">{item.name}</div>}
-                  </div>
-                  <div className="w-[42px] h-3 flex-shrink-0">
-                    {spark.length >= 2 ? (
-                      <Sparkline data={spark} positive={isPos} width={42} height={12} />
-                    ) : null}
-                  </div>
-                  <div className="font-mono tabular-nums text-right min-w-[44px] leading-tight">
-                    <div>{price != null ? formatCompact(price) : "—"}</div>
-                    {ch != null && (
-                      <div className={isPos ? "text-[hsl(var(--positive))]" : "text-destructive"}>
-                        {isPos ? "▲" : "▼"}{ch.toFixed(1)}%
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      {/* Spacer to push bottom actions to the very bottom */}
+      <div className="flex-1"></div>
 
       {/* Bottom */}
       <div className="px-3 py-4 border-t border-sidebar-border space-y-2">
