@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 
 const ASSET_TYPE_COLORS: Record<string, string> = {
   stock: "hsl(var(--chart-2))",
@@ -28,6 +28,14 @@ export function TickerLogo({
   size = 28,
 }: TickerLogoProps) {
   const [imgError, setImgError] = useState(false);
+
+  // Reset error state if a (new) logo URL arrives — allows recovery if a previous src 404'd
+  // or if we later get a better logo (e.g. after cache refresh or fallback population).
+  const prevLogo = useRef<string | null | undefined>(logoUrl);
+  if (logoUrl !== prevLogo.current) {
+    prevLogo.current = logoUrl;
+    if (imgError) setImgError(false);
+  }
 
   const showLogo = !!logoUrl && !imgError;
 

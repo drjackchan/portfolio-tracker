@@ -48,6 +48,7 @@ const COINGECKO_ID_MAP: Record<string, string> = {
   ADA: "cardano",
   DOGE: "dogecoin",
   DOT: "polkadot",
+  ETC: "ethereum-classic",
   MATIC: "matic-network",
   SHIB: "shiba-inu",
   LTC: "litecoin",
@@ -661,6 +662,14 @@ export async function fetchMarketData(
           ch1h ??= computed.change1h;
           ch24h ??= computed.change24h;
           ch7d ??= computed.change7d;
+        }
+
+        // Last-resort logo for cryptos (used when CG/CMC logo batch didn't yield one, e.g. due to
+        // temporary rate limits or search not finding an unmapped ticker). Uses a well-known public
+        // icon set. 404s for exotics will be handled gracefully by TickerLogo's onError (falls back to badge).
+        if (!logo && upperT) {
+          const icon = upperT.toLowerCase();
+          logo = `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/32/color/${icon}.png`;
         }
 
         if (price == null) return { assetId: a.id, data: null as MarketData | null };
