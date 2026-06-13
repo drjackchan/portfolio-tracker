@@ -65,22 +65,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const isHKStock = assetType !== "crypto" && s.endsWith(".HK");
 
     if (isIndex) {
-      // Indices (e.g. ^HSI, ^GSPC) — plain number, no unit
-      if (Math.abs(val) >= 1_000_000) return `${(val / 1_000_000).toFixed(1)}M`;
-      if (Math.abs(val) >= 1_000) return `${(val / 1_000).toFixed(0)}K`;
+      // Indices — plain number, no unit (show full value, e.g. 7125 not 7K)
       return new Intl.NumberFormat("en-HK", { minimumFractionDigits: 0 }).format(val);
     }
 
     if (isHKStock) {
-      // HK stocks only
-      if (Math.abs(val) >= 1_000_000) return `HK$${(val / 1_000_000).toFixed(1)}M`;
-      if (Math.abs(val) >= 1_000) return `HK$${(val / 1_000).toFixed(0)}K`;
+      // HK stocks only — full value with HK$
       return new Intl.NumberFormat("en-HK", { style: "currency", currency: "HKD", minimumFractionDigits: 0 }).format(val);
     }
 
-    // Crypto (BTC etc.) and non-HK stocks (NVDA etc.) — USD with $
-    if (Math.abs(val) >= 1_000_000) return `$${(val / 1_000_000).toFixed(1)}M`;
-    if (Math.abs(val) >= 1_000) return `$${(val / 1_000).toFixed(0)}K`;
+    // Crypto (BTC etc.) and non-HK stocks (NVDA etc.) — USD with $ , full value
     return "$" + new Intl.NumberFormat("en-US", { minimumFractionDigits: 0 }).format(val);
   };
 
