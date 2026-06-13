@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus, X, RefreshCw, GripVertical } from "lucide-react";
+import { Plus, X, RefreshCw, GripVertical, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,12 @@ export default function Watchlist() {
   const [newSymbol, setNewSymbol] = useState("");
   const [newType, setNewType] = useState<"stock" | "crypto">("stock");
   const [newName, setNewName] = useState("");
+
+  // Edit state
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editSymbol, setEditSymbol] = useState("");
+  const [editType, setEditType] = useState<"stock" | "crypto">("stock");
+  const [editName, setEditName] = useState("");
 
   const { data: items = [], isLoading } = useQuery<WatchlistItem[]>({
     queryKey: ["/api/watchlist"],
@@ -97,6 +103,23 @@ export default function Watchlist() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: { symbol: string; assetType: string; name?: string } }) =>
+      apiRequest("PATCH", `/api/watchlist/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/watchlist"] });
+      setEditingId(null);
+      setEditSymbol("");
+      setEditName("");
+      toast({ title: "Watchlist item updated" });
+    },
+    onError: (error: any) => {
+      console.error("Update watchlist error:", error);
+      const message = error?.message || error?.response?.data?.message || "Failed to update. Check server logs.";
+      toast({ title: message, variant: "destructive" });
+    },
+  });
+
   const handleAdd = () => {
     const symbol = newSymbol.trim().toUpperCase();
     if (!symbol) {
@@ -114,6 +137,36 @@ export default function Watchlist() {
     if (e.key === "Enter") {
       handleAdd();
     }
+  };
+
+  const startEdit = (item: WatchlistItem) => {
+    setEditingId(item.id);
+    setEditSymbol(item.symbol);
+    setEditType(item.assetType as "stock" | "crypto");
+    setEditName(item.name || "");
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditSymbol("");
+    setEditName("");
+  };
+
+  const handleUpdate = () => {
+    if (!editingId) return;
+    const symbol = editSymbol.trim().toUpperCase();
+    if (!symbol) {
+      toast({ title: "Symbol is required", variant: "destructive" });
+      return;
+    }
+    updateMutation.mutate({
+      id: editingId,
+      data: {
+        symbol,
+        assetType: editType,
+        name: editName.trim() || undefined,
+      },
+    });
   };
 
   const formatPrice = (price: number | null | undefined, symbol: string, assetType: string) => {
@@ -249,19 +302,23 @@ export default function Watchlist() {
                 const ticker = item.symbol.replace(/^\^/, '');
 
                 const isDragging = draggedIndex === index;
+                const isEditing = editingId === item.id;
 
                 const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+                  if (isEditing) return;
                   setDraggedIndex(index);
                   e.dataTransfer.setData("text/plain", index.toString());
                   e.dataTransfer.effectAllowed = "move";
                 };
 
                 const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+                  if (isEditing) return;
                   e.preventDefault();
                   e.dataTransfer.dropEffect = "move";
                 };
 
                 const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+                  if (isEditing) return;
                   e.preventDefault();
                   const dragIndexStr = e.dataTransfer.getData("text/plain");
                   const dragIndex = parseInt(dragIndexStr, 10);
@@ -288,69 +345,128 @@ export default function Watchlist() {
                 return (
                   <div
                     key={item.id}
-                    draggable
+                    draggable={!isEditing}
                     onDragStart={handleDragStart}
                     onDragOver={handleDragOver}
                     onDrop={handleDrop}
                     onDragEnd={handleDragEnd}
-                    className={`flex items-center px-4 py-4 gap-3 hover:bg-muted/30 transition-colors cursor-grab active:cursor-grabbing ${isDragging ? "opacity-50 bg-muted/40" : ""}`}
+                    className={`flex items-center px-4 py-4 gap-3 hover:bg-muted/30 transition-colors ${isEditing ? "" : "cursor-grab active:cursor-grabbing"} ${isDragging ? "opacity-50 bg-muted/40" : ""}`}
                   >
-                    {/* Drag handle */}
-                    <div className="text-muted-foreground/70 hover:text-muted-foreground flex-shrink-0 py-1" title="Drag to reorder">
-                      <GripVertical className="w-4 h-4" />
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-2 min-w-0">
-                        <span className="font-semibold text-lg truncate">{displayName}</span>
-                        {item.name && (
-                          <span className="font-mono text-xs text-muted-foreground flex-shrink-0">
-                            {ticker}
-                          </span>
-                        )}
+                    {/* Drag handle - hidden while editing */}
+                    {!isEditing && (
+                      <div className="text-muted-foreground/70 hover:text-muted-foreground flex-shrink-0 py-1" title="Drag to reorder">
+                        <GripVertical className="w-4 h-4" />
                       </div>
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {ASSET_TYPE_LABELS[item.assetType] ?? item.assetType}
-                      </div>
-                    </div>
+                    )}
 
-                    {/* Sparkline */}
-                    <div className="w-24 h-9 flex-shrink-0">
-                      {spark.length > 1 ? (
-                        <Sparkline
-                          data={spark}
-                          positive={isUp}
-                          width={96}
-                          height={36}
-                        />
-                      ) : (
-                        <div className="h-full w-full border border-dashed border-muted-foreground/30 rounded flex items-center justify-center text-xs text-muted-foreground/60">—</div>
-                      )}
-                    </div>
-
-                    {/* Price & Change */}
-                    <div className="text-right min-w-[100px]">
-                      <div className="font-mono font-semibold tabular-nums text-lg">
-                        {formatPrice(price, item.symbol, item.assetType)}
-                      </div>
-                      {change !== null ? (
-                        <div className={`text-sm font-mono flex items-center justify-end gap-0.5 mt-0.5 ${isUp ? "text-[hsl(var(--positive))]" : "text-destructive"}`}>
-                          {isUp ? "▲" : "▼"} {change.toFixed(2)}%
+                    {isEditing ? (
+                      /* Edit mode */
+                      <div className="flex-1 min-w-0 flex flex-col sm:flex-row gap-2 items-end">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[10px] text-muted-foreground mb-0.5">Symbol</div>
+                          <Input
+                            value={editSymbol}
+                            onChange={(e) => setEditSymbol(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Enter") handleUpdate(); if (e.key === "Escape") cancelEdit(); }}
+                            className="font-mono text-sm h-8"
+                            placeholder="Symbol"
+                          />
                         </div>
-                      ) : (
-                        <div className="text-sm text-muted-foreground mt-0.5">—</div>
-                      )}
-                    </div>
+                        <div className="w-full sm:w-28">
+                          <div className="text-[10px] text-muted-foreground mb-0.5">Type</div>
+                          <Select value={editType} onValueChange={(v: "stock" | "crypto") => setEditType(v)}>
+                            <SelectTrigger className="h-8 text-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="stock">Stock</SelectItem>
+                              <SelectItem value="crypto">Crypto</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[10px] text-muted-foreground mb-0.5">Name (opt)</div>
+                          <Input
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Enter") handleUpdate(); if (e.key === "Escape") cancelEdit(); }}
+                            className="text-sm h-8"
+                            placeholder="Name"
+                          />
+                        </div>
+                        <div className="flex gap-1 flex-shrink-0">
+                          <Button size="sm" onClick={handleUpdate} disabled={updateMutation.isPending}>
+                            Save
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={cancelEdit}>
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-2 min-w-0">
+                            <span className="font-semibold text-lg truncate">{displayName}</span>
+                            {item.name && (
+                              <span className="font-mono text-xs text-muted-foreground flex-shrink-0">
+                                {ticker}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            {ASSET_TYPE_LABELS[item.assetType] ?? item.assetType}
+                          </div>
+                        </div>
 
-                    <button
-                      onClick={() => deleteMutation.mutate(item.id)}
-                      className="p-1 text-muted-foreground hover:text-destructive transition-colors flex-shrink-0"
-                      aria-label="Remove from watchlist"
-                      data-testid={`remove-watchlist-${item.id}`}
-                      onDragStart={(e) => e.stopPropagation()}
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+                        {/* Sparkline */}
+                        <div className="w-24 h-9 flex-shrink-0">
+                          {spark.length > 1 ? (
+                            <Sparkline
+                              data={spark}
+                              positive={isUp}
+                              width={96}
+                              height={36}
+                            />
+                          ) : (
+                            <div className="h-full w-full border border-dashed border-muted-foreground/30 rounded flex items-center justify-center text-xs text-muted-foreground/60">—</div>
+                          )}
+                        </div>
+
+                        {/* Price & Change */}
+                        <div className="text-right min-w-[100px]">
+                          <div className="font-mono font-semibold tabular-nums text-lg">
+                            {formatPrice(price, item.symbol, item.assetType)}
+                          </div>
+                          {change !== null ? (
+                            <div className={`text-sm font-mono flex items-center justify-end gap-0.5 mt-0.5 ${isUp ? "text-[hsl(var(--positive))]" : "text-destructive"}`}>
+                              {isUp ? "▲" : "▼"} {change.toFixed(2)}%
+                            </div>
+                          ) : (
+                            <div className="text-sm text-muted-foreground mt-0.5">—</div>
+                          )}
+                        </div>
+
+                        <button
+                          onClick={() => startEdit(item)}
+                          className="p-1 text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+                          aria-label="Edit watchlist item"
+                          title="Edit"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+
+                        <button
+                          onClick={() => deleteMutation.mutate(item.id)}
+                          className="p-1 text-muted-foreground hover:text-destructive transition-colors flex-shrink-0"
+                          aria-label="Remove from watchlist"
+                          data-testid={`remove-watchlist-${item.id}`}
+                          onDragStart={(e) => e.stopPropagation()}
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 );
               })}

@@ -46,6 +46,7 @@ export interface IStorage {
   // Watchlist
   getWatchlist(): Promise<WatchlistItem[]>;
   createWatchlistItem(item: InsertWatchlist): Promise<WatchlistItem>;
+  updateWatchlistItem(id: number, updates: Partial<InsertWatchlist>): Promise<WatchlistItem>;
   deleteWatchlistItem(id: number): Promise<void>;
   reorderWatchlist(orderedIds: number[]): Promise<void>;
 }
@@ -197,6 +198,15 @@ export class DatabaseStorage implements IStorage {
 
   async deleteWatchlistItem(id: number): Promise<void> {
     await this.db.delete(watchlist).where(eq(watchlist.id, id));
+  }
+
+  async updateWatchlistItem(id: number, updates: Partial<InsertWatchlist>): Promise<WatchlistItem> {
+    const [updated] = await this.db
+      .update(watchlist)
+      .set(updates)
+      .where(eq(watchlist.id, id))
+      .returning();
+    return updated;
   }
 
   async reorderWatchlist(orderedIds: number[]): Promise<void> {
@@ -356,6 +366,15 @@ export class MemStorage implements IStorage {
     this.watchlist.set(w.id, w);
     return w;
   }
+
+  async updateWatchlistItem(id: number, updates: Partial<InsertWatchlist>): Promise<WatchlistItem> {
+    const existing = this.watchlist.get(id);
+    if (!existing) throw new Error("Watchlist item not found");
+    const updated: WatchlistItem = { ...existing, ...updates };
+    this.watchlist.set(id, updated);
+    return updated;
+  }
+
   async deleteWatchlistItem(id: number): Promise<void> { this.watchlist.delete(id); }
 
   async reorderWatchlist(orderedIds: number[]): Promise<void> {

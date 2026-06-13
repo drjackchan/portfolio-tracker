@@ -104,4 +104,8 @@ export const watchlist = pgTable("watchlist", {
 
 export const insertWatchlistSchema = createInsertSchema(watchlist).omit({ id: true, createdAt: true, position: true });
 export type InsertWatchlist = z.infer<typeof insertWatchlistSchema>;
+
+export const updateWatchlistSchema = insertWatchlistSchema.partial();
+export type UpdateWatchlist = z.infer<typeof updateWatchlistSchema>;
+
 export type WatchlistItem = typeof watchlist.$inferSelect;

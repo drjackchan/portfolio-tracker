@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import { storage } from "./storage";
-import { insertAssetSchema, insertTransactionSchema, insertLiabilitySchema, insertSubscriptionSchema, updateAssetSchema, insertWatchlistSchema } from "../shared/schema";
+import { insertAssetSchema, insertTransactionSchema, insertLiabilitySchema, insertSubscriptionSchema, updateAssetSchema, insertWatchlistSchema, updateWatchlistSchema } from "../shared/schema";
 import { fetchPrices, fetchStockPrice, fetchCryptoPrice, fetchMarketData, fetchStockMarketData, fetchCryptoMarketData, fetchMarketNews } from "./prices";
 import { takeSnapshot } from "./snapshot";
 import { requireAuth, handleLogin, handleLogout, handleAuthCheck } from "./auth";
@@ -127,6 +127,18 @@ app.post("/api/watchlist", async (req, res) => {
     res.status(201).json(item);
   } catch (e: any) {
     res.status(500).json({ message: e.message });
+  }
+});
+
+app.patch("/api/watchlist/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const result = updateWatchlistSchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
+    const item = await storage.updateWatchlistItem(id, result.data);
+    res.json(item);
+  } catch (e: any) {
+    res.status(404).json({ message: e.message || "Not found" });
   }
 });
 
