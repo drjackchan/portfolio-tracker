@@ -2,7 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import type { ComponentType } from "react";
 import { Link } from "wouter";
 import {
-  TrendingUp, TrendingDown, Plus, DollarSign,
+  TrendingUp, TrendingDown, DollarSign,
   BarChart3, Percent, RefreshCw, Camera,
   CalendarDays, CalendarRange, CreditCard, Briefcase, Wallet,
   Home, Coins, Gem, Folder
@@ -360,13 +360,6 @@ export default function Dashboard() {
             <span className="hidden sm:inline">{snapshotMutation.isPending ? "Saving…" : "Take Snapshot"}</span>
             <span className="sm:hidden">Snap</span>
           </Button>
-          <Link href="/holdings/new">
-            <Button size="sm" data-testid="add-asset-btn">
-              <Plus className="w-4 h-4 mr-1.5" />
-              <span className="hidden sm:inline">Add Asset</span>
-              <span className="sm:hidden">Add</span>
-            </Button>
-          </Link>
         </div>
       </div>
 
