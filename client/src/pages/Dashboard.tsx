@@ -466,7 +466,7 @@ export default function Dashboard() {
         </Card>
 
         {/* Net Worth History (right) */}
-        <Card>
+        <Card className="flex flex-col">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <CardTitle className="text-sm font-semibold">Net Worth History</CardTitle>
@@ -483,48 +483,50 @@ export default function Dashboard() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="px-2 sm:px-4 pb-4">
+          <CardContent className="flex-1 min-h-0 flex flex-col px-2 sm:px-4 pb-4">
             {snapsLoading ? (
-              <Skeleton className="h-52 w-full" />
+              <Skeleton className="flex-1 min-h-[220px] w-full" />
             ) : chartData.length < 2 ? (
-              <div className="h-52 flex flex-col items-center justify-center text-muted-foreground text-sm gap-2">
+              <div className="flex-1 min-h-[220px] flex flex-col items-center justify-center text-muted-foreground text-sm gap-2">
                 <BarChart3 className="w-8 h-8 opacity-30" />
                 <p>No history yet.</p>
                 <p className="text-xs">Click <strong>Take Snapshot</strong> to record today's net worth — the daily cron will do it automatically every night.</p>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={220}>
-                <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="valueGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.25} />
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                    tickLine={false} axisLine={false}
-                    interval={Math.max(0, Math.floor(chartData.length / 6) - 1)} />
-                  <YAxis
-                    domain={[chartMin, chartMax]}
-                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                    tickLine={false} axisLine={false}
-                    tickFormatter={(v) => {
-                      const abs = Math.abs(v);
-                      if (abs >= 1_000_000) return `HK$${(v / 1_000_000).toFixed(1)}M`;
-                      if (abs >= 1_000) return `HK$${(v / 1_000).toFixed(0)}K`;
-                      return `HK$${v.toFixed(0)}`;
-                    }}
-                    width={64}
-                  />
-                  <Tooltip content={<ChartTooltip />} />
-                  <Area
-                    type="monotone" dataKey="value"
-                    stroke="hsl(var(--primary))" strokeWidth={2}
-                    fill="url(#valueGrad)" dot={false} activeDot={{ r: 4 }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              <div className="flex-1 min-h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="valueGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.25} />
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                      tickLine={false} axisLine={false}
+                      interval={Math.max(0, Math.floor(chartData.length / 6) - 1)} />
+                    <YAxis
+                      domain={[chartMin, chartMax]}
+                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                      tickLine={false} axisLine={false}
+                      tickFormatter={(v) => {
+                        const abs = Math.abs(v);
+                        if (abs >= 1_000_000) return `HK$${(v / 1_000_000).toFixed(1)}M`;
+                        if (abs >= 1_000) return `HK$${(v / 1_000).toFixed(0)}K`;
+                        return `HK$${v.toFixed(0)}`;
+                      }}
+                      width={64}
+                    />
+                    <Tooltip content={<ChartTooltip />} />
+                    <Area
+                      type="monotone" dataKey="value"
+                      stroke="hsl(var(--primary))" strokeWidth={2}
+                      fill="url(#valueGrad)" dot={false} activeDot={{ r: 4 }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
             )}
           </CardContent>
         </Card>
