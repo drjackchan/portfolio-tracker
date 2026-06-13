@@ -162,7 +162,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               No items. <Link href="/watchlist" className="underline">Add</Link>
             </div>
           ) : (
-            <div className="max-h-[220px] overflow-y-auto space-y-0.5 text-xs">
+            <div className="-mx-2 max-h-[220px] overflow-y-auto space-y-0.5 text-xs px-2">
               {watchlistItems.map((item) => {
                 const key = item.symbol.toUpperCase();
                 const md = watchlistPrices[key] || {};
@@ -171,7 +171,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 const isPos = ch != null && ch >= 0;
                 const spark = md.sparkline || [];
                 return (
-                  <div key={item.id} className="flex items-center gap-2 px-3 py-1 rounded hover:bg-sidebar-accent">
+                  <div key={item.id} className="flex items-center gap-2 -mx-2 px-3 py-1 rounded hover:bg-sidebar-accent">
                     <div className="flex-1 min-w-0 leading-tight">
                       <div className="font-mono font-semibold text-sm truncate">{item.symbol.replace(/^\^/, '')}</div>
                       {item.name && <div className="text-muted-foreground truncate text-[10px] leading-none -mt-0.5">{item.name}</div>}
