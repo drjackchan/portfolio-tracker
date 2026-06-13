@@ -412,16 +412,16 @@ export default function Dashboard() {
              allocationData.length === 0 ? (
               <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">No assets yet</div>
             ) : (
-              <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2">
-                <div className="flex-shrink-0 mx-auto sm:mx-0 w-[220px] h-[220px] sm:w-[260px] sm:h-[260px]">
+              <div className="flex flex-col items-center gap-3 py-1 w-full">
+                <div className="flex-shrink-0 mx-auto w-[240px] h-[240px] sm:w-[260px] sm:h-[260px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie 
                         data={allocationData} 
                         cx="50%" 
                         cy="50%" 
-                        innerRadius={75} 
-                        outerRadius={110} 
+                        innerRadius={72} 
+                        outerRadius={105} 
                         paddingAngle={3} 
                         dataKey="value"
                         activeIndex={activePieIndex}
@@ -437,29 +437,44 @@ export default function Dashboard() {
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-                <ul className="space-y-1 w-full sm:flex-1 sm:min-w-0 sm:max-w-[240px]">
-                  {allocationData.map((d, i) => (
-                    <li 
-                      key={d.name} 
-                      className={`flex items-center justify-between p-1.5 rounded-lg transition-all cursor-pointer ${
-                        activePieIndex === i ? "bg-sidebar-accent shadow-sm scale-[1.02]" : "hover:bg-muted/50"
-                      }`}
-                      onMouseEnter={() => setActivePieIndex(i)}
-                    >
-                      <div className="flex items-center gap-2 overflow-hidden">
-                        {(() => {
-                          const Icon = ASSET_TYPE_ICONS[d.type] || Folder;
-                          return <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: d.color }} />;
-                        })()}
-                        <span className="text-xs font-medium text-foreground truncate">{d.name}</span>
+
+                {/* Legend styled to match reference */}
+                <div className="w-full max-w-[260px] space-y-0.5 text-sm">
+                  {allocationData.map((d, i) => {
+                    const Icon = ASSET_TYPE_ICONS[d.type] || Folder;
+                    const isFeatured = i === 0;
+                    const valueStr = fmtCcy(d.value, true);
+                    const pctStr = `${d.pct.toFixed(1)}%`;
+
+                    if (isFeatured) {
+                      return (
+                        <div key={d.name} className="flex items-center justify-between rounded-2xl bg-muted px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <Icon className="h-4 w-4" style={{ color: d.color }} />
+                            <span className="font-medium text-foreground">{d.name}</span>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-semibold tabular-nums text-[13px]">{valueStr}</div>
+                            <div className="text-[10px] text-muted-foreground tabular-nums leading-none">{pctStr}</div>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div key={d.name} className="flex items-center justify-between px-1 py-1">
+                        <div className="flex items-center gap-2">
+                          <Icon className="h-3.5 w-3.5" style={{ color: d.color }} />
+                          <span className="text-muted-foreground">{d.name}</span>
+                        </div>
+                        <div className="text-right font-mono">
+                          <div className="text-[13px] font-medium tabular-nums">{valueStr}</div>
+                          <div className="text-[10px] text-muted-foreground tabular-nums leading-none">{pctStr}</div>
+                        </div>
                       </div>
-                      <div className="text-right flex-shrink-0 ml-2">
-                        <div className="text-xs font-semibold font-mono tabular-nums leading-tight">{fmtCcy(d.value, true)}</div>
-                        <div className="text-[10px] font-mono text-muted-foreground">{d.pct.toFixed(1)}%</div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </CardContent>
