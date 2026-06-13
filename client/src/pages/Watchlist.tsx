@@ -239,6 +239,8 @@ export default function Watchlist() {
                 const change = md?.change24h ?? md?.change7d ?? null; // prefer 24h
                 const isUp = change !== null && change >= 0;
                 const spark = md?.sparkline || [];
+                const displayName = item.name || item.symbol.replace(/^\^/, '');
+                const ticker = item.symbol.replace(/^\^/, '');
 
                 const isDragging = draggedIndex === index;
 
@@ -293,10 +295,12 @@ export default function Watchlist() {
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-2">
-                        <span className="font-semibold font-mono text-lg">{item.symbol.replace(/^\^/, '')}</span>
+                      <div className="flex items-baseline gap-2 min-w-0">
+                        <span className="font-semibold text-lg truncate">{displayName}</span>
                         {item.name && (
-                          <span className="text-sm text-muted-foreground truncate">{item.name}</span>
+                          <span className="font-mono text-xs text-muted-foreground flex-shrink-0">
+                            {ticker}
+                          </span>
                         )}
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5">

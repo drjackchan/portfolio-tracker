@@ -196,11 +196,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               const ch = md.change24h ?? md.change7d;
               const isPos = ch != null && ch >= 0;
               const spark = md.sparkline || [];
+              const displayName = item.name || item.symbol.replace(/^\^/, '');
+              const ticker = item.symbol.replace(/^\^/, '');
               return (
                 <div key={item.id} className="flex items-center gap-2 -ml-3 pl-3 pr-3 py-1 rounded hover:bg-sidebar-accent">
                   <div className="flex-1 min-w-0 leading-tight">
-                    <div className="font-mono font-semibold text-sm truncate">{item.symbol.replace(/^\^/, '')}</div>
-                    {item.name && <div className="text-muted-foreground truncate text-[10px] leading-none -mt-0.5">{item.name}</div>}
+                    <div className="font-semibold text-sm truncate">{displayName}</div>
+                    {item.name && (
+                      <div className="font-mono text-muted-foreground truncate text-[10px] leading-none -mt-0.5">
+                        {ticker}
+                      </div>
+                    )}
                   </div>
                   <div className="w-11 h-4 flex-shrink-0">
                     {spark.length >= 2 ? (
