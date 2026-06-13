@@ -147,7 +147,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </ul>
       </nav>
 
-      {/* Watchlist preview placed right below the menu items, spanning full sidebar width (no inset) */}
+      {/* Watchlist preview placed right below the menu items.
+          This section now grows to fill all available height in the sidebar
+          (between the main nav and the bottom actions). */}
       <div className="border-t border-sidebar-border py-2 text-sm flex flex-col flex-1 min-h-0">
         <div className="flex items-center justify-between px-3 mb-1 flex-shrink-0">
           <span className="font-semibold text-muted-foreground">Watchlist</span>
@@ -163,7 +165,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             No items. <Link href="/watchlist" className="underline">Add</Link>
           </div>
         ) : (
-          <div className="flex-1 min-h-0 overflow-y-auto space-y-0.5 text-xs -mx-3 px-3">
+          <div 
+            className="flex-1 min-h-0 overflow-y-auto space-y-0.5 text-xs -mx-3 px-3 
+                       [scrollbar-width:thin] 
+                       [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full 
+                       [&::-webkit-scrollbar-thumb]:bg-sidebar-border/40 
+                       hover:[&::-webkit-scrollbar-thumb]:bg-sidebar-border/70"
+          >
             {watchlistItems.map((item) => {
               const key = item.symbol.toUpperCase();
               const md = watchlistPrices[key] || {};
@@ -196,9 +204,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         )}
       </div>
-
-      {/* Spacer to push bottom actions to the very bottom */}
-      <div className="flex-1"></div>
 
       {/* Bottom */}
       <div className="px-3 py-4 border-t border-sidebar-border space-y-2">
