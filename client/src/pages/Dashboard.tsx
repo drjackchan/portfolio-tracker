@@ -84,6 +84,15 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-HK", { month: "short", day: "numeric" });
 }
 
+function formatNewsTime(iso: string) {
+  const d = new Date(iso);
+  const diffSec = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (diffSec < 60) return "just now";
+  if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
+  if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
+  return d.toLocaleDateString("en-HK", { month: "short", day: "numeric" });
+}
+
 // ── Sub-components ────────────────────────────────────────────────────────────
 function KpiCard({
   title, value, sub, positive, icon: Icon, loading, subLabel,
@@ -213,6 +222,19 @@ export default function Dashboard() {
     queryKey: ["/api/prices/market-data"],
     enabled: assets.length > 0,
     staleTime: 1000 * 60 * 3,
+    refetchOnWindowFocus: false,
+  });
+
+  // Crypto & financial market news
+  const { data: news = [], isLoading: newsLoading } = useQuery<Array<{
+    title: string;
+    source: string;
+    url: string;
+    publishedAt: string;
+    imageUrl?: string | null;
+  }>>({
+    queryKey: ["/api/news"],
+    staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
   });
 
@@ -546,6 +568,61 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Crypto & Financial Market News */}
+      <Card className="mt-4 sm:mt-6">
+        <CardHeader className="pb-1.5">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-semibold">Crypto & Market News</CardTitle>
+            <span className="text-[10px] text-muted-foreground">via CryptoCompare</span>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {newsLoading ? (
+            <div className="p-4 space-y-2">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-10 bg-muted/40 rounded" />
+              ))}
+            </div>
+          ) : news.length === 0 ? (
+            <div className="px-4 py-6 text-sm text-muted-foreground">No news available at the moment.</div>
+          ) : (
+            <div className="divide-y divide-border text-sm">
+              {news.slice(0, 5).map((item, idx) => (
+                <a
+                  key={idx}
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex gap-3 px-4 py-3 hover:bg-muted/60 transition-colors group"
+                >
+                  {item.imageUrl && (
+                    <img
+                      src={item.imageUrl}
+                      alt=""
+                      className="w-9 h-9 rounded object-cover flex-shrink-0 bg-muted ring-1 ring-border/50"
+                      loading="lazy"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium leading-tight line-clamp-2 group-hover:underline text-[13px]">
+                      {item.title}
+                    </div>
+                    <div className="mt-1 flex items-center gap-x-1.5 text-[10px] text-muted-foreground">
+                      <span className="truncate">{item.source}</span>
+                      <span className="text-muted-foreground/60">•</span>
+                      <span>{formatNewsTime(item.publishedAt)}</span>
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* All Holdings table — desktop only */}
       <Card>

@@ -4,7 +4,7 @@ import cookieParser from "cookie-parser";
 import { storage } from "./storage";
 import { insertAssetSchema, insertTransactionSchema, insertLiabilitySchema, insertSubscriptionSchema, updateAssetSchema, insertWatchlistSchema } from "@shared/schema";
 import { z } from "zod";
-import { fetchPrices, fetchStockPrice, fetchCryptoPrice, fetchMarketData, fetchStockMarketData, fetchCryptoMarketData } from "./prices";
+import { fetchPrices, fetchStockPrice, fetchCryptoPrice, fetchMarketData, fetchStockMarketData, fetchCryptoMarketData, fetchMarketNews } from "./prices";
 import { takeSnapshot } from "./snapshot";
 import { runMigrations } from "../db/migrate";
 import { requireAuth, handleLogin, handleLogout, handleAuthCheck } from "./auth";
@@ -274,6 +274,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         }
       }
       res.json(results);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // Crypto + financial market news (powered by CryptoCompare public feed)
+  app.get("/api/news", async (_req, res) => {
+    try {
+      const news = await fetchMarketNews(8);
+      res.json(news);
     } catch (e: any) {
       res.status(500).json({ message: e.message });
     }

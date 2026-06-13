@@ -682,3 +682,47 @@ export async function fetchMarketData(
 
   return results;
 }
+
+// ─── Market News (Crypto + Financial) ────────────────────────────────────────
+
+export interface MarketNewsItem {
+  title: string;
+  source: string;
+  url: string;
+  publishedAt: string; // ISO
+  imageUrl?: string | null;
+}
+
+const NEWS_CACHE_KEY = "market:news:v1";
+
+export async function fetchMarketNews(limit = 6): Promise<MarketNewsItem[]> {
+  const cached = getCached<MarketNewsItem[]>(NEWS_CACHE_KEY);
+  if (cached) return cached.slice(0, limit);
+
+  try {
+    const res = await fetch("https://min-api.cryptocompare.com/data/v2/news/?lang=EN", {
+      headers: { "User-Agent": "PortfolioTrack/1.0" },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) throw new Error(`News API responded ${res.status}`);
+
+    const json = (await res.json()) as any;
+    const rawItems: any[] = json?.Data ?? [];
+
+    const items: MarketNewsItem[] = rawItems
+      .filter((n) => n && n.title && n.url)
+      .map((n) => ({
+        title: String(n.title).trim(),
+        source: String(n.source || "CryptoCompare"),
+        url: String(n.url),
+        publishedAt: new Date((n.published_on || Date.now() / 1000) * 1000).toISOString(),
+        imageUrl: n.imageurl ? String(n.imageurl) : null,
+      }));
+
+    setCached(NEWS_CACHE_KEY, items, 1000 * 60 * 6); // 6 minutes
+    return items.slice(0, limit);
+  } catch (e) {
+    console.error("[news] fetch failed:", e);
+    return [];
+  }
+}
