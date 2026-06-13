@@ -61,7 +61,7 @@ const ASSET_TYPE_LABELS: Record<string, string> = {
 
 const FILTER_TYPES = ["All", "stock", "crypto", "property", "cash", "commodity", "other"] as const;
 
-const ASSET_TYPE_ICONS: Record<string, ComponentType<{ className?: string }>> = {
+const ASSET_TYPE_ICONS: Record<string, ComponentType<any>> = {
   stock: BarChart3,
   crypto: Coins,
   property: Home,

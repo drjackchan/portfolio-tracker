@@ -37,7 +37,7 @@ const ASSET_TYPE_COLORS: Record<string, string> = {
   commodity: "hsl(var(--chart-6))",
 };
 
-const ASSET_TYPE_ICONS: Record<string, ComponentType<{ className?: string }>> = {
+const ASSET_TYPE_ICONS: Record<string, ComponentType<any>> = {
   stock: BarChart3,
   crypto: Coins,
   property: Home,

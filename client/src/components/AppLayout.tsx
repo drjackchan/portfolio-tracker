@@ -20,7 +20,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { toHkd } from "@/lib/utils";
 import { Sparkline } from "@/components/Sparkline";
 import { useAuth } from "../App";
-import type { Asset, Liability, Snapshot, WatchlistItem } from "@shared/schema";
+import type { Asset, Liability, WatchlistItem, PortfolioSnapshot as Snapshot } from "@shared/schema";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -124,8 +124,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      {/* Nav */}
-      <nav className="py-3 px-2 overflow-y-auto">
+      {/* Nav (menu only) */}
+      <nav className="py-3 px-2">
         <ul className="space-y-0.5">
           {navItems.map(({ href, label, icon: Icon }) => (
             <li key={href}>
@@ -145,57 +145,57 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </li>
           ))}
         </ul>
-
-        {/* Watchlist preview right below the menu items */}
-        <div className="-mx-2 border-t border-sidebar-border px-2 py-2 text-sm mt-1">
-          <div className="flex items-center justify-between px-3 mb-1">
-            <span className="font-semibold text-muted-foreground">Watchlist</span>
-            <Link href="/watchlist">
-              <button className="p-0.5 text-muted-foreground hover:text-foreground" title="Manage Watchlist">
-                <Plus className="w-3.5 h-3.5" />
-              </button>
-            </Link>
-          </div>
-
-          {watchlistItems.length === 0 ? (
-            <div className="px-3 py-1 text-xs text-muted-foreground">
-              No items. <Link href="/watchlist" className="underline">Add</Link>
-            </div>
-          ) : (
-            <div className="-mx-2 max-h-[220px] overflow-y-auto space-y-0.5 text-xs px-2">
-              {watchlistItems.map((item) => {
-                const key = item.symbol.toUpperCase();
-                const md = watchlistPrices[key] || {};
-                const price = md.price;
-                const ch = md.change24h ?? md.change7d;
-                const isPos = ch != null && ch >= 0;
-                const spark = md.sparkline || [];
-                return (
-                  <div key={item.id} className="flex items-center gap-2 -mx-2 px-3 py-1 rounded hover:bg-sidebar-accent">
-                    <div className="flex-1 min-w-0 leading-tight">
-                      <div className="font-mono font-semibold text-sm truncate">{item.symbol.replace(/^\^/, '')}</div>
-                      {item.name && <div className="text-muted-foreground truncate text-[10px] leading-none -mt-0.5">{item.name}</div>}
-                    </div>
-                    <div className="w-11 h-4 flex-shrink-0">
-                      {spark.length >= 2 ? (
-                        <Sparkline data={spark} positive={isPos} width={44} height={16} />
-                      ) : null}
-                    </div>
-                    <div className="font-mono tabular-nums text-right min-w-[52px] leading-tight">
-                      <div className="text-xs font-semibold">{price != null ? formatCompact(price) : "—"}</div>
-                      {ch != null && (
-                        <div className={`text-[10px] ${isPos ? "text-[hsl(var(--positive))]" : "text-destructive"}`}>
-                          {isPos ? "▲" : "▼"}{ch.toFixed(1)}%
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
       </nav>
+
+      {/* Watchlist preview placed right below the menu items, spanning full sidebar width (no inset) */}
+      <div className="border-t border-sidebar-border py-2 text-sm">
+        <div className="flex items-center justify-between px-3 mb-1">
+          <span className="font-semibold text-muted-foreground">Watchlist</span>
+          <Link href="/watchlist">
+            <button className="p-0.5 text-muted-foreground hover:text-foreground" title="Manage Watchlist">
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          </Link>
+        </div>
+
+        {watchlistItems.length === 0 ? (
+          <div className="px-3 py-1 text-xs text-muted-foreground">
+            No items. <Link href="/watchlist" className="underline">Add</Link>
+          </div>
+        ) : (
+          <div className="max-h-[220px] overflow-y-auto space-y-0.5 text-xs -mx-3">
+            {watchlistItems.map((item) => {
+              const key = item.symbol.toUpperCase();
+              const md = watchlistPrices[key] || {};
+              const price = md.price;
+              const ch = md.change24h ?? md.change7d;
+              const isPos = ch != null && ch >= 0;
+              const spark = md.sparkline || [];
+              return (
+                <div key={item.id} className="flex items-center gap-2 px-3 py-1 rounded hover:bg-sidebar-accent">
+                  <div className="flex-1 min-w-0 leading-tight">
+                    <div className="font-mono font-semibold text-sm truncate">{item.symbol.replace(/^\^/, '')}</div>
+                    {item.name && <div className="text-muted-foreground truncate text-[10px] leading-none -mt-0.5">{item.name}</div>}
+                  </div>
+                  <div className="w-11 h-4 flex-shrink-0">
+                    {spark.length >= 2 ? (
+                      <Sparkline data={spark} positive={isPos} width={44} height={16} />
+                    ) : null}
+                  </div>
+                  <div className="font-mono tabular-nums text-right min-w-[52px] leading-tight">
+                    <div className="text-xs font-semibold">{price != null ? formatCompact(price) : "—"}</div>
+                    {ch != null && (
+                      <div className={`text-[10px] ${isPos ? "text-[hsl(var(--positive))]" : "text-destructive"}`}>
+                        {isPos ? "▲" : "▼"}{ch.toFixed(1)}%
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Spacer to push bottom actions to the very bottom */}
       <div className="flex-1"></div>
