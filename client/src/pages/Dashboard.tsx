@@ -420,8 +420,8 @@ export default function Dashboard() {
               <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">No assets yet</div>
             ) : (
               <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2">
-                <div className="flex-shrink-0">
-                  <ResponsiveContainer width={260} height={260}>
+                <div className="flex-shrink-0 w-full max-w-[200px] mx-auto sm:mx-0 sm:max-w-none sm:w-auto">
+                  <ResponsiveContainer width="100%" height={200} className="sm:h-[260px]">
                     <PieChart>
                       <Pie 
                         data={allocationData} 
@@ -444,7 +444,7 @@ export default function Dashboard() {
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-                <ul className="space-y-1 flex-1 min-w-0 w-full max-w-[240px]">
+                <ul className="space-y-1 w-full sm:flex-1 sm:min-w-0 sm:max-w-[240px]">
                   {allocationData.map((d, i) => (
                     <li 
                       key={d.name} 
