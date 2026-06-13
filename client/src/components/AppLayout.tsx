@@ -56,27 +56,32 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return location.startsWith(href);
   };
 
-  // Compact formatter for sidebar watchlist preview.
-  // Regular items use HK$ (to match overall app HKD bias). Indexes use plain numbers (no currency unit).
-  const formatCompact = (val: number, symbol?: string, name?: string | null) => {
-    const s = (symbol || '').toUpperCase().trim();
-    const n = (name || '').toLowerCase();
-    const isIndex = s.startsWith('^') ||
-                    n.includes('index') ||
-                    n.includes('composite') ||
-                    n.includes('average') ||
-                    s === '000001.SS';
+  // Format watchlist prices using the symbol's native currency.
+  // Crypto and most non-HK stocks/indices → USD ($)
+  // HK stocks (e.g. *.HK) and ^HSI → HKD (HK$)
+  const formatCompact = (val: number, symbol: string, assetType: string) => {
+    const s = symbol.toUpperCase().trim();
+    const isIndex = s.startsWith('^');
+    const isHKStock = assetType !== "crypto" && s.endsWith(".HK");
 
     if (isIndex) {
+      // Indices (e.g. ^HSI, ^GSPC) — plain number, no unit
       if (Math.abs(val) >= 1_000_000) return `${(val / 1_000_000).toFixed(1)}M`;
       if (Math.abs(val) >= 1_000) return `${(val / 1_000).toFixed(0)}K`;
       return new Intl.NumberFormat("en-HK", { minimumFractionDigits: 0 }).format(val);
     }
 
-    // Regular prices (stocks etc.)
-    if (Math.abs(val) >= 1_000_000) return `HK$${(val / 1_000_000).toFixed(1)}M`;
-    if (Math.abs(val) >= 1_000) return `HK$${(val / 1_000).toFixed(0)}K`;
-    return new Intl.NumberFormat("en-HK", { style: "currency", currency: "HKD", minimumFractionDigits: 0 }).format(val);
+    if (isHKStock) {
+      // HK stocks only
+      if (Math.abs(val) >= 1_000_000) return `HK$${(val / 1_000_000).toFixed(1)}M`;
+      if (Math.abs(val) >= 1_000) return `HK$${(val / 1_000).toFixed(0)}K`;
+      return new Intl.NumberFormat("en-HK", { style: "currency", currency: "HKD", minimumFractionDigits: 0 }).format(val);
+    }
+
+    // Crypto (BTC etc.) and non-HK stocks (NVDA etc.) — USD with $
+    if (Math.abs(val) >= 1_000_000) return `$${(val / 1_000_000).toFixed(1)}M`;
+    if (Math.abs(val) >= 1_000) return `$${(val / 1_000).toFixed(0)}K`;
+    return "$" + new Intl.NumberFormat("en-US", { minimumFractionDigits: 0 }).format(val);
   };
 
   // Data for sidebar "Lists" (Portfolios + Watchlist preview)
@@ -101,7 +106,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const watchlistSymbols = watchlistItems.map(item => ({
     symbol: item.symbol,
     assetType: item.assetType,
-    currency: "HKD" as const,
+    currency: item.assetType === "crypto" ? "USD" : "HKD",
   }));
   const { data: watchlistPrices = {} as Record<string, any> } = useQuery({
     queryKey: ["/api/prices/market-data/symbols", watchlistItems.map(i => i.id)],
@@ -208,7 +213,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     ) : null}
                   </div>
                   <div className="font-mono tabular-nums text-right min-w-[52px] leading-tight">
-                    <div className="text-xs font-semibold">{price != null ? formatCompact(price, item.symbol, item.name) : "—"}</div>
+                    <div className="text-xs font-semibold">{price != null ? formatCompact(price, item.symbol, item.assetType) : "—"}</div>
                     {ch != null && (
                       <div className={`text-[10px] ${isPos ? "text-[hsl(var(--positive))]" : "text-destructive"}`}>
                         {isPos ? "▲" : "▼"}{ch.toFixed(1)}%

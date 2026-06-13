@@ -37,7 +37,7 @@ export default function Watchlist() {
   const symbolsForPrices = items.map((it) => ({
     symbol: it.symbol,
     assetType: it.assetType,
-    currency: "HKD",
+    currency: it.assetType === "crypto" ? "USD" : "HKD",
   }));
 
   const { data: pricesMap = {} as Record<string, MarketData>, isLoading: pricesLoading, refetch: refetchPrices } = useQuery<Record<string, MarketData>>({
@@ -116,31 +116,37 @@ export default function Watchlist() {
     }
   };
 
-  const formatPrice = (price: number | null | undefined, symbol: string, name?: string | null) => {
+  const formatPrice = (price: number | null | undefined, symbol: string, assetType: string) => {
     if (price == null) return "—";
 
     const s = symbol.toUpperCase().trim();
-    const n = (name || '').toLowerCase();
-    // Indexes (e.g. ^HSI, ^GSPC, Shanghai Composite) are point levels, not currency amounts
-    const isIndex = s.startsWith('^') ||
-                    n.includes('index') ||
-                    n.includes('composite') ||
-                    n.includes('average') ||
-                    s === '000001.SS';
+    const isIndex = s.startsWith('^');
+    const isHKStock = assetType !== "crypto" && s.endsWith(".HK");
 
     if (isIndex) {
+      // Indices — plain number, no unit
       return new Intl.NumberFormat("en-HK", {
         minimumFractionDigits: 0,
         maximumFractionDigits: 2,
       }).format(price);
     }
 
-    // Regular symbols (stocks, ETFs, crypto in watchlist) — show as HKD to match the rest of the app
-    return new Intl.NumberFormat("en-HK", {
-      style: "currency",
-      currency: "HKD",
-      minimumFractionDigits: symbol.includes(".") || symbol.length > 5 ? 2 : (price < 10 ? 4 : 2),
+    if (isHKStock) {
+      // Only actual HK stocks get HK$
+      return new Intl.NumberFormat("en-HK", {
+        style: "currency",
+        currency: "HKD",
+        minimumFractionDigits: s.includes(".") || s.length > 5 ? 2 : (price < 10 ? 4 : 2),
+      }).format(price);
+    }
+
+    // Crypto and non-HK stocks (e.g. NVDA) — USD with $
+    const minFrac = price < 1 ? 4 : 2;
+    const formatted = new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: minFrac,
+      maximumFractionDigits: minFrac,
     }).format(price);
+    return "$" + formatted;
   };
 
   return (
@@ -325,7 +331,7 @@ export default function Watchlist() {
                     {/* Price & Change */}
                     <div className="text-right min-w-[100px]">
                       <div className="font-mono font-semibold tabular-nums text-lg">
-                        {formatPrice(price, item.symbol, item.name)}
+                        {formatPrice(price, item.symbol, item.assetType)}
                       </div>
                       {change !== null ? (
                         <div className={`text-sm font-mono flex items-center justify-end gap-0.5 mt-0.5 ${isUp ? "text-[hsl(var(--positive))]" : "text-destructive"}`}>
