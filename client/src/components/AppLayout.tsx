@@ -11,10 +11,16 @@ import {
   LogOut,
   DollarSign,
   RefreshCw,
-  Eye
+  Eye,
+  Plus
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { toHkd } from "@/lib/utils";
+import { Sparkline } from "@/components/Sparkline";
 import { useAuth } from "../App";
+import type { Asset, Liability, Snapshot, WatchlistItem } from "@shared/schema";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -50,6 +56,48 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return location.startsWith(href);
   };
 
+  // Compact HKD formatter for sidebar (matches the Google Finance style in screenshots)
+  const formatCompact = (val: number) => {
+    if (Math.abs(val) >= 1_000_000) return `HK$${(val / 1_000_000).toFixed(1)}M`;
+    if (Math.abs(val) >= 1_000) return `HK$${(val / 1_000).toFixed(0)}K`;
+    return new Intl.NumberFormat("en-HK", { style: "currency", currency: "HKD", minimumFractionDigits: 0 }).format(val);
+  };
+
+  // Data for sidebar "Lists" (Portfolios + Watchlist preview)
+  const { data: assets = [] } = useQuery<Asset[]>({ queryKey: ["/api/assets"], staleTime: 30_000 });
+  const { data: liabilities = [] } = useQuery<Liability[]>({ queryKey: ["/api/liabilities"], staleTime: 30_000 });
+  const { data: snapshots = [] } = useQuery<Snapshot[]>({ queryKey: ["/api/snapshots"], staleTime: 60_000 });
+  const { data: watchlistItems = [] } = useQuery<WatchlistItem[]>({ queryKey: ["/api/watchlist"], staleTime: 15_000 });
+
+  const totalAssetsValue = assets.reduce((s, a) => s + toHkd(a.quantity * a.currentPrice, a.currency), 0);
+  const totalLiabilities = liabilities.reduce((s, l) => s + toHkd(l.balance, l.currency), 0);
+  const totalNetWorth = totalAssetsValue - totalLiabilities;
+
+  // Simple daily change using latest snapshot
+  const sortedSnaps = [...snapshots].sort((a, b) => b.date.localeCompare(a.date));
+  const latestSnap = sortedSnaps[0];
+  const dailyChange = latestSnap ? totalNetWorth - (latestSnap.totalValue - (latestSnap.totalLiability || 0)) : null;
+  const dailyPct = latestSnap && latestSnap.totalValue > 0 
+    ? (dailyChange! / Math.abs(latestSnap.totalValue - (latestSnap.totalLiability || 0))) * 100 
+    : null;
+
+  // Watchlist prices for sidebar mini sparklines
+  const watchlistSymbols = watchlistItems.map(item => ({
+    symbol: item.symbol,
+    assetType: item.assetType,
+    currency: "HKD" as const,
+  }));
+  const { data: watchlistPrices = {} as Record<string, any> } = useQuery({
+    queryKey: ["/api/prices/market-data/symbols", watchlistItems.map(i => i.id)],
+    enabled: watchlistItems.length > 0,
+    queryFn: async () => {
+      if (watchlistSymbols.length === 0) return {};
+      const res = await apiRequest("POST", "/api/prices/market-data/symbols", { symbols: watchlistSymbols });
+      return res.json();
+    },
+    staleTime: 60_000,
+  });
+
   const SidebarContent = () => (
     <>
       {/* Logo */}
@@ -76,8 +124,85 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
+      {/* Lists (like Google Finance sidebar) */}
+      <div className="px-2 py-1 text-xs">
+        <div className="flex items-center justify-between px-2 mb-1">
+          <span className="font-semibold text-muted-foreground">Lists</span>
+          <div className="flex items-center gap-1">
+            <Link href="/watchlist">
+              <button className="p-0.5 text-muted-foreground hover:text-foreground" title="Add to Watchlist">
+                <Plus className="w-3 h-3" />
+              </button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Portfolios */}
+        <div className="mb-2">
+          <div className="px-2 text-[10px] uppercase tracking-wider text-muted-foreground/80 mb-0.5">Portfolios</div>
+          <Link href="/">
+            <div className="px-2 py-1 rounded hover:bg-sidebar-accent cursor-pointer">
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm font-medium">My Portfolio</span>
+              </div>
+              <div className="font-mono text-sm tabular-nums font-semibold">
+                {formatCompact(totalNetWorth)}
+              </div>
+              {dailyChange !== null && dailyPct !== null && (
+                <div className={`text-[10px] font-mono flex items-center gap-0.5 ${dailyChange >= 0 ? "text-[hsl(var(--positive))]" : "text-destructive"}`}>
+                  {dailyChange >= 0 ? "+" : ""}{formatCompact(dailyChange)} ({dailyPct.toFixed(1)}%)
+                </div>
+              )}
+            </div>
+          </Link>
+        </div>
+
+        {/* Watchlist */}
+        <div>
+          <div className="px-2 text-[10px] uppercase tracking-wider text-muted-foreground/80 mb-0.5 flex items-center justify-between">
+            <span>Watchlist</span>
+            <Link href="/watchlist"><Plus className="w-3 h-3" /></Link>
+          </div>
+          {watchlistItems.length === 0 ? (
+            <div className="px-2 py-1 text-[10px] text-muted-foreground">No items yet. <Link href="/watchlist" className="underline">Add</Link></div>
+          ) : (
+            <div className="max-h-[220px] overflow-y-auto text-[10px] space-y-px pr-1">
+              {watchlistItems.map((item) => {
+                const key = item.symbol.toUpperCase();
+                const md = watchlistPrices[key] || {};
+                const price = md.price;
+                const ch = md.change24h ?? md.change7d;
+                const isPos = ch != null && ch >= 0;
+                const spark = md.sparkline || [];
+                return (
+                  <div key={item.id} className="flex items-center gap-1.5 px-2 py-0.5 rounded hover:bg-sidebar-accent">
+                    <div className="flex-1 min-w-0 leading-tight">
+                      <div className="font-mono font-medium truncate">{item.symbol}</div>
+                      {item.name && <div className="text-muted-foreground truncate text-[9px] leading-none -mt-0.5">{item.name}</div>}
+                    </div>
+                    <div className="w-[42px] h-3 flex-shrink-0">
+                      {spark.length >= 2 ? (
+                        <Sparkline data={spark} positive={isPos} width={42} height={12} />
+                      ) : null}
+                    </div>
+                    <div className="font-mono tabular-nums text-right min-w-[44px] leading-tight">
+                      <div>{price != null ? formatCompact(price) : "—"}</div>
+                      {ch != null && (
+                        <div className={isPos ? "text-[hsl(var(--positive))]" : "text-destructive"}>
+                          {isPos ? "▲" : "▼"}{ch.toFixed(1)}%
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Nav */}
-      <nav className="flex-1 py-3 px-2 overflow-y-auto">
+      <nav className="flex-1 py-3 px-2 overflow-y-auto border-t border-sidebar-border mt-1">
         <ul className="space-y-0.5">
           {navItems.map(({ href, label, icon: Icon }) => (
             <li key={href}>
