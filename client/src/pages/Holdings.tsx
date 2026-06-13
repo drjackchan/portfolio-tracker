@@ -5,7 +5,7 @@ import { TickerLogo } from "@/components/TickerLogo";
 import { Sparkline } from "@/components/Sparkline";
 import { AssetTable } from "@/components/AssetTable";
 import { useAssetGrouping } from "@/hooks/useAssetGrouping";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,9 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState, useMemo } from "react";
+import {
+  PieChart, Pie, Cell, Tooltip as ReTooltip, ResponsiveContainer,
+} from "recharts";
 import type { ComponentType } from "react";
 import type { Asset } from "@shared/schema";
 import { toHkd } from "@/lib/utils";
@@ -45,6 +48,15 @@ const ASSET_TYPE_ICONS: Record<string, ComponentType<any>> = {
   commodity: Gem,
   other: Folder,
 };
+
+const CHART_COLORS = [
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
+  "hsl(var(--chart-6))",
+];
 
 function formatCurrency(val: number, compact = false) {
   if (compact && Math.abs(val) >= 1_000_000) return `HK$${(val / 1_000_000).toFixed(2)}M`;
@@ -179,6 +191,46 @@ export default function Holdings() {
     return acc;
   }, {} as Record<string, number>);
 
+  // Crypto allocation (breakdown of crypto holdings by ticker)
+  const cryptoAllocation = useMemo(() => {
+    const map: Record<string, number> = {};
+    assets
+      .filter((a) => a.assetType === "crypto")
+      .forEach((a) => {
+        const key = (a.ticker || a.name).trim();
+        const v = toHkd(a.quantity * a.currentPrice, a.currency);
+        map[key] = (map[key] || 0) + v;
+      });
+    const total = totalsByCategory["crypto"] || 0;
+    return Object.entries(map)
+      .map(([name, value]) => ({
+        name,
+        value: Math.round(value),
+        pct: total > 0 ? (value / total) * 100 : 0,
+      }))
+      .sort((a, b) => b.value - a.value);
+  }, [assets, totalsByCategory]);
+
+  // Stock allocation (breakdown of stock holdings by ticker)
+  const stockAllocation = useMemo(() => {
+    const map: Record<string, number> = {};
+    assets
+      .filter((a) => a.assetType === "stock")
+      .forEach((a) => {
+        const key = (a.ticker || a.name).trim();
+        const v = toHkd(a.quantity * a.currentPrice, a.currency);
+        map[key] = (map[key] || 0) + v;
+      });
+    const total = totalsByCategory["stock"] || 0;
+    return Object.entries(map)
+      .map(([name, value]) => ({
+        name,
+        value: Math.round(value),
+        pct: total > 0 ? (value / total) * 100 : 0,
+      }))
+      .sort((a, b) => b.value - a.value);
+  }, [assets, totalsByCategory]);
+
   return (
     <TooltipProvider>
       <div className="p-4 sm:p-6 space-y-5 w-full">
@@ -255,6 +307,115 @@ export default function Holdings() {
               </Card>
             )
           })}
+        </div>
+
+        {/* Crypto and Stock Allocation Pies */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Crypto Allocation Pie */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold">Crypto Allocation</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              {cryptoAllocation.length === 0 ? (
+                <div className="h-[140px] flex items-center justify-center text-muted-foreground text-sm">No crypto holdings</div>
+              ) : (
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <div className="w-[140px] h-[140px] flex-shrink-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={cryptoAllocation}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={35}
+                          outerRadius={60}
+                          dataKey="value"
+                          nameKey="name"
+                        >
+                          {cryptoAllocation.map((entry, index) => (
+                            <Cell key={`cell-crypto-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <ReTooltip
+                          formatter={(value: number, _name: string, props: any) => [
+                            formatCurrency(value, true),
+                            `${props.payload.name} (${props.payload.pct.toFixed(1)}%)`,
+                          ]}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex-1 min-w-0 text-xs space-y-1 max-h-[140px] overflow-auto">
+                    {cryptoAllocation.slice(0, 6).map((d, i) => (
+                      <div key={i} className="flex justify-between items-center">
+                        <span className="truncate pr-2">{d.name}</span>
+                        <span className="font-mono tabular-nums text-right flex-shrink-0">
+                          {formatCurrency(d.value, true)} <span className="text-muted-foreground">({d.pct.toFixed(0)}%)</span>
+                        </span>
+                      </div>
+                    ))}
+                    {cryptoAllocation.length > 6 && (
+                      <div className="text-muted-foreground pt-1">+{cryptoAllocation.length - 6} more</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Stock Allocation Pie */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold">Stock Allocation</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              {stockAllocation.length === 0 ? (
+                <div className="h-[140px] flex items-center justify-center text-muted-foreground text-sm">No stock holdings</div>
+              ) : (
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <div className="w-[140px] h-[140px] flex-shrink-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={stockAllocation}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={35}
+                          outerRadius={60}
+                          dataKey="value"
+                          nameKey="name"
+                        >
+                          {stockAllocation.map((entry, index) => (
+                            <Cell key={`cell-stock-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <ReTooltip
+                          formatter={(value: number, _name: string, props: any) => [
+                            formatCurrency(value, true),
+                            `${props.payload.name} (${props.payload.pct.toFixed(1)}%)`,
+                          ]}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex-1 min-w-0 text-xs space-y-1 max-h-[140px] overflow-auto">
+                    {stockAllocation.slice(0, 6).map((d, i) => (
+                      <div key={i} className="flex justify-between items-center">
+                        <span className="truncate pr-2">{d.name}</span>
+                        <span className="font-mono tabular-nums text-right flex-shrink-0">
+                          {formatCurrency(d.value, true)} <span className="text-muted-foreground">({d.pct.toFixed(0)}%)</span>
+                        </span>
+                      </div>
+                    ))}
+                    {stockAllocation.length > 6 && (
+                      <div className="text-muted-foreground pt-1">+{stockAllocation.length - 6} more</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Filters */}
