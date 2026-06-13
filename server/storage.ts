@@ -68,6 +68,35 @@ export class DatabaseStorage implements IStorage {
 
     // Run migrations on start
     runMigrations().catch(err => console.error("Migration failed", err));
+
+    // Seed default watchlist with major world indexes (only if empty)
+    this.seedDefaultWatchlist().catch(err => console.error("Watchlist seed failed", err));
+  }
+
+  private async seedDefaultWatchlist() {
+    const existing = await this.getWatchlist();
+    if (existing.length > 0) return;
+
+    const defaults: InsertWatchlist[] = [
+      { symbol: "^HSI", name: "Hang Seng Index", assetType: "stock" },
+      { symbol: "^GSPC", name: "S&P 500", assetType: "stock" },
+      { symbol: "^DJI", name: "Dow Jones Industrial Average", assetType: "stock" },
+      { symbol: "^IXIC", name: "Nasdaq Composite", assetType: "stock" },
+      { symbol: "^FTSE", name: "FTSE 100 Index", assetType: "stock" },
+      { symbol: "^GDAXI", name: "DAX Index", assetType: "stock" },
+      { symbol: "^FCHI", name: "CAC 40 Index", assetType: "stock" },
+      { symbol: "^N225", name: "Nikkei 225", assetType: "stock" },
+      { symbol: "000001.SS", name: "Shanghai Composite Index", assetType: "stock" },
+      { symbol: "^TWII", name: "Taiwan Weighted Index", assetType: "stock" },
+      { symbol: "^AXJO", name: "S&P/ASX 200", assetType: "stock" },
+      { symbol: "^BSESN", name: "BSE Sensex", assetType: "stock" },
+      { symbol: "^NSEI", name: "Nifty 50", assetType: "stock" },
+    ];
+
+    for (const d of defaults) {
+      await this.createWatchlistItem(d);
+    }
+    console.log("[db] Default watchlist seeded with major world indexes");
   }
 
   // Assets
@@ -249,6 +278,24 @@ export class MemStorage implements IStorage {
     ];
 
     initialAssets.forEach(a => this.createAsset(a));
+
+    // Pre-populate watchlist with major world indexes (for demo)
+    const initialWatchlist: InsertWatchlist[] = [
+      { symbol: "^HSI", name: "Hang Seng Index", assetType: "stock" },
+      { symbol: "^GSPC", name: "S&P 500", assetType: "stock" },
+      { symbol: "^DJI", name: "Dow Jones Industrial Average", assetType: "stock" },
+      { symbol: "^IXIC", name: "Nasdaq Composite", assetType: "stock" },
+      { symbol: "^FTSE", name: "FTSE 100 Index", assetType: "stock" },
+      { symbol: "^GDAXI", name: "DAX Index", assetType: "stock" },
+      { symbol: "^FCHI", name: "CAC 40 Index", assetType: "stock" },
+      { symbol: "^N225", name: "Nikkei 225", assetType: "stock" },
+      { symbol: "000001.SS", name: "Shanghai Composite Index", assetType: "stock" },
+      { symbol: "^TWII", name: "Taiwan Weighted Index", assetType: "stock" },
+      { symbol: "^AXJO", name: "S&P/ASX 200", assetType: "stock" },
+      { symbol: "^BSESN", name: "BSE Sensex", assetType: "stock" },
+      { symbol: "^NSEI", name: "Nifty 50", assetType: "stock" },
+    ];
+    initialWatchlist.forEach(w => this.createWatchlistItem(w));
   }
 
   async getAssets(): Promise<Asset[]> { return Array.from(this.assets.values()); }

@@ -173,7 +173,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 return (
                   <div key={item.id} className="flex items-center gap-1.5 px-2 py-0.5 rounded hover:bg-sidebar-accent">
                     <div className="flex-1 min-w-0 leading-tight">
-                      <div className="font-mono font-medium truncate">{item.symbol}</div>
+                      <div className="font-mono font-medium truncate">{item.symbol.replace(/^\^/, '')}</div>
                       {item.name && <div className="text-muted-foreground truncate text-[9px] leading-none -mt-0.5">{item.name}</div>}
                     </div>
                     <div className="w-[42px] h-3 flex-shrink-0">

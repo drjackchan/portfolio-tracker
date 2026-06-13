@@ -202,7 +202,7 @@ export default function Watchlist() {
                   <div key={item.id} className="flex items-center px-4 py-3 gap-3 hover:bg-muted/30 transition-colors">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline gap-2">
-                        <span className="font-semibold font-mono text-base">{item.symbol}</span>
+                        <span className="font-semibold font-mono text-base">{item.symbol.replace(/^\^/, '')}</span>
                         {item.name && (
                           <span className="text-xs text-muted-foreground truncate">{item.name}</span>
                         )}
