@@ -147,8 +147,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </ul>
 
         {/* Watchlist preview right below the menu items */}
-        <div className="border-t border-sidebar-border px-2 py-2 text-sm mt-1">
-          <div className="flex items-center justify-between px-2 mb-1">
+        <div className="-mx-2 border-t border-sidebar-border px-2 py-2 text-sm mt-1">
+          <div className="flex items-center justify-between px-3 mb-1">
             <span className="font-semibold text-muted-foreground">Watchlist</span>
             <Link href="/watchlist">
               <button className="p-0.5 text-muted-foreground hover:text-foreground" title="Manage Watchlist">
@@ -158,11 +158,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           {watchlistItems.length === 0 ? (
-            <div className="px-2 py-1 text-xs text-muted-foreground">
+            <div className="px-3 py-1 text-xs text-muted-foreground">
               No items. <Link href="/watchlist" className="underline">Add</Link>
             </div>
           ) : (
-            <div className="max-h-[220px] overflow-y-auto space-y-0.5 text-xs pr-1">
+            <div className="max-h-[220px] overflow-y-auto space-y-0.5 text-xs">
               {watchlistItems.map((item) => {
                 const key = item.symbol.toUpperCase();
                 const md = watchlistPrices[key] || {};
@@ -171,7 +171,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 const isPos = ch != null && ch >= 0;
                 const spark = md.sparkline || [];
                 return (
-                  <div key={item.id} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-sidebar-accent">
+                  <div key={item.id} className="flex items-center gap-2 px-3 py-1 rounded hover:bg-sidebar-accent">
                     <div className="flex-1 min-w-0 leading-tight">
                       <div className="font-mono font-semibold text-sm truncate">{item.symbol.replace(/^\^/, '')}</div>
                       {item.name && <div className="text-muted-foreground truncate text-[10px] leading-none -mt-0.5">{item.name}</div>}
