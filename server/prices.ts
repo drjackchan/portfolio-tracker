@@ -695,32 +695,52 @@ export interface MarketNewsItem {
 
 const NEWS_CACHE_KEY = "market:news:v1";
 
+async function fetchRssNews(rssUrl: string, sourceName: string): Promise<MarketNewsItem[]> {
+  try {
+    const proxy = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+    const res = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return [];
+    const json = await res.json() as any;
+    if (json.status !== "ok" || !Array.isArray(json.items)) return [];
+
+    return json.items
+      .filter((it: any) => it.title && it.link)
+      .map((it: any) => ({
+        title: String(it.title).trim(),
+        source: sourceName,
+        url: String(it.link),
+        publishedAt: it.pubDate ? new Date(it.pubDate).toISOString() : new Date().toISOString(),
+        imageUrl: it.thumbnail || (it.enclosure && it.enclosure.link) || null,
+      }));
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchMarketNews(limit = 6): Promise<MarketNewsItem[]> {
   const cached = getCached<MarketNewsItem[]>(NEWS_CACHE_KEY);
   if (cached) return cached.slice(0, limit);
 
   try {
-    const res = await fetch("https://min-api.cryptocompare.com/data/v2/news/?lang=EN", {
-      headers: { "User-Agent": "PortfolioTrack/1.0" },
-      signal: AbortSignal.timeout(10000),
+    // Use RSS via rss2json (free, no key) for reliable crypto/finance coverage
+    const [coindesk, cointelegraph] = await Promise.all([
+      fetchRssNews("https://www.coindesk.com/arc/outboundfeeds/rss/", "CoinDesk"),
+      fetchRssNews("https://cointelegraph.com/rss/", "Cointelegraph"),
+    ]);
+
+    // Combine, dedupe by URL, sort newest first
+    const combined = [...coindesk, ...cointelegraph];
+    const seen = new Set<string>();
+    const deduped = combined.filter((item) => {
+      if (seen.has(item.url)) return false;
+      seen.add(item.url);
+      return true;
     });
-    if (!res.ok) throw new Error(`News API responded ${res.status}`);
 
-    const json = (await res.json()) as any;
-    const rawItems: any[] = json?.Data ?? [];
+    deduped.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 
-    const items: MarketNewsItem[] = rawItems
-      .filter((n) => n && n.title && n.url)
-      .map((n) => ({
-        title: String(n.title).trim(),
-        source: String(n.source || "CryptoCompare"),
-        url: String(n.url),
-        publishedAt: new Date((n.published_on || Date.now() / 1000) * 1000).toISOString(),
-        imageUrl: n.imageurl ? String(n.imageurl) : null,
-      }));
-
-    setCached(NEWS_CACHE_KEY, items, 1000 * 60 * 6); // 6 minutes
-    return items.slice(0, limit);
+    setCached(NEWS_CACHE_KEY, deduped, 1000 * 60 * 8); // 8 min cache
+    return deduped.slice(0, limit);
   } catch (e) {
     console.error("[news] fetch failed:", e);
     return [];

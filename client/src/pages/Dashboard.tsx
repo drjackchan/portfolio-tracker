@@ -574,7 +574,7 @@ export default function Dashboard() {
         <CardHeader className="pb-1.5">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-semibold">Crypto & Market News</CardTitle>
-            <span className="text-[10px] text-muted-foreground">via CryptoCompare</span>
+            <span className="text-[10px] text-muted-foreground">Latest headlines</span>
           </div>
         </CardHeader>
         <CardContent className="p-0">
