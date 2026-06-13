@@ -9,7 +9,7 @@ import {
 } from "@shared/schema";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, asc } from "drizzle-orm";
 import { runMigrations } from "../db/migrate";
 
 export interface IStorage {
@@ -47,6 +47,7 @@ export interface IStorage {
   getWatchlist(): Promise<WatchlistItem[]>;
   createWatchlistItem(item: InsertWatchlist): Promise<WatchlistItem>;
   deleteWatchlistItem(id: number): Promise<void>;
+  reorderWatchlist(orderedIds: number[]): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -232,17 +233,33 @@ export class DatabaseStorage implements IStorage {
 
   // Watchlist
   async getWatchlist(): Promise<WatchlistItem[]> {
-    return await this.db.select().from(watchlist).orderBy(desc(watchlist.createdAt));
+    return await this.db.select().from(watchlist).orderBy(asc(watchlist.position), asc(watchlist.id));
   }
 
   async createWatchlistItem(insertItem: InsertWatchlist): Promise<WatchlistItem> {
     const now = new Date().toISOString();
-    const [item] = await this.db.insert(watchlist).values({ ...insertItem, createdAt: now }).returning();
+    // Assign next position (append to end)
+    const [{ maxPos }] = await this.db
+      .select({ maxPos: sql<number>`COALESCE(MAX(position), 0)` })
+      .from(watchlist);
+    const [item] = await this.db
+      .insert(watchlist)
+      .values({ ...insertItem, createdAt: now, position: maxPos + 1 })
+      .returning();
     return item;
   }
 
   async deleteWatchlistItem(id: number): Promise<void> {
     await this.db.delete(watchlist).where(eq(watchlist.id, id));
+  }
+
+  async reorderWatchlist(orderedIds: number[]): Promise<void> {
+    for (let i = 0; i < orderedIds.length; i++) {
+      await this.db
+        .update(watchlist)
+        .set({ position: i + 1 })
+        .where(eq(watchlist.id, orderedIds[i]));
+    }
   }
 }
 
@@ -405,14 +422,36 @@ export class MemStorage implements IStorage {
     return res;
   }
 
-  async getWatchlist(): Promise<WatchlistItem[]> { return Array.from(this.watchlist.values()); }
+  async getWatchlist(): Promise<WatchlistItem[]> {
+    return Array.from(this.watchlist.values()).sort(
+      (a, b) => (a.position ?? 0) - (b.position ?? 0) || a.id - b.id
+    );
+  }
   async createWatchlistItem(item: InsertWatchlist): Promise<WatchlistItem> {
     const now = new Date().toISOString();
-    const w: WatchlistItem = { ...item, id: this.watchlistId++, createdAt: now };
+    const existing = Array.from(this.watchlist.values());
+    const nextPos = existing.length > 0 ? Math.max(...existing.map((w) => w.position ?? 0)) + 1 : 1;
+    const w: WatchlistItem = {
+      id: this.watchlistId++,
+      symbol: item.symbol,
+      name: item.name ?? null,
+      assetType: item.assetType,
+      position: nextPos,
+      createdAt: now,
+    };
     this.watchlist.set(w.id, w);
     return w;
   }
   async deleteWatchlistItem(id: number): Promise<void> { this.watchlist.delete(id); }
+
+  async reorderWatchlist(orderedIds: number[]): Promise<void> {
+    orderedIds.forEach((id, index) => {
+      const item = this.watchlist.get(id);
+      if (item) {
+        this.watchlist.set(id, { ...item, position: index + 1 });
+      }
+    });
+  }
 }
 
 export const storage = new DatabaseStorage();

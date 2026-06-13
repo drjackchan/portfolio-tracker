@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus, X, RefreshCw } from "lucide-react";
+import { Plus, X, RefreshCw, GripVertical } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,6 +74,27 @@ export default function Watchlist() {
       toast({ title: "Removed from watchlist" });
     },
     onError: () => toast({ title: "Failed to remove", variant: "destructive" }),
+  });
+
+  // Local state for drag-and-drop reordering (optimistic)
+  const [localItems, setLocalItems] = useState<WatchlistItem[]>([]);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+  // Keep local list in sync with server data (after adds, deletes, or initial load)
+  useEffect(() => {
+    setLocalItems(items);
+  }, [items]);
+
+  const reorderMutation = useMutation({
+    mutationFn: (orderedIds: number[]) =>
+      apiRequest("POST", "/api/watchlist/reorder", { orderedIds }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/watchlist"] });
+    },
+    onError: () => {
+      toast({ title: "Failed to save order", variant: "destructive" });
+      // Revert will happen automatically on invalidate (server truth wins)
+    },
   });
 
   const handleAdd = () => {
@@ -176,7 +197,10 @@ export default function Watchlist() {
       {/* Watchlist */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold">Tracked Symbols</CardTitle>
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            Tracked Symbols
+            <span className="text-[10px] font-normal text-muted-foreground">— drag to reorder</span>
+          </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
@@ -190,7 +214,7 @@ export default function Watchlist() {
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {items.map((item) => {
+              {localItems.map((item, index) => {
                 const upperSymbol = item.symbol.toUpperCase();
                 const md = pricesMap[upperSymbol];
                 const price = md?.price ?? null;
@@ -198,8 +222,58 @@ export default function Watchlist() {
                 const isUp = change !== null && change >= 0;
                 const spark = md?.sparkline || [];
 
+                const isDragging = draggedIndex === index;
+
+                const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+                  setDraggedIndex(index);
+                  e.dataTransfer.setData("text/plain", index.toString());
+                  e.dataTransfer.effectAllowed = "move";
+                };
+
+                const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                };
+
+                const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+                  e.preventDefault();
+                  const dragIndexStr = e.dataTransfer.getData("text/plain");
+                  const dragIndex = parseInt(dragIndexStr, 10);
+                  if (isNaN(dragIndex) || dragIndex === index) {
+                    setDraggedIndex(null);
+                    return;
+                  }
+
+                  const newOrder = [...localItems];
+                  const [moved] = newOrder.splice(dragIndex, 1);
+                  newOrder.splice(index, 0, moved);
+
+                  setLocalItems(newOrder);
+                  setDraggedIndex(null);
+
+                  const orderedIds = newOrder.map((i) => i.id);
+                  reorderMutation.mutate(orderedIds);
+                };
+
+                const handleDragEnd = () => {
+                  setDraggedIndex(null);
+                };
+
                 return (
-                  <div key={item.id} className="flex items-center px-4 py-4 gap-4 hover:bg-muted/30 transition-colors">
+                  <div
+                    key={item.id}
+                    draggable
+                    onDragStart={handleDragStart}
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
+                    onDragEnd={handleDragEnd}
+                    className={`flex items-center px-4 py-4 gap-3 hover:bg-muted/30 transition-colors cursor-grab active:cursor-grabbing ${isDragging ? "opacity-50 bg-muted/40" : ""}`}
+                  >
+                    {/* Drag handle */}
+                    <div className="text-muted-foreground/70 hover:text-muted-foreground flex-shrink-0 py-1" title="Drag to reorder">
+                      <GripVertical className="w-4 h-4" />
+                    </div>
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline gap-2">
                         <span className="font-semibold font-mono text-lg">{item.symbol.replace(/^\^/, '')}</span>
@@ -242,9 +316,10 @@ export default function Watchlist() {
 
                     <button
                       onClick={() => deleteMutation.mutate(item.id)}
-                      className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                      className="p-1 text-muted-foreground hover:text-destructive transition-colors flex-shrink-0"
                       aria-label="Remove from watchlist"
                       data-testid={`remove-watchlist-${item.id}`}
+                      onDragStart={(e) => e.stopPropagation()}
                     >
                       <X className="w-4 h-4" />
                     </button>

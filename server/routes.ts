@@ -81,6 +81,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.status(204).end();
   });
 
+  app.post("/api/watchlist/reorder", async (req, res) => {
+    const { orderedIds } = req.body;
+    if (!Array.isArray(orderedIds)) {
+      return res.status(400).json({ message: "orderedIds array is required" });
+    }
+    await storage.reorderWatchlist(orderedIds);
+    res.json({ success: true });
+  });
+
   // --- AdSense / YouTube Revenue (extracted to server/adsense.ts for use in both dev and prod) ---
   registerAdSenseRoutes(app);
 

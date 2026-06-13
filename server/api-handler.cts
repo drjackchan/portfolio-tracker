@@ -140,6 +140,19 @@ app.delete("/api/watchlist/:id", async (req, res) => {
   }
 });
 
+app.post("/api/watchlist/reorder", async (req, res) => {
+  try {
+    const { orderedIds } = req.body;
+    if (!Array.isArray(orderedIds)) {
+      return res.status(400).json({ message: "orderedIds array is required" });
+    }
+    await storage.reorderWatchlist(orderedIds);
+    res.json({ success: true });
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
 // --- Assets ---
 app.get("/api/assets", async (_req, res) => {
   try {

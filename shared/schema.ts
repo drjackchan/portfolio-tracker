@@ -99,9 +99,10 @@ export const watchlist = pgTable("watchlist", {
   symbol: text("symbol").notNull(),           // e.g. "AAPL", "0005.HK", "BTC"
   name: text("name"),                         // optional friendly name
   assetType: text("asset_type").notNull(),    // "stock" | "crypto"
+  position: integer("position").notNull().default(0),  // for custom user ordering
   createdAt: text("created_at").notNull(),    // ISO timestamp
 });
 
-export const insertWatchlistSchema = createInsertSchema(watchlist).omit({ id: true, createdAt: true });
+export const insertWatchlistSchema = createInsertSchema(watchlist).omit({ id: true, createdAt: true, position: true });
 export type InsertWatchlist = z.infer<typeof insertWatchlistSchema>;
 export type WatchlistItem = typeof watchlist.$inferSelect;

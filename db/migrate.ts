@@ -69,8 +69,26 @@ export async function runMigrations() {
       symbol      TEXT NOT NULL,
       name        TEXT,
       asset_type  TEXT NOT NULL,
+      position    INTEGER NOT NULL DEFAULT 0,
       created_at  TEXT NOT NULL
     );
+  `);
+
+  // Add position column for existing databases (idempotent)
+  await db.execute(sql`
+    ALTER TABLE watchlist ADD COLUMN IF NOT EXISTS position INTEGER NOT NULL DEFAULT 0;
+  `);
+
+  // Backfill positions for any rows that still have the default 0 (stable by created_at + id)
+  await db.execute(sql`
+    WITH numbered AS (
+      SELECT id, ROW_NUMBER() OVER (ORDER BY created_at NULLS LAST, id) AS rn
+      FROM watchlist
+      WHERE position = 0
+    )
+    UPDATE watchlist SET position = numbered.rn
+    FROM numbered
+    WHERE watchlist.id = numbered.id;
   `);
 
   await db.execute(sql`
