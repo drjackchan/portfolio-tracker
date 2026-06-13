@@ -1,10 +1,11 @@
 import {
-  assets, transactions, portfolioSnapshots, liabilities, subscriptions,
+  assets, transactions, portfolioSnapshots, liabilities, subscriptions, watchlist,
   type Asset, type InsertAsset,
   type Transaction, type InsertTransaction,
   type PortfolioSnapshot, type InsertSnapshot,
   type Liability, type InsertLiability,
   type Subscription, type InsertSubscription,
+  type WatchlistItem, type InsertWatchlist,
 } from "@shared/schema";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
@@ -41,6 +42,11 @@ export interface IStorage {
   // Snapshots
   getSnapshots(limit?: number): Promise<PortfolioSnapshot[]>;
   saveSnapshot(snap: InsertSnapshot): Promise<PortfolioSnapshot>;
+
+  // Watchlist
+  getWatchlist(): Promise<WatchlistItem[]>;
+  createWatchlistItem(item: InsertWatchlist): Promise<WatchlistItem>;
+  deleteWatchlistItem(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -169,6 +175,21 @@ export class DatabaseStorage implements IStorage {
     const [res] = await this.db.insert(portfolioSnapshots).values(snap).returning();
     return res;
   }
+
+  // Watchlist
+  async getWatchlist(): Promise<WatchlistItem[]> {
+    return await this.db.select().from(watchlist).orderBy(desc(watchlist.createdAt));
+  }
+
+  async createWatchlistItem(insertItem: InsertWatchlist): Promise<WatchlistItem> {
+    const now = new Date().toISOString();
+    const [item] = await this.db.insert(watchlist).values({ ...insertItem, createdAt: now }).returning();
+    return item;
+  }
+
+  async deleteWatchlistItem(id: number): Promise<void> {
+    await this.db.delete(watchlist).where(eq(watchlist.id, id));
+  }
 }
 
 // Memory Storage for fallback / local testing
@@ -178,11 +199,13 @@ export class MemStorage implements IStorage {
   private subscriptions: Map<number, Subscription> = new Map();
   private transactions: Map<number, Transaction> = new Map();
   private snapshots: Map<number, PortfolioSnapshot> = new Map();
+  private watchlist: Map<number, WatchlistItem> = new Map();
   private assetId = 1;
   private liabilityId = 1;
   private subscriptionId = 1;
   private txId = 1;
   private snapId = 1;
+  private watchlistId = 1;
 
   constructor() {
     // Initial mock data for quick demo
@@ -294,6 +317,15 @@ export class MemStorage implements IStorage {
     this.snapshots.set(res.id, res);
     return res;
   }
+
+  async getWatchlist(): Promise<WatchlistItem[]> { return Array.from(this.watchlist.values()); }
+  async createWatchlistItem(item: InsertWatchlist): Promise<WatchlistItem> {
+    const now = new Date().toISOString();
+    const w: WatchlistItem = { ...item, id: this.watchlistId++, createdAt: now };
+    this.watchlist.set(w.id, w);
+    return w;
+  }
+  async deleteWatchlistItem(id: number): Promise<void> { this.watchlist.delete(id); }
 }
 
 export const storage = new DatabaseStorage();

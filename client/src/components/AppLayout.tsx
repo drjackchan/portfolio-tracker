@@ -10,7 +10,8 @@ import {
   X,
   LogOut,
   DollarSign,
-  RefreshCw
+  RefreshCw,
+  Eye
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../App";
@@ -20,6 +21,7 @@ const navItems = [
   { href: "/holdings", label: "Assets", icon: Briefcase },
   { href: "/liabilities", label: "Liabilities", icon: CreditCard },
   { href: "/subscriptions", label: "Subscriptions", icon: RefreshCw },
+  { href: "/watchlist", label: "Watchlist", icon: Eye },
   { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
   { href: "/adsense", label: "Google Revenue", icon: DollarSign },
 ];

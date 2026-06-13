@@ -13,6 +13,7 @@ import Subscriptions from "@/pages/Subscriptions";
 import AddEditSubscription from "@/pages/AddEditSubscription";
 import Transactions from "@/pages/Transactions";
 import AdSense from "@/pages/AdSense";
+import Watchlist from "@/pages/Watchlist";
 import NotFound from "@/pages/not-found";
 import AppLayout from "@/components/AppLayout";
 import LoginPage from "@/pages/LoginPage";
@@ -38,6 +39,7 @@ function AppRouter() {
         <Route path="/subscriptions" component={Subscriptions} />
         <Route path="/subscriptions/new" component={AddEditSubscription} />
         <Route path="/subscriptions/:id/edit" component={AddEditSubscription} />
+        <Route path="/watchlist" component={Watchlist} />
         <Route path="/transactions" component={Transactions} />
         <Route path="/adsense" component={AdSense} />
         <Route component={NotFound} />

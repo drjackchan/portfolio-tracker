@@ -92,3 +92,16 @@ export const insertSubscriptionSchema = createInsertSchema(subscriptions, {
 }).omit({ id: true });
 export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
 export type Subscription = typeof subscriptions.$inferSelect;
+
+// Watchlist: user-tracked symbols for quick price monitoring (not owned assets)
+export const watchlist = pgTable("watchlist", {
+  id: serial("id").primaryKey(),
+  symbol: text("symbol").notNull(),           // e.g. "AAPL", "0005.HK", "BTC"
+  name: text("name"),                         // optional friendly name
+  assetType: text("asset_type").notNull(),    // "stock" | "crypto"
+  createdAt: text("created_at").notNull(),    // ISO timestamp
+});
+
+export const insertWatchlistSchema = createInsertSchema(watchlist).omit({ id: true, createdAt: true });
+export type InsertWatchlist = z.infer<typeof insertWatchlistSchema>;
+export type WatchlistItem = typeof watchlist.$inferSelect;
