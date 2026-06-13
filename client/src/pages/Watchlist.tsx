@@ -130,7 +130,7 @@ export default function Watchlist() {
         <CardContent className="pt-4">
           <div className="flex flex-col sm:flex-row gap-2 items-end">
             <div className="flex-1 min-w-0">
-              <div className="text-xs text-muted-foreground mb-1">Symbol (e.g. AAPL, 0005.HK, BTC)</div>
+              <div className="text-sm text-muted-foreground mb-1">Symbol (e.g. AAPL, 0005.HK, BTC)</div>
               <Input
                 value={newSymbol}
                 onChange={(e) => setNewSymbol(e.target.value)}
@@ -141,7 +141,7 @@ export default function Watchlist() {
               />
             </div>
             <div className="w-full sm:w-40">
-              <div className="text-xs text-muted-foreground mb-1">Type</div>
+              <div className="text-sm text-muted-foreground mb-1">Type</div>
               <Select value={newType} onValueChange={(v: "stock" | "crypto") => setNewType(v)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -153,7 +153,7 @@ export default function Watchlist() {
               </Select>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-xs text-muted-foreground mb-1">Name (optional)</div>
+              <div className="text-sm text-muted-foreground mb-1">Name (optional)</div>
               <Input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
@@ -167,7 +167,7 @@ export default function Watchlist() {
               Add
             </Button>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-2">
+          <p className="text-xs text-muted-foreground mt-2">
             For Hong Kong stocks, use the Yahoo ticker format (e.g. 0005.HK). US stocks use regular tickers (AAPL, GOOGL).
           </p>
         </CardContent>
@@ -186,7 +186,7 @@ export default function Watchlist() {
           ) : items.length === 0 ? (
             <div className="p-12 text-center">
               <p className="text-muted-foreground">Your watchlist is empty.</p>
-              <p className="text-xs text-muted-foreground mt-1">Add symbols above to start tracking prices and charts.</p>
+              <p className="text-sm text-muted-foreground mt-1">Add symbols above to start tracking prices and charts.</p>
             </div>
           ) : (
             <div className="divide-y divide-border">
@@ -199,44 +199,44 @@ export default function Watchlist() {
                 const spark = md?.sparkline || [];
 
                 return (
-                  <div key={item.id} className="flex items-center px-4 py-3 gap-3 hover:bg-muted/30 transition-colors">
+                  <div key={item.id} className="flex items-center px-4 py-4 gap-4 hover:bg-muted/30 transition-colors">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline gap-2">
-                        <span className="font-semibold font-mono text-base">{item.symbol.replace(/^\^/, '')}</span>
+                        <span className="font-semibold font-mono text-lg">{item.symbol.replace(/^\^/, '')}</span>
                         {item.name && (
-                          <span className="text-xs text-muted-foreground truncate">{item.name}</span>
+                          <span className="text-sm text-muted-foreground truncate">{item.name}</span>
                         )}
                       </div>
-                      <div className="text-[10px] text-muted-foreground mt-0.5">
+                      <div className="text-xs text-muted-foreground mt-0.5">
                         {ASSET_TYPE_LABELS[item.assetType] ?? item.assetType}
                       </div>
                     </div>
 
                     {/* Sparkline */}
-                    <div className="w-20 h-8 flex-shrink-0">
+                    <div className="w-24 h-9 flex-shrink-0">
                       {spark.length > 1 ? (
                         <Sparkline
                           data={spark}
                           positive={isUp}
-                          width={80}
-                          height={32}
+                          width={96}
+                          height={36}
                         />
                       ) : (
-                        <div className="h-full w-full border border-dashed border-muted-foreground/30 rounded flex items-center justify-center text-[10px] text-muted-foreground/60">—</div>
+                        <div className="h-full w-full border border-dashed border-muted-foreground/30 rounded flex items-center justify-center text-xs text-muted-foreground/60">—</div>
                       )}
                     </div>
 
                     {/* Price & Change */}
-                    <div className="text-right min-w-[92px]">
-                      <div className="font-mono font-semibold tabular-nums text-base">
+                    <div className="text-right min-w-[100px]">
+                      <div className="font-mono font-semibold tabular-nums text-lg">
                         {formatPrice(price, item.symbol)}
                       </div>
                       {change !== null ? (
-                        <div className={`text-xs font-mono flex items-center justify-end gap-0.5 mt-0.5 ${isUp ? "text-[hsl(var(--positive))]" : "text-destructive"}`}>
+                        <div className={`text-sm font-mono flex items-center justify-end gap-0.5 mt-0.5 ${isUp ? "text-[hsl(var(--positive))]" : "text-destructive"}`}>
                           {isUp ? "▲" : "▼"} {change.toFixed(2)}%
                         </div>
                       ) : (
-                        <div className="text-xs text-muted-foreground mt-0.5">—</div>
+                        <div className="text-sm text-muted-foreground mt-0.5">—</div>
                       )}
                     </div>
 

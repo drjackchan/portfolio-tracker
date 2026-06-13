@@ -147,22 +147,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </ul>
 
         {/* Watchlist preview right below the menu items */}
-        <div className="border-t border-sidebar-border px-2 py-2 text-xs mt-1">
+        <div className="border-t border-sidebar-border px-2 py-2 text-sm mt-1">
           <div className="flex items-center justify-between px-2 mb-1">
             <span className="font-semibold text-muted-foreground">Watchlist</span>
             <Link href="/watchlist">
               <button className="p-0.5 text-muted-foreground hover:text-foreground" title="Manage Watchlist">
-                <Plus className="w-3 h-3" />
+                <Plus className="w-3.5 h-3.5" />
               </button>
             </Link>
           </div>
 
           {watchlistItems.length === 0 ? (
-            <div className="px-2 py-1 text-[10px] text-muted-foreground">
+            <div className="px-2 py-1 text-xs text-muted-foreground">
               No items. <Link href="/watchlist" className="underline">Add</Link>
             </div>
           ) : (
-            <div className="max-h-[180px] overflow-y-auto space-y-px text-[10px] pr-1">
+            <div className="max-h-[220px] overflow-y-auto space-y-0.5 text-xs pr-1">
               {watchlistItems.map((item) => {
                 const key = item.symbol.toUpperCase();
                 const md = watchlistPrices[key] || {};
@@ -171,20 +171,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 const isPos = ch != null && ch >= 0;
                 const spark = md.sparkline || [];
                 return (
-                  <div key={item.id} className="flex items-center gap-1.5 px-2 py-0.5 rounded hover:bg-sidebar-accent">
+                  <div key={item.id} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-sidebar-accent">
                     <div className="flex-1 min-w-0 leading-tight">
-                      <div className="font-mono font-medium truncate">{item.symbol.replace(/^\^/, '')}</div>
-                      {item.name && <div className="text-muted-foreground truncate text-[9px] leading-none -mt-0.5">{item.name}</div>}
+                      <div className="font-mono font-semibold text-sm truncate">{item.symbol.replace(/^\^/, '')}</div>
+                      {item.name && <div className="text-muted-foreground truncate text-[10px] leading-none -mt-0.5">{item.name}</div>}
                     </div>
-                    <div className="w-[42px] h-3 flex-shrink-0">
+                    <div className="w-11 h-4 flex-shrink-0">
                       {spark.length >= 2 ? (
-                        <Sparkline data={spark} positive={isPos} width={42} height={12} />
+                        <Sparkline data={spark} positive={isPos} width={44} height={16} />
                       ) : null}
                     </div>
-                    <div className="font-mono tabular-nums text-right min-w-[44px] leading-tight">
-                      <div>{price != null ? formatCompact(price) : "—"}</div>
+                    <div className="font-mono tabular-nums text-right min-w-[52px] leading-tight">
+                      <div className="text-xs font-semibold">{price != null ? formatCompact(price) : "—"}</div>
                       {ch != null && (
-                        <div className={isPos ? "text-[hsl(var(--positive))]" : "text-destructive"}>
+                        <div className={`text-[10px] ${isPos ? "text-[hsl(var(--positive))]" : "text-destructive"}`}>
                           {isPos ? "▲" : "▼"}{ch.toFixed(1)}%
                         </div>
                       )}
