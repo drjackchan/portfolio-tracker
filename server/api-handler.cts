@@ -1,8 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import { storage } from "./storage";
-import { insertAssetSchema, insertTransactionSchema, insertLiabilitySchema, insertSubscriptionSchema, updateAssetSchema } from "../shared/schema";
-import { fetchPrices, fetchStockPrice, fetchCryptoPrice, fetchMarketData } from "./prices";
+import { insertAssetSchema, insertTransactionSchema, insertLiabilitySchema, insertSubscriptionSchema, updateAssetSchema, insertWatchlistSchema } from "../shared/schema";
+import { fetchPrices, fetchStockPrice, fetchCryptoPrice, fetchMarketData, fetchStockMarketData, fetchCryptoMarketData } from "./prices";
 import { takeSnapshot } from "./snapshot";
 import { requireAuth, handleLogin, handleLogout, handleAuthCheck } from "./auth";
 import { registerAdSenseRoutes } from "./adsense";
@@ -103,6 +103,37 @@ app.delete("/api/subscriptions/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     await storage.deleteSubscription(id);
+    res.status(204).end();
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+// --- Watchlist ---
+app.get("/api/watchlist", async (_req, res) => {
+  try {
+    const items = await storage.getWatchlist();
+    res.json(items);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+app.post("/api/watchlist", async (req, res) => {
+  try {
+    const result = insertWatchlistSchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
+    const item = await storage.createWatchlistItem(result.data);
+    res.status(201).json(item);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+app.delete("/api/watchlist/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await storage.deleteWatchlistItem(id);
     res.status(204).end();
   } catch (e: any) {
     res.status(500).json({ message: e.message });
@@ -330,6 +361,38 @@ app.get("/api/prices/market-data", async (_req, res) => {
       if (r.data) byId[r.assetId] = r.data;
     }
     res.json(byId);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+// Market data for arbitrary symbols (used by Watchlist)
+app.post("/api/prices/market-data/symbols", async (req, res) => {
+  try {
+    const { symbols } = req.body as { symbols: Array<{ symbol: string; assetType: string; currency?: string }> };
+    if (!symbols || !Array.isArray(symbols)) {
+      return res.status(400).json({ message: "symbols array required" });
+    }
+
+    const results: Record<string, any> = {};
+    for (const s of symbols) {
+      const upper = (s.symbol || "").toUpperCase().trim();
+      if (!upper) continue;
+      try {
+        if (s.assetType === "stock") {
+          const data = await fetchStockMarketData(s.symbol);
+          results[upper] = data;
+        } else if (s.assetType === "crypto") {
+          const data = await fetchCryptoMarketData(s.symbol, s.currency || "HKD");
+          results[upper] = data;
+        } else {
+          results[upper] = null;
+        }
+      } catch {
+        results[upper] = null;
+      }
+    }
+    res.json(results);
   } catch (e: any) {
     res.status(500).json({ message: e.message });
   }

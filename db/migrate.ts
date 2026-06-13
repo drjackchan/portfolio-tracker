@@ -64,6 +64,16 @@ export async function runMigrations() {
   `);
 
   await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS watchlist (
+      id          SERIAL PRIMARY KEY,
+      symbol      TEXT NOT NULL,
+      name        TEXT,
+      asset_type  TEXT NOT NULL,
+      created_at  TEXT NOT NULL
+    );
+  `);
+
+  await db.execute(sql`
     CREATE TABLE IF NOT EXISTS transactions (
       id        SERIAL PRIMARY KEY,
       asset_id  INTEGER NOT NULL,

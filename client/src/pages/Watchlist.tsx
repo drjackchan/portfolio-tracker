@@ -60,7 +60,11 @@ export default function Watchlist() {
       setNewName("");
       toast({ title: "Added to watchlist" });
     },
-    onError: () => toast({ title: "Failed to add", variant: "destructive" }),
+    onError: (error: any) => {
+      console.error("Add watchlist error:", error);
+      const message = error?.message || error?.response?.data?.message || "Failed to add. Check server logs.";
+      toast({ title: message, variant: "destructive" });
+    },
   });
 
   const deleteMutation = useMutation({
