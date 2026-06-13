@@ -166,11 +166,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         ) : (
           <div 
-            className="flex-1 min-h-0 overflow-y-auto space-y-0.5 text-xs pl-3 pr-2
+            className="flex-1 min-h-0 overflow-y-auto space-y-0.5 text-xs pl-3 pr-2 bg-sidebar
                        [scrollbar-width:thin] 
                        [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full 
                        [&::-webkit-scrollbar-thumb]:bg-sidebar-border/40 
-                       hover:[&::-webkit-scrollbar-thumb]:bg-sidebar-border/70"
+                       hover:[&::-webkit-scrollbar-thumb]:bg-sidebar-border/70
+                       [&::-webkit-scrollbar-track]:bg-sidebar [&::-webkit-scrollbar-corner]:bg-sidebar"
           >
             {watchlistItems.map((item) => {
               const key = item.symbol.toUpperCase();
