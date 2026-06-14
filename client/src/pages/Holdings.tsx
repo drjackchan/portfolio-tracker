@@ -25,7 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState, useMemo } from "react";
 import {
-  PieChart, Pie, Cell, Tooltip as ReTooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Tooltip as ReTooltip, ResponsiveContainer, Sector,
 } from "recharts";
 import type { ComponentType } from "react";
 import type { Asset } from "@shared/schema";
@@ -58,6 +58,23 @@ const CHART_COLORS = [
   "hsl(var(--chart-6))",
 ];
 
+const renderActiveShape = (props: any) => {
+  const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
+  return (
+    <g>
+      <Sector
+        cx={cx}
+        cy={cy}
+        innerRadius={innerRadius}
+        outerRadius={outerRadius + 8}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        fill={fill}
+      />
+    </g>
+  );
+};
+
 function formatCurrency(val: number, compact = false) {
   if (compact && Math.abs(val) >= 1_000_000) return `HK$${(val / 1_000_000).toFixed(2)}M`;
   if (compact && Math.abs(val) >= 1_000) return `HK$${(val / 1_000).toFixed(1)}K`;
@@ -83,6 +100,10 @@ export default function Holdings() {
   // Sorting state (similar to Dashboard)
   const [sortKey, setSortKey] = useState<string>("value");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  // Active index for the sub allocation pies (no default highlight)
+  const [cryptoActiveIndex, setCryptoActiveIndex] = useState(-1);
+  const [stockActiveIndex, setStockActiveIndex] = useState(-1);
 
   // Grouping by ticker (for assets with same symbol/ticker but different account names)
   const { data: assets = [], isLoading } = useQuery<Asset[]>({ queryKey: ["/api/assets"] });
@@ -321,20 +342,26 @@ export default function Holdings() {
                 <div className="h-[260px] flex items-center justify-center text-muted-foreground text-sm">No crypto holdings</div>
               ) : (
                 <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2 w-full">
-                  <div className="flex-shrink-0 w-full aspect-square mx-auto sm:mx-0 sm:w-[220px] sm:max-w-none sm:h-[220px]">
+                  <div className="flex-shrink-0 w-full max-w-[300px] aspect-square mx-auto sm:mx-0 sm:w-[220px] sm:max-w-none sm:h-[220px] relative">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
                           data={cryptoAllocation}
                           cx="50%"
                           cy="50%"
-                          innerRadius={55}
-                          outerRadius={95}
+                          innerRadius={72}
+                          outerRadius={105}
+                          paddingAngle={3}
                           dataKey="value"
                           nameKey="name"
+                          activeIndex={cryptoActiveIndex}
+                          activeShape={renderActiveShape}
+                          onMouseEnter={(_, index) => setCryptoActiveIndex(index)}
+                          onMouseLeave={() => setCryptoActiveIndex(-1)}
+                          stroke="none"
                         >
                           {cryptoAllocation.map((entry, index) => (
-                            <Cell key={`cell-crypto-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                            <Cell key={`cell-crypto-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} className="transition-all duration-300 ease-in-out cursor-pointer" />
                           ))}
                         </Pie>
                         <ReTooltip
@@ -345,28 +372,63 @@ export default function Holdings() {
                         />
                       </PieChart>
                     </ResponsiveContainer>
+                    {/* Total value in the center of the pie (compact form, matching main allocation card) */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="text-center">
+                        <div className="text-xl sm:text-2xl font-semibold font-mono tabular-nums leading-none">
+                          {fmtCcy(totalsByCategory["crypto"] || 0, true)}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <ul className="space-y-1 flex-1 min-w-0 w-full sm:w-auto sm:flex-1 sm:min-w-0 text-xs">
-                    {cryptoAllocation.map((d, i) => (
-                      <li key={i} className="flex items-center justify-between p-1.5 rounded-lg hover:bg-muted/50">
-                        <div className="flex items-center gap-2 overflow-hidden">
-                          <span
-                            className="w-3 h-3 rounded-sm flex-shrink-0"
-                            style={{ background: CHART_COLORS[i % CHART_COLORS.length] }}
-                          />
-                          <span className="text-xs font-medium text-foreground truncate">{d.name}</span>
-                        </div>
-                        <div className="text-right flex-shrink-0 ml-2">
-                          <div className="text-xs font-semibold font-mono tabular-nums leading-tight">
-                            {formatCurrency(d.value, true)}
+                  {/* Legend - identical structure, font sizes, spacing, and hover behavior as the main Asset Allocation card */}
+                  <div 
+                    className="w-full sm:w-auto sm:flex-1 sm:min-w-0 sm:max-w-none space-y-0.5 text-sm"
+                    onMouseLeave={() => setCryptoActiveIndex(-1)}
+                  >
+                    {cryptoAllocation.map((d, i) => {
+                      const isActive = i === cryptoActiveIndex;
+                      const valueStr = formatCurrency(d.value, true);
+                      const pctStr = `${d.pct.toFixed(1)}%`;
+                      const color = CHART_COLORS[i % CHART_COLORS.length];
+
+                      if (isActive) {
+                        return (
+                          <div 
+                            key={d.name} 
+                            className="flex items-center justify-between rounded-2xl bg-sidebar-accent shadow-sm scale-[1.02] px-3 py-2 cursor-pointer"
+                            onMouseEnter={() => setCryptoActiveIndex(i)}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="w-4 h-4 rounded-sm flex-shrink-0" style={{ background: color }} />
+                              <span className="font-medium text-foreground">{d.name}</span>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-semibold tabular-nums text-[13px]">{valueStr}</div>
+                              <div className="text-[10px] text-muted-foreground tabular-nums leading-none">{pctStr}</div>
+                            </div>
                           </div>
-                          <div className="text-[10px] font-mono text-muted-foreground">
-                            {d.pct.toFixed(1)}%
+                        );
+                      }
+
+                      return (
+                        <div 
+                          key={d.name} 
+                          className="flex items-center justify-between px-1 py-1 rounded hover:bg-muted/50 cursor-pointer"
+                          onMouseEnter={() => setCryptoActiveIndex(i)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="w-3.5 h-3.5 rounded-sm flex-shrink-0" style={{ background: color }} />
+                            <span className="text-muted-foreground">{d.name}</span>
+                          </div>
+                          <div className="text-right font-mono">
+                            <div className="text-[13px] font-medium tabular-nums">{valueStr}</div>
+                            <div className="text-[10px] text-muted-foreground tabular-nums leading-none">{pctStr}</div>
                           </div>
                         </div>
-                      </li>
-                    ))}
-                  </ul>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -381,21 +443,29 @@ export default function Holdings() {
               {stockAllocation.length === 0 ? (
                 <div className="h-[260px] flex items-center justify-center text-muted-foreground text-sm">No stock holdings</div>
               ) : (
-                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2 w-full">
-                  <div className="flex-shrink-0 w-full aspect-square mx-auto sm:mx-0 sm:w-[220px] sm:max-w-none sm:h-[220px]">
+                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2 w-full"
+                  onMouseLeave={() => setStockActiveIndex(-1)}
+                >
+                  <div className="flex-shrink-0 w-full max-w-[300px] aspect-square mx-auto sm:mx-0 sm:w-[220px] sm:max-w-none sm:h-[220px] relative">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
                           data={stockAllocation}
                           cx="50%"
                           cy="50%"
-                          innerRadius={55}
-                          outerRadius={95}
+                          innerRadius={72}
+                          outerRadius={105}
+                          paddingAngle={3}
                           dataKey="value"
                           nameKey="name"
+                          activeIndex={stockActiveIndex}
+                          activeShape={renderActiveShape}
+                          onMouseEnter={(_, index) => setStockActiveIndex(index)}
+                          onMouseLeave={() => setStockActiveIndex(-1)}
+                          stroke="none"
                         >
                           {stockAllocation.map((entry, index) => (
-                            <Cell key={`cell-stock-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                            <Cell key={`cell-stock-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} className="transition-all duration-300 ease-in-out cursor-pointer" />
                           ))}
                         </Pie>
                         <ReTooltip
@@ -406,28 +476,63 @@ export default function Holdings() {
                         />
                       </PieChart>
                     </ResponsiveContainer>
+                    {/* Total value in the center of the pie (compact form, matching main allocation card) */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="text-center">
+                        <div className="text-xl sm:text-2xl font-semibold font-mono tabular-nums leading-none">
+                          {fmtCcy(totalsByCategory["stock"] || 0, true)}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <ul className="space-y-1 flex-1 min-w-0 w-full sm:w-auto sm:flex-1 sm:min-w-0 text-xs">
-                    {stockAllocation.map((d, i) => (
-                      <li key={i} className="flex items-center justify-between p-1.5 rounded-lg hover:bg-muted/50">
-                        <div className="flex items-center gap-2 overflow-hidden">
-                          <span
-                            className="w-3 h-3 rounded-sm flex-shrink-0"
-                            style={{ background: CHART_COLORS[i % CHART_COLORS.length] }}
-                          />
-                          <span className="text-xs font-medium text-foreground truncate">{d.name}</span>
-                        </div>
-                        <div className="text-right flex-shrink-0 ml-2">
-                          <div className="text-xs font-semibold font-mono tabular-nums leading-tight">
-                            {formatCurrency(d.value, true)}
+                  {/* Legend - identical structure, font sizes, spacing, and hover behavior as the main Asset Allocation card */}
+                  <div 
+                    className="w-full sm:w-auto sm:flex-1 sm:min-w-0 sm:max-w-none space-y-0.5 text-sm"
+                    onMouseLeave={() => setStockActiveIndex(-1)}
+                  >
+                    {stockAllocation.map((d, i) => {
+                      const isActive = i === stockActiveIndex;
+                      const valueStr = formatCurrency(d.value, true);
+                      const pctStr = `${d.pct.toFixed(1)}%`;
+                      const color = CHART_COLORS[i % CHART_COLORS.length];
+
+                      if (isActive) {
+                        return (
+                          <div 
+                            key={d.name} 
+                            className="flex items-center justify-between rounded-2xl bg-sidebar-accent shadow-sm scale-[1.02] px-3 py-2 cursor-pointer"
+                            onMouseEnter={() => setStockActiveIndex(i)}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="w-4 h-4 rounded-sm flex-shrink-0" style={{ background: color }} />
+                              <span className="font-medium text-foreground">{d.name}</span>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-semibold tabular-nums text-[13px]">{valueStr}</div>
+                              <div className="text-[10px] text-muted-foreground tabular-nums leading-none">{pctStr}</div>
+                            </div>
                           </div>
-                          <div className="text-[10px] font-mono text-muted-foreground">
-                            {d.pct.toFixed(1)}%
+                        );
+                      }
+
+                      return (
+                        <div 
+                          key={d.name} 
+                          className="flex items-center justify-between px-1 py-1 rounded hover:bg-muted/50 cursor-pointer"
+                          onMouseEnter={() => setStockActiveIndex(i)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="w-3.5 h-3.5 rounded-sm flex-shrink-0" style={{ background: color }} />
+                            <span className="text-muted-foreground">{d.name}</span>
+                          </div>
+                          <div className="text-right font-mono">
+                            <div className="text-[13px] font-medium tabular-nums">{valueStr}</div>
+                            <div className="text-[10px] text-muted-foreground tabular-nums leading-none">{pctStr}</div>
                           </div>
                         </div>
-                      </li>
-                    ))}
-                  </ul>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </CardContent>
