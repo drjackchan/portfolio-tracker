@@ -341,13 +341,13 @@ export default function Holdings() {
               {cryptoAllocation.length === 0 ? (
                 <div className="h-[260px] flex items-center justify-center text-muted-foreground text-sm">No crypto holdings</div>
               ) : (
-                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2 w-full focus:outline-none focus-visible:outline-none"
+                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2 w-full focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0"
                   onMouseLeave={() => setCryptoActiveIndex(-1)}
                   tabIndex={-1}
                 >
-                  <div className="flex-shrink-0 w-full max-w-[300px] aspect-square mx-auto sm:mx-0 sm:w-[260px] sm:max-w-none sm:h-[260px] relative focus:outline-none focus-visible:outline-none" style={{ overflow: 'visible' }} tabIndex={-1}>
-                    <ResponsiveContainer width="100%" height="100%" className="focus:outline-none focus-visible:outline-none">
-                      <PieChart className="focus:outline-none focus-visible:outline-none">
+                  <div className="flex-shrink-0 w-full max-w-[300px] aspect-square mx-auto sm:mx-0 sm:w-[260px] sm:max-w-none sm:h-[260px] relative focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0" style={{ overflow: 'visible' }} tabIndex={-1}>
+                    <ResponsiveContainer width="100%" height="100%" className="focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0">
+                      <PieChart className="focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0">
                         <Pie
                           data={cryptoAllocation}
                           cx="50%"
@@ -364,7 +364,7 @@ export default function Holdings() {
                           stroke="none"
                         >
                           {cryptoAllocation.map((entry, index) => (
-                            <Cell key={`cell-crypto-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} className="transition-all duration-300 ease-in-out cursor-pointer focus:outline-none focus-visible:outline-none" />
+                            <Cell key={`cell-crypto-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} className="transition-all duration-300 ease-in-out cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0" />
                           ))}
                         </Pie>
                         <ReTooltip
@@ -386,7 +386,7 @@ export default function Holdings() {
                   </div>
                   {/* Legend - identical structure, font sizes, spacing, and hover behavior as the main Asset Allocation card */}
                   <div 
-                    className="w-full sm:w-auto sm:flex-1 sm:min-w-0 sm:max-w-none space-y-0.5 text-sm focus:outline-none focus-visible:outline-none"
+                    className="w-full sm:w-auto sm:flex-1 sm:min-w-0 sm:max-w-none space-y-0.5 text-sm focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0"
                     onMouseLeave={() => setCryptoActiveIndex(-1)}
                   >
                     {cryptoAllocation.map((d, i) => {
@@ -399,7 +399,7 @@ export default function Holdings() {
                         return (
                           <div 
                             key={d.name} 
-                            className="flex items-center justify-between rounded-2xl bg-sidebar-accent shadow-sm scale-[1.02] px-3 py-2 cursor-pointer focus:outline-none focus-visible:outline-none" tabIndex={-1}
+                            className="flex items-center justify-between rounded-2xl bg-sidebar-accent shadow-sm scale-[1.02] px-3 py-2 cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0" tabIndex={-1}
                             onMouseEnter={() => setCryptoActiveIndex(i)}
                           >
                             <div className="flex items-center gap-2">
@@ -417,7 +417,7 @@ export default function Holdings() {
                       return (
                         <div 
                           key={d.name} 
-                          className="flex items-center justify-between px-1 py-1 rounded hover:bg-muted/50 cursor-pointer focus:outline-none focus-visible:outline-none" tabIndex={-1}
+                          className="flex items-center justify-between px-1 py-1 rounded hover:bg-muted/50 cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0" tabIndex={-1}
                           onMouseEnter={() => setCryptoActiveIndex(i)}
                         >
                           <div className="flex items-center gap-2">
@@ -446,13 +446,13 @@ export default function Holdings() {
               {stockAllocation.length === 0 ? (
                 <div className="h-[260px] flex items-center justify-center text-muted-foreground text-sm">No stock holdings</div>
               ) : (
-                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2 w-full focus:outline-none focus-visible:outline-none"
+                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2 w-full focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0"
                   onMouseLeave={() => setStockActiveIndex(-1)}
                   tabIndex={-1}
                 >
-                  <div className="flex-shrink-0 w-full max-w-[300px] aspect-square mx-auto sm:mx-0 sm:w-[260px] sm:max-w-none sm:h-[260px] relative focus:outline-none focus-visible:outline-none" style={{ overflow: 'visible' }} tabIndex={-1}>
-                    <ResponsiveContainer width="100%" height="100%" className="focus:outline-none focus-visible:outline-none">
-                      <PieChart className="focus:outline-none focus-visible:outline-none">
+                  <div className="flex-shrink-0 w-full max-w-[300px] aspect-square mx-auto sm:mx-0 sm:w-[260px] sm:max-w-none sm:h-[260px] relative focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0" style={{ overflow: 'visible' }} tabIndex={-1}>
+                    <ResponsiveContainer width="100%" height="100%" className="focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0">
+                      <PieChart className="focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0">
                         <Pie
                           data={stockAllocation}
                           cx="50%"
@@ -469,7 +469,7 @@ export default function Holdings() {
                           stroke="none"
                         >
                           {stockAllocation.map((entry, index) => (
-                            <Cell key={`cell-stock-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} className="transition-all duration-300 ease-in-out cursor-pointer focus:outline-none focus-visible:outline-none" />
+                            <Cell key={`cell-stock-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} className="transition-all duration-300 ease-in-out cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0" />
                           ))}
                         </Pie>
                         <ReTooltip
@@ -491,7 +491,7 @@ export default function Holdings() {
                   </div>
                   {/* Legend - identical structure, font sizes, spacing, and hover behavior as the main Asset Allocation card */}
                   <div 
-                    className="w-full sm:w-auto sm:flex-1 sm:min-w-0 sm:max-w-none space-y-0.5 text-sm focus:outline-none focus-visible:outline-none"
+                    className="w-full sm:w-auto sm:flex-1 sm:min-w-0 sm:max-w-none space-y-0.5 text-sm focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0"
                     onMouseLeave={() => setStockActiveIndex(-1)}
                   >
                     {stockAllocation.map((d, i) => {
@@ -504,7 +504,7 @@ export default function Holdings() {
                         return (
                           <div 
                             key={d.name} 
-                            className="flex items-center justify-between rounded-2xl bg-sidebar-accent shadow-sm scale-[1.02] px-3 py-2 cursor-pointer focus:outline-none focus-visible:outline-none" tabIndex={-1}
+                            className="flex items-center justify-between rounded-2xl bg-sidebar-accent shadow-sm scale-[1.02] px-3 py-2 cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0" tabIndex={-1}
                             onMouseEnter={() => setStockActiveIndex(i)}
                           >
                             <div className="flex items-center gap-2">
@@ -522,7 +522,7 @@ export default function Holdings() {
                       return (
                         <div 
                           key={d.name} 
-                          className="flex items-center justify-between px-1 py-1 rounded hover:bg-muted/50 cursor-pointer focus:outline-none focus-visible:outline-none" tabIndex={-1}
+                          className="flex items-center justify-between px-1 py-1 rounded hover:bg-muted/50 cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0" tabIndex={-1}
                           onMouseEnter={() => setStockActiveIndex(i)}
                         >
                           <div className="flex items-center gap-2">
