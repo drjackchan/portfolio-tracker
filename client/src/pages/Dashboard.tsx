@@ -208,7 +208,7 @@ const renderPieIconLabel = (entry: any) => {
 export default function Dashboard() {
   const { toast } = useToast();
   const [range, setRange] = useState<Range>("30d");
-  const [activePieIndex, setActivePieIndex] = useState(0);
+  const [activePieIndex, setActivePieIndex] = useState(-1);
   const [sortKey, setSortKey] = useState<SortKey>('value');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [filterType, setFilterType] = useState<string>("All");
@@ -436,7 +436,7 @@ export default function Dashboard() {
             ) : (
               <div 
                 className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2 w-full"
-                onMouseLeave={() => setActivePieIndex(0)}
+                onMouseLeave={() => setActivePieIndex(-1)}
               >
                 <div className="flex-shrink-0 mx-auto w-full max-w-[300px] aspect-square sm:mx-0 sm:w-[260px] sm:max-w-none sm:aspect-auto sm:h-[260px] relative">
                   <ResponsiveContainer width="100%" height="100%">
@@ -452,7 +452,7 @@ export default function Dashboard() {
                         activeIndex={activePieIndex}
                         activeShape={renderActiveShape}
                         onMouseEnter={(_, index) => setActivePieIndex(index)}
-                        onMouseLeave={() => setActivePieIndex(0)}
+                        onMouseLeave={() => setActivePieIndex(-1)}
                         stroke="none"
                         label={renderPieIconLabel}
                         labelLine={false}
@@ -475,7 +475,7 @@ export default function Dashboard() {
                 {/* Legend: full-width on mobile, beside pie on desktop */}
                 <div 
                   className="w-full sm:w-auto sm:flex-1 sm:min-w-0 sm:max-w-none space-y-0.5 text-sm"
-                  onMouseLeave={() => setActivePieIndex(0)}
+                  onMouseLeave={() => setActivePieIndex(-1)}
                 >
                   {allocationData.map((d, i) => {
                     const Icon = ASSET_TYPE_ICONS[d.type] || Folder;
