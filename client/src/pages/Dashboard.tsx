@@ -438,7 +438,7 @@ export default function Dashboard() {
                 className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2 w-full"
                 onMouseLeave={() => setActivePieIndex(0)}
               >
-                <div className="flex-shrink-0 mx-auto w-full max-w-[300px] aspect-square sm:mx-0 sm:w-[260px] sm:max-w-none sm:aspect-auto sm:h-[260px]">
+                <div className="flex-shrink-0 mx-auto w-full max-w-[300px] aspect-square sm:mx-0 sm:w-[260px] sm:max-w-none sm:aspect-auto sm:h-[260px] relative">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie 
@@ -462,6 +462,14 @@ export default function Dashboard() {
                       <ReTooltip content={<PieTooltip />} />
                     </PieChart>
                   </ResponsiveContainer>
+                  {/* Net worth value in the center of the donut */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="text-center">
+                      <div className="text-xl sm:text-2xl font-semibold font-mono tabular-nums leading-none">
+                        {fmtCcy(totalNetWorth, true)}
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Legend: full-width on mobile, beside pie on desktop */}
