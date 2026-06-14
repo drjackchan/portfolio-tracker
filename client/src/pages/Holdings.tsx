@@ -318,10 +318,10 @@ export default function Holdings() {
             </CardHeader>
             <CardContent className="flex-1 flex flex-col justify-center p-4">
               {cryptoAllocation.length === 0 ? (
-                <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">No crypto holdings</div>
+                <div className="h-[260px] flex items-center justify-center text-muted-foreground text-sm">No crypto holdings</div>
               ) : (
                 <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2">
-                  <div className="flex-shrink-0 w-full max-w-[220px] aspect-square sm:mx-0 sm:w-[220px] sm:h-[220px] sm:max-w-none">
+                  <div className="flex-shrink-0 w-full max-w-[260px] aspect-square mx-auto sm:mx-0 sm:w-[220px] sm:max-w-none sm:h-[220px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -346,7 +346,7 @@ export default function Holdings() {
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
-                  <ul className="space-y-1 flex-1 min-w-0 w-full max-w-[220px] sm:max-w-none text-xs">
+                  <ul className="space-y-1 flex-1 min-w-0 w-full max-w-[260px] mx-auto sm:max-w-none text-xs">
                     {cryptoAllocation.map((d, i) => (
                       <li key={i} className="flex items-center justify-between p-1.5 rounded-lg hover:bg-muted/50">
                         <div className="flex items-center gap-2 overflow-hidden">
@@ -379,10 +379,10 @@ export default function Holdings() {
             </CardHeader>
             <CardContent className="flex-1 flex flex-col justify-center p-4">
               {stockAllocation.length === 0 ? (
-                <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">No stock holdings</div>
+                <div className="h-[260px] flex items-center justify-center text-muted-foreground text-sm">No stock holdings</div>
               ) : (
                 <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2">
-                  <div className="flex-shrink-0 w-full max-w-[220px] aspect-square sm:mx-0 sm:w-[220px] sm:h-[220px] sm:max-w-none">
+                  <div className="flex-shrink-0 w-full max-w-[260px] aspect-square mx-auto sm:mx-0 sm:w-[220px] sm:max-w-none sm:h-[220px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -407,7 +407,7 @@ export default function Holdings() {
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
-                  <ul className="space-y-1 flex-1 min-w-0 w-full max-w-[220px] sm:max-w-none text-xs">
+                  <ul className="space-y-1 flex-1 min-w-0 w-full max-w-[260px] mx-auto sm:max-w-none text-xs">
                     {stockAllocation.map((d, i) => (
                       <li key={i} className="flex items-center justify-between p-1.5 rounded-lg hover:bg-muted/50">
                         <div className="flex items-center gap-2 overflow-hidden">
