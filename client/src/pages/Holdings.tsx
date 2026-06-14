@@ -341,13 +341,13 @@ export default function Holdings() {
               {cryptoAllocation.length === 0 ? (
                 <div className="h-[260px] flex items-center justify-center text-muted-foreground text-sm">No crypto holdings</div>
               ) : (
-                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2 w-full !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0"
+                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2 w-full !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0 [&_.recharts-pie-sector]:!outline-none [&_.recharts-pie-sector]:focus:!outline-none [&_.recharts-pie-sector_path]:!outline-none [&_.recharts-pie-sector_path]:focus:!outline-none [&_path]:!outline-none [&_path]:focus:!outline-none"
                   onMouseLeave={() => setCryptoActiveIndex(-1)}
                   tabIndex={-1}
                 >
-                  <div className="flex-shrink-0 w-full max-w-[300px] aspect-square mx-auto sm:mx-0 sm:w-[260px] sm:max-w-none sm:h-[260px] relative !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0" style={{ overflow: 'visible' }} tabIndex={-1}>
+                  <div className="flex-shrink-0 w-full max-w-[300px] aspect-square mx-auto sm:mx-0 sm:w-[260px] sm:max-w-none sm:h-[260px] relative !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0 [&_.recharts-pie-sector]:!outline-none [&_.recharts-pie-sector]:focus:!outline-none [&_.recharts-pie-sector_path]:!outline-none [&_.recharts-pie-sector_path]:focus:!outline-none [&_path]:!outline-none [&_path]:focus:!outline-none" style={{ overflow: 'visible' }} tabIndex={-1}>
                     <ResponsiveContainer width="100%" height="100%" className="!outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0">
-                      <PieChart className="focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0">
+                      <PieChart className="!outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0 [&_.recharts-pie-sector]:!outline-none [&_.recharts-pie-sector]:focus:!outline-none [&_.recharts-pie-sector_path]:!outline-none [&_.recharts-pie-sector_path]:focus:!outline-none [&_path]:!outline-none [&_path]:focus:!outline-none">
                         <Pie
                           data={cryptoAllocation}
                           cx="50%"
@@ -364,7 +364,7 @@ export default function Holdings() {
                           stroke="none"
                         >
                           {cryptoAllocation.map((entry, index) => (
-                            <Cell key={`cell-crypto-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} className="transition-all duration-300 ease-in-out cursor-pointer !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0" />
+                            <Cell key={`cell-crypto-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} tabIndex={-1} className="transition-all duration-300 ease-in-out cursor-pointer !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0" />
                           ))}
                         </Pie>
                         <ReTooltip
@@ -446,13 +446,13 @@ export default function Holdings() {
               {stockAllocation.length === 0 ? (
                 <div className="h-[260px] flex items-center justify-center text-muted-foreground text-sm">No stock holdings</div>
               ) : (
-                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2 w-full !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0"
+                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2 w-full !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0 [&_.recharts-pie-sector]:!outline-none [&_.recharts-pie-sector]:focus:!outline-none [&_.recharts-pie-sector_path]:!outline-none [&_.recharts-pie-sector_path]:focus:!outline-none [&_path]:!outline-none [&_path]:focus:!outline-none"
                   onMouseLeave={() => setStockActiveIndex(-1)}
                   tabIndex={-1}
                 >
-                  <div className="flex-shrink-0 w-full max-w-[300px] aspect-square mx-auto sm:mx-0 sm:w-[260px] sm:max-w-none sm:h-[260px] relative !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0" style={{ overflow: 'visible' }} tabIndex={-1}>
+                  <div className="flex-shrink-0 w-full max-w-[300px] aspect-square mx-auto sm:mx-0 sm:w-[260px] sm:max-w-none sm:h-[260px] relative !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0 [&_.recharts-pie-sector]:!outline-none [&_.recharts-pie-sector]:focus:!outline-none [&_.recharts-pie-sector_path]:!outline-none [&_.recharts-pie-sector_path]:focus:!outline-none [&_path]:!outline-none [&_path]:focus:!outline-none" style={{ overflow: 'visible' }} tabIndex={-1}>
                     <ResponsiveContainer width="100%" height="100%" className="!outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0">
-                      <PieChart className="focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0">
+                      <PieChart className="!outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0 [&_.recharts-pie-sector]:!outline-none [&_.recharts-pie-sector]:focus:!outline-none [&_.recharts-pie-sector_path]:!outline-none [&_.recharts-pie-sector_path]:focus:!outline-none [&_path]:!outline-none [&_path]:focus:!outline-none">
                         <Pie
                           data={stockAllocation}
                           cx="50%"
@@ -469,7 +469,7 @@ export default function Holdings() {
                           stroke="none"
                         >
                           {stockAllocation.map((entry, index) => (
-                            <Cell key={`cell-stock-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} className="transition-all duration-300 ease-in-out cursor-pointer !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0" />
+                            <Cell key={`cell-stock-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} tabIndex={-1} className="transition-all duration-300 ease-in-out cursor-pointer !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0" />
                           ))}
                         </Pie>
                         <ReTooltip

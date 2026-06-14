@@ -435,11 +435,11 @@ export default function Dashboard() {
               <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">No assets yet</div>
             ) : (
               <div 
-                className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2 w-full !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0"
+                className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2 w-full !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0 [&_.recharts-pie-sector]:!outline-none [&_.recharts-pie-sector]:focus:!outline-none [&_.recharts-pie-sector_path]:!outline-none [&_.recharts-pie-sector_path]:focus:!outline-none [&_path]:!outline-none [&_path]:focus:!outline-none"
                 onMouseLeave={() => setActivePieIndex(-1)}
                 tabIndex={-1}
               >
-                <div className="flex-shrink-0 mx-auto w-full max-w-[300px] aspect-square sm:mx-0 sm:w-[260px] sm:max-w-none sm:aspect-auto sm:h-[260px] relative !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0" tabIndex={-1}>
+                <div className="flex-shrink-0 mx-auto w-full max-w-[300px] aspect-square sm:mx-0 sm:w-[260px] sm:max-w-none sm:aspect-auto sm:h-[260px] relative !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0 [&_.recharts-pie-sector]:!outline-none [&_.recharts-pie-sector]:focus:!outline-none [&_.recharts-pie-sector_path]:!outline-none [&_.recharts-pie-sector_path]:focus:!outline-none [&_path]:!outline-none [&_path]:focus:!outline-none" tabIndex={-1}>
                   <ResponsiveContainer width="100%" height="100%" className="!outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0">
                     <PieChart className="!outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0">
                       <Pie 
@@ -458,7 +458,7 @@ export default function Dashboard() {
                         label={renderPieIconLabel}
                         labelLine={false}
                       >
-                        {allocationData.map((e, i) => <Cell key={i} fill={e.color} className="transition-all duration-300 ease-in-out cursor-pointer !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0" />)}
+                        {allocationData.map((e, i) => <Cell key={i} fill={e.color} tabIndex={-1} className="transition-all duration-300 ease-in-out cursor-pointer !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0" />)}
                       </Pie>
                       <ReTooltip content={<PieTooltip />} />
                     </PieChart>
