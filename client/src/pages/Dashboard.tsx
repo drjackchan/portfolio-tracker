@@ -481,50 +481,26 @@ export default function Dashboard() {
                   {allocationData.map((d, i) => {
                     const Icon = ASSET_TYPE_ICONS[d.type] || Folder;
                     const isActive = i === activePieIndex;
-                    const isFeatured = i === 0;
                     const valueStr = fmtCcy(d.value, true);
                     const pctStr = `${d.pct.toFixed(1)}%`;
 
-                    if (isFeatured) {
-                      const featuredClass = isActive
-                        ? "flex items-center justify-between rounded-2xl bg-sidebar-accent shadow-sm px-3 py-2 cursor-pointer !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0 transition-colors duration-150"
-                        : "flex items-center justify-between rounded-2xl bg-muted px-3 py-2 cursor-pointer !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0 transition-colors duration-150";
-                      return (
-                        <div 
-                          key={d.name} 
-                          className={featuredClass}
-                          tabIndex={-1}
-                          onMouseEnter={() => setActivePieIndex(i)}
-                        >
-                          <div className="flex items-center gap-2">
-                            <Icon className="h-4 w-4" style={{ color: d.color }} />
-                            <span className="font-medium text-foreground">{d.name}</span>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-semibold tabular-nums text-[13px]">{valueStr}</div>
-                            <div className="text-[10px] text-muted-foreground tabular-nums leading-none">{pctStr}</div>
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    const regularClass = isActive
-                      ? "flex items-center justify-between px-3 py-2 rounded bg-sidebar-accent shadow-sm cursor-pointer !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0 transition-colors duration-150"
+                    const rowClass = isActive
+                      ? "flex items-center justify-between rounded-2xl bg-sidebar-accent shadow-sm px-3 py-2 cursor-pointer !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0 transition-colors duration-150"
                       : "flex items-center justify-between px-3 py-2 rounded hover:bg-muted/50 cursor-pointer !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0 transition-colors duration-150";
 
                     return (
                       <div 
                         key={d.name} 
-                        className={regularClass}
+                        className={rowClass}
                         tabIndex={-1}
                         onMouseEnter={() => setActivePieIndex(i)}
                       >
                         <div className="flex items-center gap-2">
-                          <Icon className="h-3.5 w-3.5" style={{ color: d.color }} />
-                          <span className="text-muted-foreground">{d.name}</span>
+                          <Icon className="h-4 w-4" style={{ color: d.color }} />
+                          <span className="font-medium text-foreground">{d.name}</span>
                         </div>
-                        <div className="text-right font-mono">
-                          <div className="text-[13px] font-medium tabular-nums">{valueStr}</div>
+                        <div className="text-right">
+                          <div className="font-semibold tabular-nums text-[13px]">{valueStr}</div>
                           <div className="text-[10px] text-muted-foreground tabular-nums leading-none">{pctStr}</div>
                         </div>
                       </div>

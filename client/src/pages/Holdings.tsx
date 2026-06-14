@@ -391,51 +391,27 @@ export default function Holdings() {
                   >
                     {cryptoAllocation.map((d, i) => {
                       const isActive = i === cryptoActiveIndex;
-                      const isFeatured = i === 0;
                       const valueStr = formatCurrency(d.value, true);
                       const pctStr = `${d.pct.toFixed(1)}%`;
                       const color = CHART_COLORS[i % CHART_COLORS.length];
 
-                      if (isFeatured) {
-                        const featuredClass = isActive
-                          ? "flex items-center justify-between rounded-2xl bg-sidebar-accent shadow-sm px-3 py-2 cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0 transition-colors duration-150"
-                          : "flex items-center justify-between rounded-2xl bg-muted px-3 py-2 cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0 transition-colors duration-150";
-                        return (
-                          <div 
-                            key={d.name} 
-                            className={featuredClass}
-                            tabIndex={-1}
-                            onMouseEnter={() => setCryptoActiveIndex(i)}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="w-4 h-4 rounded-sm flex-shrink-0" style={{ background: color }} />
-                              <span className="font-medium text-foreground">{d.name}</span>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-semibold tabular-nums text-[13px]">{valueStr}</div>
-                              <div className="text-[10px] text-muted-foreground tabular-nums leading-none">{pctStr}</div>
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      const regularClass = isActive
-                        ? "flex items-center justify-between px-3 py-2 rounded bg-sidebar-accent shadow-sm cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0 transition-colors duration-150"
+                      const rowClass = isActive
+                        ? "flex items-center justify-between rounded-2xl bg-sidebar-accent shadow-sm px-3 py-2 cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0 transition-colors duration-150"
                         : "flex items-center justify-between px-3 py-2 rounded hover:bg-muted/50 cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0 transition-colors duration-150";
 
                       return (
                         <div 
                           key={d.name} 
-                          className={regularClass}
+                          className={rowClass}
                           tabIndex={-1}
                           onMouseEnter={() => setCryptoActiveIndex(i)}
                         >
                           <div className="flex items-center gap-2">
-                            <span className="w-3.5 h-3.5 rounded-sm flex-shrink-0" style={{ background: color }} />
-                            <span className="text-muted-foreground">{d.name}</span>
+                            <span className="w-4 h-4 rounded-sm flex-shrink-0" style={{ background: color }} />
+                            <span className="font-medium text-foreground">{d.name}</span>
                           </div>
-                          <div className="text-right font-mono">
-                            <div className="text-[13px] font-medium tabular-nums">{valueStr}</div>
+                          <div className="text-right">
+                            <div className="font-semibold tabular-nums text-[13px]">{valueStr}</div>
                             <div className="text-[10px] text-muted-foreground tabular-nums leading-none">{pctStr}</div>
                           </div>
                         </div>
@@ -506,51 +482,27 @@ export default function Holdings() {
                   >
                     {stockAllocation.map((d, i) => {
                       const isActive = i === stockActiveIndex;
-                      const isFeatured = i === 0;
                       const valueStr = formatCurrency(d.value, true);
                       const pctStr = `${d.pct.toFixed(1)}%`;
                       const color = CHART_COLORS[i % CHART_COLORS.length];
 
-                      if (isFeatured) {
-                        const featuredClass = isActive
-                          ? "flex items-center justify-between rounded-2xl bg-sidebar-accent shadow-sm px-3 py-2 cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0 transition-colors duration-150"
-                          : "flex items-center justify-between rounded-2xl bg-muted px-3 py-2 cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0 transition-colors duration-150";
-                        return (
-                          <div 
-                            key={d.name} 
-                            className={featuredClass}
-                            tabIndex={-1}
-                            onMouseEnter={() => setStockActiveIndex(i)}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="w-4 h-4 rounded-sm flex-shrink-0" style={{ background: color }} />
-                              <span className="font-medium text-foreground">{d.name}</span>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-semibold tabular-nums text-[13px]">{valueStr}</div>
-                              <div className="text-[10px] text-muted-foreground tabular-nums leading-none">{pctStr}</div>
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      const regularClass = isActive
-                        ? "flex items-center justify-between px-3 py-2 rounded bg-sidebar-accent shadow-sm cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0 transition-colors duration-150"
+                      const rowClass = isActive
+                        ? "flex items-center justify-between rounded-2xl bg-sidebar-accent shadow-sm px-3 py-2 cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0 transition-colors duration-150"
                         : "flex items-center justify-between px-3 py-2 rounded hover:bg-muted/50 cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0 transition-colors duration-150";
 
                       return (
                         <div 
                           key={d.name} 
-                          className={regularClass}
+                          className={rowClass}
                           tabIndex={-1}
                           onMouseEnter={() => setStockActiveIndex(i)}
                         >
                           <div className="flex items-center gap-2">
-                            <span className="w-3.5 h-3.5 rounded-sm flex-shrink-0" style={{ background: color }} />
-                            <span className="text-muted-foreground">{d.name}</span>
+                            <span className="w-4 h-4 rounded-sm flex-shrink-0" style={{ background: color }} />
+                            <span className="font-medium text-foreground">{d.name}</span>
                           </div>
-                          <div className="text-right font-mono">
-                            <div className="text-[13px] font-medium tabular-nums">{valueStr}</div>
+                          <div className="text-right">
+                            <div className="font-semibold tabular-nums text-[13px]">{valueStr}</div>
                             <div className="text-[10px] text-muted-foreground tabular-nums leading-none">{pctStr}</div>
                           </div>
                         </div>
