@@ -316,20 +316,20 @@ export default function Holdings() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold">Crypto Allocation</CardTitle>
             </CardHeader>
-            <CardContent className="p-4">
+            <CardContent className="flex-1 flex flex-col justify-center p-4">
               {cryptoAllocation.length === 0 ? (
-                <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">No crypto holdings</div>
+                <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">No crypto holdings</div>
               ) : (
-                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-                  <div className="flex-shrink-0 w-[180px] h-[180px] sm:w-[220px] sm:h-[220px]">
+                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2">
+                  <div className="flex-shrink-0 w-full max-w-[220px] aspect-square sm:mx-0 sm:w-[220px] sm:h-[220px] sm:max-w-none">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
                           data={cryptoAllocation}
                           cx="50%"
                           cy="50%"
-                          innerRadius={48}
-                          outerRadius={90}
+                          innerRadius={55}
+                          outerRadius={95}
                           dataKey="value"
                           nameKey="name"
                         >
@@ -346,16 +346,27 @@ export default function Holdings() {
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="flex-1 min-w-0 text-xs space-y-1.5 max-h-[220px] overflow-auto pr-1">
+                  <ul className="space-y-1 flex-1 min-w-0 w-full max-w-[220px] sm:max-w-none text-xs">
                     {cryptoAllocation.map((d, i) => (
-                      <div key={i} className="flex justify-between items-center">
-                        <span className="truncate pr-2 font-medium">{d.name}</span>
-                        <span className="font-mono tabular-nums text-right flex-shrink-0">
-                          {formatCurrency(d.value, true)} <span className="text-muted-foreground">({d.pct.toFixed(1)}%)</span>
-                        </span>
-                      </div>
+                      <li key={i} className="flex items-center justify-between p-1.5 rounded-lg hover:bg-muted/50">
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <span
+                            className="w-3 h-3 rounded-sm flex-shrink-0"
+                            style={{ background: CHART_COLORS[i % CHART_COLORS.length] }}
+                          />
+                          <span className="text-xs font-medium text-foreground truncate">{d.name}</span>
+                        </div>
+                        <div className="text-right flex-shrink-0 ml-2">
+                          <div className="text-xs font-semibold font-mono tabular-nums leading-tight">
+                            {formatCurrency(d.value, true)}
+                          </div>
+                          <div className="text-[10px] font-mono text-muted-foreground">
+                            {d.pct.toFixed(1)}%
+                          </div>
+                        </div>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </div>
               )}
             </CardContent>
@@ -366,20 +377,20 @@ export default function Holdings() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold">Stock Allocation</CardTitle>
             </CardHeader>
-            <CardContent className="p-4">
+            <CardContent className="flex-1 flex flex-col justify-center p-4">
               {stockAllocation.length === 0 ? (
-                <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">No stock holdings</div>
+                <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">No stock holdings</div>
               ) : (
-                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-                  <div className="flex-shrink-0 w-[180px] h-[180px] sm:w-[220px] sm:h-[220px]">
+                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2">
+                  <div className="flex-shrink-0 w-full max-w-[220px] aspect-square sm:mx-0 sm:w-[220px] sm:h-[220px] sm:max-w-none">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
                           data={stockAllocation}
                           cx="50%"
                           cy="50%"
-                          innerRadius={48}
-                          outerRadius={90}
+                          innerRadius={55}
+                          outerRadius={95}
                           dataKey="value"
                           nameKey="name"
                         >
@@ -396,16 +407,27 @@ export default function Holdings() {
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="flex-1 min-w-0 text-xs space-y-1.5 max-h-[220px] overflow-auto pr-1">
+                  <ul className="space-y-1 flex-1 min-w-0 w-full max-w-[220px] sm:max-w-none text-xs">
                     {stockAllocation.map((d, i) => (
-                      <div key={i} className="flex justify-between items-center">
-                        <span className="truncate pr-2 font-medium">{d.name}</span>
-                        <span className="font-mono tabular-nums text-right flex-shrink-0">
-                          {formatCurrency(d.value, true)} <span className="text-muted-foreground">({d.pct.toFixed(1)}%)</span>
-                        </span>
-                      </div>
+                      <li key={i} className="flex items-center justify-between p-1.5 rounded-lg hover:bg-muted/50">
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <span
+                            className="w-3 h-3 rounded-sm flex-shrink-0"
+                            style={{ background: CHART_COLORS[i % CHART_COLORS.length] }}
+                          />
+                          <span className="text-xs font-medium text-foreground truncate">{d.name}</span>
+                        </div>
+                        <div className="text-right flex-shrink-0 ml-2">
+                          <div className="text-xs font-semibold font-mono tabular-nums leading-tight">
+                            {formatCurrency(d.value, true)}
+                          </div>
+                          <div className="text-[10px] font-mono text-muted-foreground">
+                            {d.pct.toFixed(1)}%
+                          </div>
+                        </div>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </div>
               )}
             </CardContent>
