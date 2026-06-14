@@ -391,15 +391,20 @@ export default function Holdings() {
                   >
                     {cryptoAllocation.map((d, i) => {
                       const isActive = i === cryptoActiveIndex;
+                      const isFeatured = i === 0;
                       const valueStr = formatCurrency(d.value, true);
                       const pctStr = `${d.pct.toFixed(1)}%`;
                       const color = CHART_COLORS[i % CHART_COLORS.length];
 
-                      if (isActive) {
+                      if (isFeatured) {
+                        const featuredClass = isActive
+                          ? "flex items-center justify-between rounded-2xl bg-sidebar-accent shadow-sm px-3 py-2 cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0 transition-colors duration-150"
+                          : "flex items-center justify-between rounded-2xl bg-muted px-3 py-2 cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0 transition-colors duration-150";
                         return (
                           <div 
                             key={d.name} 
-                            className="flex items-center justify-between rounded-2xl bg-sidebar-accent shadow-sm scale-[1.02] px-3 py-2 cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0" tabIndex={-1}
+                            className={featuredClass}
+                            tabIndex={-1}
                             onMouseEnter={() => setCryptoActiveIndex(i)}
                           >
                             <div className="flex items-center gap-2">
@@ -414,10 +419,15 @@ export default function Holdings() {
                         );
                       }
 
+                      const regularClass = isActive
+                        ? "flex items-center justify-between px-3 py-2 rounded bg-sidebar-accent shadow-sm cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0 transition-colors duration-150"
+                        : "flex items-center justify-between px-3 py-2 rounded hover:bg-muted/50 cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0 transition-colors duration-150";
+
                       return (
                         <div 
                           key={d.name} 
-                          className="flex items-center justify-between px-1 py-1 rounded hover:bg-muted/50 cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0" tabIndex={-1}
+                          className={regularClass}
+                          tabIndex={-1}
                           onMouseEnter={() => setCryptoActiveIndex(i)}
                         >
                           <div className="flex items-center gap-2">
@@ -496,15 +506,20 @@ export default function Holdings() {
                   >
                     {stockAllocation.map((d, i) => {
                       const isActive = i === stockActiveIndex;
+                      const isFeatured = i === 0;
                       const valueStr = formatCurrency(d.value, true);
                       const pctStr = `${d.pct.toFixed(1)}%`;
                       const color = CHART_COLORS[i % CHART_COLORS.length];
 
-                      if (isActive) {
+                      if (isFeatured) {
+                        const featuredClass = isActive
+                          ? "flex items-center justify-between rounded-2xl bg-sidebar-accent shadow-sm px-3 py-2 cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0 transition-colors duration-150"
+                          : "flex items-center justify-between rounded-2xl bg-muted px-3 py-2 cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0 transition-colors duration-150";
                         return (
                           <div 
                             key={d.name} 
-                            className="flex items-center justify-between rounded-2xl bg-sidebar-accent shadow-sm scale-[1.02] px-3 py-2 cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0" tabIndex={-1}
+                            className={featuredClass}
+                            tabIndex={-1}
                             onMouseEnter={() => setStockActiveIndex(i)}
                           >
                             <div className="flex items-center gap-2">
@@ -519,10 +534,15 @@ export default function Holdings() {
                         );
                       }
 
+                      const regularClass = isActive
+                        ? "flex items-center justify-between px-3 py-2 rounded bg-sidebar-accent shadow-sm cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0 transition-colors duration-150"
+                        : "flex items-center justify-between px-3 py-2 rounded hover:bg-muted/50 cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0 transition-colors duration-150";
+
                       return (
                         <div 
                           key={d.name} 
-                          className="flex items-center justify-between px-1 py-1 rounded hover:bg-muted/50 cursor-pointer focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0" tabIndex={-1}
+                          className={regularClass}
+                          tabIndex={-1}
                           onMouseEnter={() => setStockActiveIndex(i)}
                         >
                           <div className="flex items-center gap-2">

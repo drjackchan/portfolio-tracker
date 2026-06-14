@@ -481,14 +481,19 @@ export default function Dashboard() {
                   {allocationData.map((d, i) => {
                     const Icon = ASSET_TYPE_ICONS[d.type] || Folder;
                     const isActive = i === activePieIndex;
+                    const isFeatured = i === 0;
                     const valueStr = fmtCcy(d.value, true);
                     const pctStr = `${d.pct.toFixed(1)}%`;
 
-                    if (isActive) {
+                    if (isFeatured) {
+                      const featuredClass = isActive
+                        ? "flex items-center justify-between rounded-2xl bg-sidebar-accent shadow-sm px-3 py-2 cursor-pointer !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0 transition-colors duration-150"
+                        : "flex items-center justify-between rounded-2xl bg-muted px-3 py-2 cursor-pointer !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0 transition-colors duration-150";
                       return (
                         <div 
                           key={d.name} 
-                          className="flex items-center justify-between rounded-2xl bg-sidebar-accent shadow-sm scale-[1.02] px-3 py-2 cursor-pointer !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0" tabIndex={-1}
+                          className={featuredClass}
+                          tabIndex={-1}
                           onMouseEnter={() => setActivePieIndex(i)}
                         >
                           <div className="flex items-center gap-2">
@@ -503,10 +508,15 @@ export default function Dashboard() {
                       );
                     }
 
+                    const regularClass = isActive
+                      ? "flex items-center justify-between px-3 py-2 rounded bg-sidebar-accent shadow-sm cursor-pointer !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0 transition-colors duration-150"
+                      : "flex items-center justify-between px-3 py-2 rounded hover:bg-muted/50 cursor-pointer !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0 transition-colors duration-150";
+
                     return (
                       <div 
                         key={d.name} 
-                        className="flex items-center justify-between px-1 py-1 rounded hover:bg-muted/50 cursor-pointer !outline-none focus:!outline-none focus-visible:!outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 !ring-offset-0 focus:!ring-offset-0 focus-visible:!ring-offset-0" tabIndex={-1}
+                        className={regularClass}
+                        tabIndex={-1}
                         onMouseEnter={() => setActivePieIndex(i)}
                       >
                         <div className="flex items-center gap-2">
