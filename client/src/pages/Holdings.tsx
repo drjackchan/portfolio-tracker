@@ -341,7 +341,9 @@ export default function Holdings() {
               {cryptoAllocation.length === 0 ? (
                 <div className="h-[260px] flex items-center justify-center text-muted-foreground text-sm">No crypto holdings</div>
               ) : (
-                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2 w-full">
+                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2 w-full"
+                  onMouseLeave={() => setCryptoActiveIndex(-1)}
+                >
                   <div className="flex-shrink-0 w-full max-w-[300px] aspect-square mx-auto sm:mx-0 sm:w-[220px] sm:max-w-none sm:h-[220px] relative">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -376,7 +378,7 @@ export default function Holdings() {
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <div className="text-center">
                         <div className="text-xl sm:text-2xl font-semibold font-mono tabular-nums leading-none">
-                          {fmtCcy(totalsByCategory["crypto"] || 0, true)}
+                          {formatCurrency(totalsByCategory["crypto"] || 0, true)}
                         </div>
                       </div>
                     </div>
@@ -480,7 +482,7 @@ export default function Holdings() {
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <div className="text-center">
                         <div className="text-xl sm:text-2xl font-semibold font-mono tabular-nums leading-none">
-                          {fmtCcy(totalsByCategory["stock"] || 0, true)}
+                          {formatCurrency(totalsByCategory["stock"] || 0, true)}
                         </div>
                       </div>
                     </div>
