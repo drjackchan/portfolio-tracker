@@ -363,7 +363,7 @@ export default function Holdings() {
                           stroke="none"
                         >
                           {cryptoAllocation.map((entry, index) => (
-                            <Cell key={`cell-crypto-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} className="transition-all duration-300 ease-in-out cursor-pointer" />
+                            <Cell key={`cell-crypto-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} className="transition-all duration-300 ease-in-out cursor-pointer focus:outline-none focus-visible:outline-none" />
                           ))}
                         </Pie>
                         <ReTooltip
@@ -398,7 +398,7 @@ export default function Holdings() {
                         return (
                           <div 
                             key={d.name} 
-                            className="flex items-center justify-between rounded-2xl bg-sidebar-accent shadow-sm scale-[1.02] px-3 py-2 cursor-pointer"
+                            className="flex items-center justify-between rounded-2xl bg-sidebar-accent shadow-sm scale-[1.02] px-3 py-2 cursor-pointer focus:outline-none focus-visible:outline-none"
                             onMouseEnter={() => setCryptoActiveIndex(i)}
                           >
                             <div className="flex items-center gap-2">
@@ -416,7 +416,7 @@ export default function Holdings() {
                       return (
                         <div 
                           key={d.name} 
-                          className="flex items-center justify-between px-1 py-1 rounded hover:bg-muted/50 cursor-pointer"
+                          className="flex items-center justify-between px-1 py-1 rounded hover:bg-muted/50 cursor-pointer focus:outline-none focus-visible:outline-none"
                           onMouseEnter={() => setCryptoActiveIndex(i)}
                         >
                           <div className="flex items-center gap-2">
@@ -467,7 +467,7 @@ export default function Holdings() {
                           stroke="none"
                         >
                           {stockAllocation.map((entry, index) => (
-                            <Cell key={`cell-stock-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} className="transition-all duration-300 ease-in-out cursor-pointer" />
+                            <Cell key={`cell-stock-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} className="transition-all duration-300 ease-in-out cursor-pointer focus:outline-none focus-visible:outline-none" />
                           ))}
                         </Pie>
                         <ReTooltip
@@ -502,7 +502,7 @@ export default function Holdings() {
                         return (
                           <div 
                             key={d.name} 
-                            className="flex items-center justify-between rounded-2xl bg-sidebar-accent shadow-sm scale-[1.02] px-3 py-2 cursor-pointer"
+                            className="flex items-center justify-between rounded-2xl bg-sidebar-accent shadow-sm scale-[1.02] px-3 py-2 cursor-pointer focus:outline-none focus-visible:outline-none"
                             onMouseEnter={() => setStockActiveIndex(i)}
                           >
                             <div className="flex items-center gap-2">
@@ -520,7 +520,7 @@ export default function Holdings() {
                       return (
                         <div 
                           key={d.name} 
-                          className="flex items-center justify-between px-1 py-1 rounded hover:bg-muted/50 cursor-pointer"
+                          className="flex items-center justify-between px-1 py-1 rounded hover:bg-muted/50 cursor-pointer focus:outline-none focus-visible:outline-none"
                           onMouseEnter={() => setStockActiveIndex(i)}
                         >
                           <div className="flex items-center gap-2">

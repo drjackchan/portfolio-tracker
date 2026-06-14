@@ -457,7 +457,7 @@ export default function Dashboard() {
                         label={renderPieIconLabel}
                         labelLine={false}
                       >
-                        {allocationData.map((e, i) => <Cell key={i} fill={e.color} className="transition-all duration-300 ease-in-out cursor-pointer" />)}
+                        {allocationData.map((e, i) => <Cell key={i} fill={e.color} className="transition-all duration-300 ease-in-out cursor-pointer focus:outline-none focus-visible:outline-none" />)}
                       </Pie>
                       <ReTooltip content={<PieTooltip />} />
                     </PieChart>
@@ -487,7 +487,7 @@ export default function Dashboard() {
                       return (
                         <div 
                           key={d.name} 
-                          className="flex items-center justify-between rounded-2xl bg-sidebar-accent shadow-sm scale-[1.02] px-3 py-2 cursor-pointer"
+                          className="flex items-center justify-between rounded-2xl bg-sidebar-accent shadow-sm scale-[1.02] px-3 py-2 cursor-pointer focus:outline-none focus-visible:outline-none"
                           onMouseEnter={() => setActivePieIndex(i)}
                         >
                           <div className="flex items-center gap-2">
@@ -505,7 +505,7 @@ export default function Dashboard() {
                     return (
                       <div 
                         key={d.name} 
-                        className="flex items-center justify-between px-1 py-1 rounded hover:bg-muted/50 cursor-pointer"
+                        className="flex items-center justify-between px-1 py-1 rounded hover:bg-muted/50 cursor-pointer focus:outline-none focus-visible:outline-none"
                         onMouseEnter={() => setActivePieIndex(i)}
                       >
                         <div className="flex items-center gap-2">
