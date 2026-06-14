@@ -344,7 +344,7 @@ export default function Holdings() {
                 <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2 w-full"
                   onMouseLeave={() => setCryptoActiveIndex(-1)}
                 >
-                  <div className="flex-shrink-0 w-full max-w-[300px] aspect-square mx-auto sm:mx-0 sm:w-[220px] sm:max-w-none sm:h-[220px] relative">
+                  <div className="flex-shrink-0 w-full max-w-[300px] aspect-square mx-auto sm:mx-0 sm:w-[260px] sm:max-w-none sm:h-[260px] relative" style={{ overflow: 'visible' }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -448,7 +448,7 @@ export default function Holdings() {
                 <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center py-2 w-full"
                   onMouseLeave={() => setStockActiveIndex(-1)}
                 >
-                  <div className="flex-shrink-0 w-full max-w-[300px] aspect-square mx-auto sm:mx-0 sm:w-[220px] sm:max-w-none sm:h-[220px] relative">
+                  <div className="flex-shrink-0 w-full max-w-[300px] aspect-square mx-auto sm:mx-0 sm:w-[260px] sm:max-w-none sm:h-[260px] relative" style={{ overflow: 'visible' }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
