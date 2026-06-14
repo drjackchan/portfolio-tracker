@@ -318,18 +318,18 @@ export default function Holdings() {
             </CardHeader>
             <CardContent className="p-4">
               {cryptoAllocation.length === 0 ? (
-                <div className="h-[140px] flex items-center justify-center text-muted-foreground text-sm">No crypto holdings</div>
+                <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">No crypto holdings</div>
               ) : (
-                <div className="flex flex-col sm:flex-row items-center gap-4">
-                  <div className="w-[140px] h-[140px] flex-shrink-0">
+                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+                  <div className="flex-shrink-0 w-[180px] h-[180px] sm:w-[220px] sm:h-[220px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
                           data={cryptoAllocation}
                           cx="50%"
                           cy="50%"
-                          innerRadius={35}
-                          outerRadius={60}
+                          innerRadius={48}
+                          outerRadius={90}
                           dataKey="value"
                           nameKey="name"
                         >
@@ -346,18 +346,15 @@ export default function Holdings() {
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="flex-1 min-w-0 text-xs space-y-1 max-h-[140px] overflow-auto">
-                    {cryptoAllocation.slice(0, 6).map((d, i) => (
+                  <div className="flex-1 min-w-0 text-xs space-y-1.5 max-h-[220px] overflow-auto pr-1">
+                    {cryptoAllocation.map((d, i) => (
                       <div key={i} className="flex justify-between items-center">
-                        <span className="truncate pr-2">{d.name}</span>
+                        <span className="truncate pr-2 font-medium">{d.name}</span>
                         <span className="font-mono tabular-nums text-right flex-shrink-0">
-                          {formatCurrency(d.value, true)} <span className="text-muted-foreground">({d.pct.toFixed(0)}%)</span>
+                          {formatCurrency(d.value, true)} <span className="text-muted-foreground">({d.pct.toFixed(1)}%)</span>
                         </span>
                       </div>
                     ))}
-                    {cryptoAllocation.length > 6 && (
-                      <div className="text-muted-foreground pt-1">+{cryptoAllocation.length - 6} more</div>
-                    )}
                   </div>
                 </div>
               )}
@@ -371,18 +368,18 @@ export default function Holdings() {
             </CardHeader>
             <CardContent className="p-4">
               {stockAllocation.length === 0 ? (
-                <div className="h-[140px] flex items-center justify-center text-muted-foreground text-sm">No stock holdings</div>
+                <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">No stock holdings</div>
               ) : (
-                <div className="flex flex-col sm:flex-row items-center gap-4">
-                  <div className="w-[140px] h-[140px] flex-shrink-0">
+                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+                  <div className="flex-shrink-0 w-[180px] h-[180px] sm:w-[220px] sm:h-[220px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
                           data={stockAllocation}
                           cx="50%"
                           cy="50%"
-                          innerRadius={35}
-                          outerRadius={60}
+                          innerRadius={48}
+                          outerRadius={90}
                           dataKey="value"
                           nameKey="name"
                         >
@@ -399,18 +396,15 @@ export default function Holdings() {
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="flex-1 min-w-0 text-xs space-y-1 max-h-[140px] overflow-auto">
-                    {stockAllocation.slice(0, 6).map((d, i) => (
+                  <div className="flex-1 min-w-0 text-xs space-y-1.5 max-h-[220px] overflow-auto pr-1">
+                    {stockAllocation.map((d, i) => (
                       <div key={i} className="flex justify-between items-center">
-                        <span className="truncate pr-2">{d.name}</span>
+                        <span className="truncate pr-2 font-medium">{d.name}</span>
                         <span className="font-mono tabular-nums text-right flex-shrink-0">
-                          {formatCurrency(d.value, true)} <span className="text-muted-foreground">({d.pct.toFixed(0)}%)</span>
+                          {formatCurrency(d.value, true)} <span className="text-muted-foreground">({d.pct.toFixed(1)}%)</span>
                         </span>
                       </div>
                     ))}
-                    {stockAllocation.length > 6 && (
-                      <div className="text-muted-foreground pt-1">+{stockAllocation.length - 6} more</div>
-                    )}
                   </div>
                 </div>
               )}
